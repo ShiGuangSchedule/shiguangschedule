@@ -35,6 +35,7 @@ data class CourseScheme(
     val dbId: String? = null,
     val teacher: String = "",
     val position: String = "",
+    val credit: String = "",
     val remark: String = "",
     val day: Int = 1,
     val startSection: Int = 1,
@@ -128,6 +129,7 @@ class AddEditCourseViewModel(
                                 CourseScheme(
                                     teacher = initialPresetData?.teacher.orEmpty(),
                                     position = initialPresetData?.position.orEmpty(),
+                                    credit = initialPresetData?.credit?.toString().orEmpty(),
                                     remark = initialPresetData?.remark.orEmpty(),
                                     day = initialPresetData?.day ?: 1,
                                     startSection = initialPresetData?.startSection ?: 1,
@@ -147,6 +149,7 @@ class AddEditCourseViewModel(
                                     dbId = cw.course.id,
                                     teacher = cw.course.teacher,
                                     position = cw.course.position,
+                                    credit = cw.course.credit?.toString().orEmpty(), // 新增：读取已有学分
                                     remark = cw.course.remark.orEmpty(),
                                     day = cw.course.day,
                                     startSection = cw.course.startSection ?: 1,
@@ -193,10 +196,7 @@ class AddEditCourseViewModel(
      */
     fun hasUnsavedChanges(): Boolean {
         val state = uiState.value
-        // 如果数据还没加载好，认为没有变更
         if (!state.isDataLoaded) return false
-
-        // 比较名称或方案列表是否发生变化（CourseScheme 是 data class，支持内容比较）
         return state.name != initialName || state.schemes != initialSchemes
     }
 
@@ -209,6 +209,7 @@ class AddEditCourseViewModel(
             val newScheme = CourseScheme(
                 teacher = lastScheme?.teacher.orEmpty(),
                 position = lastScheme?.position.orEmpty(),
+                credit = lastScheme?.credit.orEmpty(),
                 remark = lastScheme?.remark.orEmpty(),
                 colorIndex = lastScheme?.colorIndex ?: 0,
                 weeks = (1..state.semesterTotalWeeks).toSet()
@@ -240,6 +241,12 @@ class AddEditCourseViewModel(
             state.copy(
                 schemes = state.schemes.map { it.copy(colorIndex = colorIndex) }
             )
+        }
+    }
+
+    fun onSchemeCreditChange(schemeId: String, credit: String) {
+        if (credit.isEmpty() || credit.matches(Regex("^\\d*\\.?\\d*$"))) {
+            updateScheme(schemeId) { it.copy(credit = credit) }
         }
     }
 
@@ -290,6 +297,7 @@ class AddEditCourseViewModel(
                     name = state.name,
                     teacher = scheme.teacher,
                     position = scheme.position,
+                    credit = scheme.credit.toFloatOrNull(),
                     remark = scheme.remark,
                     day = scheme.day,
                     startSection = if (scheme.isCustomTime) null else scheme.startSection,
@@ -325,6 +333,7 @@ class AddEditCourseViewModel(
         name = "",
         teacher = "",
         position = "",
+        credit = null,
         remark = null,
         day = 1,
         startSection = null,

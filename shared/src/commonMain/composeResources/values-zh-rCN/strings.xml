@@ -74,6 +74,9 @@
     <string name="label_end_time">结束时间</string>
     <string name="label_remark">备注</string>
     <string name="action_apply_to_all_schemes">应用到所有方案</string>
+    <string name="label_credit">学分</string>
+    <string name="credit_error_invalid">请输入有效的学分</string>
+    <string name="credit_support_format">支持整数或小数，如 2 或 1.5</string>
 
     <!-- 课程相关 -->
     <string name="course_time_description">时间: 第%1$s-%2$s节 (%3$s-%4$s)</string>
@@ -537,8 +540,10 @@
     <string name="label_page_text_color">课表页面文字颜色</string>
     <string name="label_course_text_color">课程块文字颜色</string>
     <string name="label_schedule_mode_24h">24小时时间轴模式</string>
+    <string name="style_category_other">其他样式</string>
     <string name="label_hide_date">隐藏日期</string>
     <string name="title_widget_style">小组件样式</string>
+    <string name="title_theme_seed_color">主题种子色</string>
 
     <!-- 快捷操作 -->
     <string name="item_quick_actions">快捷操作</string>
@@ -579,6 +584,7 @@
     <string name="backup_err_empty">备份文件为空，无法恢复</string>
     <string name="backup_err_corrupted">文件解析失败，数据可能已损坏</string>
     <string name="backup_err_version_too_new">该备份数据版本过新，请升级 App 后再试</string>
+    <string name="backup_err_version_too_old">备份文件版本过低，暂不支持恢复</string>
     <string name="item_backup_restore">备份与恢复</string>
     <string name="desc_backup_restore">支持云盘与本地文件多渠道备份，保障课表数据安全</string>
     <string name="section_data_maintenance">数据维护</string>
@@ -611,7 +617,4 @@
     <string name="backup_target_webdav">WebDAV 云同步</string>
     <string name="backup_target_local_zip">本地 ZIP 文件</string>
 
-    <string name="title_theme_seed_color">主题种子色</string>
-    <string name="style_category_other">其他样式</string>
-    <string name="backup_err_version_too_old">备份文件版本过低，暂不支持恢复</string>
 </resources>

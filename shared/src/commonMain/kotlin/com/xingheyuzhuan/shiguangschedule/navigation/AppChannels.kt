@@ -14,6 +14,7 @@ data class PresetCourseData(
     val name: String? = null,
     val teacher: String? = null,
     val position: String? = null,
+    val credit: Float? = null,          // 学分预设
     val remark: String? = null,         // 备注信息的预设
     val day: Int? = null,               // 周几 (1=周一, 7=周日)
 

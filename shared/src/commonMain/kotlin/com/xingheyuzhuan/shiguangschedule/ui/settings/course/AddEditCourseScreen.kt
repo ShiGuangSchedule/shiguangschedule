@@ -47,12 +47,12 @@ import shiguangschedule.shared.generated.resources.a11y_save
 import shiguangschedule.shared.generated.resources.action_add
 import shiguangschedule.shared.generated.resources.add_24px
 import shiguangschedule.shared.generated.resources.arrow_back_24px
+import shiguangschedule.shared.generated.resources.check_24px
 import shiguangschedule.shared.generated.resources.common_action_continue_editing
 import shiguangschedule.shared.generated.resources.common_action_exit_without_save
 import shiguangschedule.shared.generated.resources.common_dialog_msg_unsaved_changes
 import shiguangschedule.shared.generated.resources.common_dialog_title_abandon_changes
 import shiguangschedule.shared.generated.resources.delete_24px
-import shiguangschedule.shared.generated.resources.check_24px
 import shiguangschedule.shared.generated.resources.label_course_name
 import shiguangschedule.shared.generated.resources.title_add_course
 import shiguangschedule.shared.generated.resources.title_edit_course
@@ -211,6 +211,9 @@ fun AddEditCourseScreen(
                     },
                     onPositionChange = { newPos ->
                         viewModel.updateScheme(scheme.id) { it.copy(position = newPos) }
+                    },
+                    onCreditChange = { newCredit ->
+                        viewModel.updateScheme(scheme.id) { it.copy(credit = newCredit) }
                     },
                     onRemarkChange = { newRemark ->
                         viewModel.onSchemeRemarkChange(scheme.id, newRemark)

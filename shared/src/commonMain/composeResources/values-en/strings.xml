@@ -609,4 +609,7 @@
     <string name="title_theme_seed_color">Theme seed color</string>
     <string name="style_category_other">Other styles</string>
     <string name="backup_err_version_too_old">The backup file version is too old and is no longer supported.</string>
+    <string name="label_credit">Credit</string>
+    <string name="credit_error_invalid">Please enter a valid credit</string>
+    <string name="credit_support_format">Supports integer or decimal, e.g. 2 or 1.5</string>
 </resources>

@@ -110,7 +110,8 @@ object CourseImportExport {
         val customStartTime: String? = null,
         val customEndTime: String? = null,
         val color: Int? = null,
-        val remark: String? = null
+        val remark: String? = null,
+        val credit: Float? = null
     )
 
     // 导出时使用的 JSON 模型
@@ -130,12 +131,13 @@ object CourseImportExport {
         val day: Int,
         val startSection: Int? = null,
         val endSection: Int? = null,
-        val color: Int, // 导出时颜色必须
         val weeks: List<Int>,
         val isCustomTime: Boolean = false,
         val customStartTime: String? = null,
         val customEndTime: String? = null,
-        val remark: String? = null
+        val color: Int,
+        val remark: String? = null,
+        val credit: Float? = null
     )
 
     // 导入和导出都通用的时间段模型

@@ -39,4 +39,5 @@ data class Course(
     val customEndTime: String?,   // 自定义结束时间，格式为 "HH:MM"
     val colorInt: Int, // 课程卡片的颜色索引
     val remark: String? = null, // 课程备注信息，限 300 字以内
+    val credit: Float? = null, // 课程学分
 )

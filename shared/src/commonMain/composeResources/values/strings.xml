@@ -74,6 +74,9 @@
     <string name="label_end_time">结束时间</string>
     <string name="label_remark">备注</string>
     <string name="action_apply_to_all_schemes">应用到所有方案</string>
+    <string name="label_credit">学分</string>
+    <string name="credit_error_invalid">请输入有效的学分</string>
+    <string name="credit_support_format">支持整数或小数，如 2 或 1.5</string>
 
     <!-- 课程相关 -->
     <string name="course_time_description">时间: 第%1$s-%2$s节 (%3$s-%4$s)</string>

@@ -192,7 +192,8 @@ class CourseConversionRepository(
                     customStartTime = jsonCourse.customStartTime,
                     customEndTime = jsonCourse.customEndTime,
                     colorInt = courseIndex,
-                    remark = jsonCourse.remark?.take(300)
+                    remark = jsonCourse.remark?.take(300),
+                    credit = jsonCourse.credit
                 )
             )
 
@@ -398,7 +399,8 @@ class CourseConversionRepository(
                 isCustomTime = course.isCustomTime,
                 customStartTime = course.customStartTime,
                 customEndTime = course.customEndTime,
-                remark = course.remark
+                remark = course.remark,
+                credit = course.credit
             )
         }
 
