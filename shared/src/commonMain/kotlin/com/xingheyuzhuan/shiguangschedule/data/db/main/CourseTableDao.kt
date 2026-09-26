@@ -13,6 +13,19 @@ import kotlinx.coroutines.flow.Flow
  */
 @Dao
 interface CourseTableDao {
+
+    /**
+     * 获取所有课表（用于全量备份）
+     */
+    @Query("SELECT * FROM course_tables")
+    suspend fun getAll(): List<CourseTable>
+
+    /**
+     * 清空所有课表数据（用于全量恢复）
+     */
+    @Query("DELETE FROM course_tables")
+    suspend fun clearAll()
+
     /**
      * 获取所有课表，并按创建时间倒序排列。
      */

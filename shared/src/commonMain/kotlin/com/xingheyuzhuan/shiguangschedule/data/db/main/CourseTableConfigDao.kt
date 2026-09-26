@@ -10,6 +10,18 @@ import kotlinx.coroutines.flow.Flow
 interface CourseTableConfigDao {
 
     /**
+     * 获取所有课表配置（用于全量备份）
+     */
+    @Query("SELECT * FROM course_table_config")
+    suspend fun getAll(): List<CourseTableConfig>
+
+    /**
+     * 清空所有课表配置（用于全量恢复）
+     */
+    @Query("DELETE FROM course_table_config")
+    suspend fun clearAll()
+
+    /**
      * 插入或更新课表配置。
      * 当配置已存在时，进行替换（更新）。
      */

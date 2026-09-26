@@ -608,4 +608,5 @@
     <string name="title_widget_style">小工具樣式</string>
     <string name="title_theme_seed_color">主題種子色</string>
     <string name="style_category_other">其他樣式</string>
+    <string name="backup_err_version_too_old">備份檔案版本過舊，暫不支援還原</string>
 </resources>

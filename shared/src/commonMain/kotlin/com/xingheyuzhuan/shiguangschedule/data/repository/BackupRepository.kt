@@ -1,18 +1,19 @@
 package com.xingheyuzhuan.shiguangschedule.data.repository
 
-import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTable
+import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTableConfigDao
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTableDao
+import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseDao
+import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTimeBindingDao
+import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWeekDao
+import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlotDao
+import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeTableComboDao
+import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeTableDao
 import com.xingheyuzhuan.shiguangschedule.data.model.CourseImportExport
-import com.xingheyuzhuan.shiguangschedule.data.model.CourseImportExport.CourseTableImportModel
-import com.xingheyuzhuan.shiguangschedule.data.model.CourseImportExport.ImportCourseJsonModel
-import com.xingheyuzhuan.shiguangschedule.data.model.CourseImportExport.SingleTablePack
-import com.xingheyuzhuan.shiguangschedule.data.model.CourseImportExport.TotalAppBackupEnvelope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.ExperimentalSerializationApi
 import org.jetbrains.compose.resources.getString
 import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
@@ -20,6 +21,7 @@ import shiguangschedule.shared.generated.resources.Res
 import shiguangschedule.shared.generated.resources.backup_err_corrupted
 import shiguangschedule.shared.generated.resources.backup_err_empty
 import shiguangschedule.shared.generated.resources.backup_err_version_too_new
+import shiguangschedule.shared.generated.resources.backup_err_version_too_old
 import kotlin.time.Clock
 
 /**
@@ -54,17 +56,21 @@ data class ModuleInfo(
 
 /**
  * 备份与恢复的中央总仓库（KMP 共享层）
- * 职责：调度各业务模块的原子化备份与恢复，确保全软件数据的一致性与扩展性。
  */
 @Single
 class BackupRepository(
     @Named("AppVersionCode") private val appVersionCode: Int,
     @Named("AppVersionName") private val appVersionName: String,
-    private val courseTableDao: CourseTableDao,
-    private val courseTableRepository: CourseTableRepository,
-    private val courseConversionRepository: CourseConversionRepository,
     private val appSettingsRepository: AppSettingsRepository,
-    private val styleSettingsRepository: StyleSettingsRepository
+    private val styleSettingsRepository: StyleSettingsRepository,
+    private val courseTableDao: CourseTableDao,
+    private val courseTableConfigDao: CourseTableConfigDao,
+    private val courseDao: CourseDao,
+    private val courseWeekDao: CourseWeekDao,
+    private val courseTimeBindingDao: CourseTimeBindingDao,
+    private val timeTableDao: TimeTableDao,
+    private val timeSlotDao: TimeSlotDao,
+    private val timeTableComboDao: TimeTableComboDao
 ) {
 
     /**
@@ -119,6 +125,9 @@ class BackupRepository(
                         if (info.schemaVersion > CourseImportExport.COURSE_SCHEMA_VERSION) {
                             return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_version_too_new)))
                         }
+                        if (info.schemaVersion < CourseImportExport.COURSE_SCHEMA_VERSION) {
+                            return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_version_too_old)))
+                        }
                     }
                     BackupModule.STYLE.key -> {
                         if (info.schemaVersion > StyleSettingsRepository.STYLE_SCHEMA_VERSION) {
@@ -142,33 +151,43 @@ class BackupRepository(
         }
     }
 
-    // 1. 课表核心业务通道
+    // 1. 课表核心业务通道（基于结构化 DAO 读写）
 
+    /**
+     * 导出所有课表数据并序列化为 CBOR 字节数组
+     */
     @OptIn(ExperimentalSerializationApi::class)
     suspend fun exportAllCourseTablesCbor(): ByteArray? = withContext(Dispatchers.IO) {
         try {
-            val allTablesFromDb = courseTableRepository.getAllCourseTables().first()
-            if (allTablesFromDb.isEmpty()) return@withContext null
             val appSettings = appSettingsRepository.getAppSettingsOnce()
 
-            val tablePacks = allTablesFromDb.mapNotNull { table ->
-                val exportModel = courseConversionRepository.exportCourseTableToJson(table.id) ?: return@mapNotNull null
-                SingleTablePack(table.id, table.name, table.createdAt, exportModel)
-            }
-
-            val envelope = TotalAppBackupEnvelope(
+            // 使用 CourseImportExport 中定义的总信封及实体载体
+            val envelope = CourseImportExport.TotalAppBackupEnvelope(
                 backupTimestamp = Clock.System.now().toEpochMilliseconds(),
                 appVersionCode = CourseImportExport.COURSE_SCHEMA_VERSION,
                 currentCourseTableId = appSettings.currentCourseTableId,
-                allTables = tablePacks
+                databasePayload = CourseImportExport.CourseDatabasePayload(
+                    courseTables = courseTableDao.getAll(),
+                    courseTableConfigs = courseTableConfigDao.getAll(),
+                    courses = courseDao.getAll(),
+                    courseWeeks = courseWeekDao.getAll(),
+                    courseTimeBindings = courseTimeBindingDao.getAll(),
+                    timeTables = timeTableDao.getAll(),
+                    timeSlots = timeSlotDao.getAll(),
+                    timeTableCombos = timeTableComboDao.getAll(),
+                    timeTableComboRules = timeTableComboDao.getAllRules()
+                )
             )
 
-            CourseImportExport.cbor.encodeToByteArray(TotalAppBackupEnvelope.serializer(), envelope)
+            CourseImportExport.cbor.encodeToByteArray(CourseImportExport.TotalAppBackupEnvelope.serializer(), envelope)
         } catch (e: Exception) {
             null
         }
     }
 
+    /**
+     * 解析 CBOR 字节数组并通过 DAO 全量恢复课表数据
+     */
     @OptIn(ExperimentalSerializationApi::class)
     suspend fun restoreAllCourseTablesCbor(cborBytes: ByteArray): Result<Unit> = withContext(Dispatchers.IO) {
         try {
@@ -177,8 +196,8 @@ class BackupRepository(
             }
 
             val envelope = try {
-                CourseImportExport.cbor.decodeFromByteArray(TotalAppBackupEnvelope.serializer(), cborBytes)
-            } catch (_: Exception) {
+                CourseImportExport.cbor.decodeFromByteArray(CourseImportExport.TotalAppBackupEnvelope.serializer(), cborBytes)
+            } catch (e: Exception) {
                 return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_corrupted)))
             }
 
@@ -186,29 +205,58 @@ class BackupRepository(
                 return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_version_too_new)))
             }
 
-            courseTableRepository.getAllCourseTables().first().forEach { courseTableDao.delete(it) }
-
-            envelope.allTables.forEach { pack ->
-                courseTableDao.insert(CourseTable(pack.tableId, pack.tableName, pack.createdAt))
-                val importModel = CourseTableImportModel(
-                    courses = pack.tableData.courses.map {
-                        ImportCourseJsonModel(it.id, it.name, it.teacher, it.position, it.day, it.startSection, it.endSection, it.weeks, it.isCustomTime, it.customStartTime, it.customEndTime, it.color, it.remark)
-                    },
-                    timeSlots = pack.tableData.timeSlots,
-                    config = pack.tableData.config
-                )
-                courseConversionRepository.importCourseTableFromJson(pack.tableId, importModel)
+            if (envelope.appVersionCode < CourseImportExport.COURSE_SCHEMA_VERSION) {
+                return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_version_too_old)))
             }
 
-            val backupTargetTableId = envelope.currentCourseTableId
-            val finalTableId = if (envelope.allTables.any { it.tableId == backupTargetTableId }) {
-                backupTargetTableId
-            } else {
-                envelope.allTables.firstOrNull()?.tableId ?: ""
+            val payload = envelope.databasePayload
+
+            // 清空旧数据（依外键从属倒序清理）
+            courseWeekDao.clearAll()
+            courseDao.clearAll()
+            courseTableConfigDao.clearAll()
+            courseTimeBindingDao.clearAll()
+            timeTableComboDao.clearAllRules()
+            timeTableComboDao.clearAll()
+            timeSlotDao.clearAll()
+            timeTableDao.clearAll()
+            courseTableDao.clearAll()
+
+            // 写入新数据（依主从关系正序写入）
+            if (payload.courseTables.isNotEmpty()) {
+                payload.courseTables.forEach { courseTableDao.insert(it) }
+            }
+            if (payload.timeTables.isNotEmpty()) {
+                payload.timeTables.forEach { timeTableDao.insert(it) }
+            }
+            if (payload.timeSlots.isNotEmpty()) {
+                timeSlotDao.insertAll(payload.timeSlots)
+            }
+            if (payload.courseTables.isNotEmpty()) {
+                payload.courseTables.forEach { table ->
+                    payload.courseTableConfigs.find { it.courseTableId == table.id }?.let {
+                        courseTableConfigDao.insertOrUpdate(it)
+                    }
+                }
+            }
+            if (payload.courses.isNotEmpty()) {
+                courseDao.insertAll(payload.courses)
+            }
+            if (payload.courseWeeks.isNotEmpty()) {
+                courseWeekDao.insertAll(payload.courseWeeks)
+            }
+            if (payload.courseTimeBindings.isNotEmpty()) {
+                payload.courseTimeBindings.forEach { courseTimeBindingDao.insertOrUpdate(it) }
+            }
+            if (payload.timeTableCombos.isNotEmpty()) {
+                payload.timeTableCombos.forEach { timeTableComboDao.insertCombo(it) }
+            }
+            if (payload.timeTableComboRules.isNotEmpty()) {
+                timeTableComboDao.insertRules(payload.timeTableComboRules)
             }
 
             val currentSettings = appSettingsRepository.getAppSettingsOnce()
-            appSettingsRepository.insertOrUpdateAppSettings(currentSettings.copy(currentCourseTableId = finalTableId))
+            envelope.currentCourseTableId.let { appSettingsRepository.insertOrUpdateAppSettings(currentSettings.copy(currentCourseTableId = it)) }
 
             Result.success(Unit)
         } catch (e: Exception) {

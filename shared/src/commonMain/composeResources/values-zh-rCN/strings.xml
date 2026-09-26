@@ -613,4 +613,5 @@
 
     <string name="title_theme_seed_color">主题种子色</string>
     <string name="style_category_other">其他样式</string>
+    <string name="backup_err_version_too_old">备份文件版本过低，暂不支持恢复</string>
 </resources>

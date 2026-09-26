@@ -608,4 +608,5 @@
     <string name="title_widget_style">Widget style</string>
     <string name="title_theme_seed_color">Theme seed color</string>
     <string name="style_category_other">Other styles</string>
+    <string name="backup_err_version_too_old">The backup file version is too old and is no longer supported.</string>
 </resources>

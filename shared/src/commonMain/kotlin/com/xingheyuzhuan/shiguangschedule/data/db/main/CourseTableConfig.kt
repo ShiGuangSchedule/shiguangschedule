@@ -6,11 +6,13 @@ import androidx.room3.Index
 import androidx.room3.PrimaryKey
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.isoDayNumber
+import kotlinx.serialization.Serializable
 
 /**
  * Room 实体类，代表“课表配置”数据表。
  * 与 CourseTable 形成一对一关系，存储课表专属的设置。
  */
+@Serializable
 @Entity(
     tableName = "course_table_config",
     foreignKeys = [

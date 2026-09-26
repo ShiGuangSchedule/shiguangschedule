@@ -2,11 +2,13 @@ package com.xingheyuzhuan.shiguangschedule.data.db.main
 
 import androidx.room3.Entity
 import androidx.room3.PrimaryKey
+import kotlinx.serialization.Serializable
 
 /**
  * Room 实体类，代表“课表元数据”数据表。
  * 存储每个课表的唯一信息，例如名称和 ID。
  */
+@Serializable
 @Entity(tableName = "course_tables")
 data class CourseTable(
     @PrimaryKey

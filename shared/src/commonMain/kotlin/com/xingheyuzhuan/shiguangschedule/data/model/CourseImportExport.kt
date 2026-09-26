@@ -1,23 +1,33 @@
 package com.xingheyuzhuan.shiguangschedule.data.model
 
+import com.xingheyuzhuan.shiguangschedule.data.db.main.Course
+import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTable
+import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTableConfig
+import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTimeBinding
+import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWeek
+import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
+import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeTable
+import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeTableCombo
+import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeTableComboRule
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.cbor.Cbor
+import kotlinx.serialization.json.Json
 
 object CourseImportExport {
 
     /**
      * 核心数据规范版本号
-     * 确立基础全量多课表 CBOR 备份协议规范
-     * 未来如果重构了底层数据架构（如颠覆了基础字段或关联关系），可手动升级为 2，借此编写迁移清洗流
+     * v1: 单表 JSON 导出的多课表集合协议 (List<SingleTablePack>)
+     * v2: 全盘 CBOR 结构化全量数据备份协议 (CourseDatabasePayload)
      */
-    const val COURSE_SCHEMA_VERSION = 1
+    const val COURSE_SCHEMA_VERSION = 2
 
     /**
-     * 自定义 Json 解析器
-     * ignoreUnknownKeys = true: 确保旧版 App 遇到新加的字段（如 remark）时能跳过而不崩溃
+     * 自定义 Json 解析器（用于单表 JSON 导出导入）
+     * ignoreUnknownKeys = true: 确保旧版 App 遇到新加的字段时能跳过而不崩溃
      * encodeDefaults = true: 导出时即使字段是默认值也会包含在 JSON 中
+     * coerceInputValues = true: 容错解析，如 null 转为默认值
      */
     val json = Json {
         ignoreUnknownKeys = true
@@ -26,12 +36,14 @@ object CourseImportExport {
     }
 
     /**
-     * CBOR 解析器（用于全盘多表备份、WebDAV 高密二进制流场景）
+     * CBOR 解析器（用于全盘数据结构化备份流场景）
      */
     @OptIn(ExperimentalSerializationApi::class)
     val cbor = Cbor {
         ignoreUnknownKeys = true
     }
+
+    // 全盘二进制备份/恢复协议结构（用于 BackupRepository 全量备份）
 
     /**
      * 全盘备份文件的最外层“集装箱”
@@ -39,31 +51,40 @@ object CourseImportExport {
     @Serializable
     data class TotalAppBackupEnvelope(
         val backupTimestamp: Long,          // 备份生成的时间戳
-        val appVersionCode: Int,            // 实际承载 CURRENT_SCHEMA_VERSION，代表数据协议版本
+        val appVersionCode: Int,            // 实际承载 COURSE_SCHEMA_VERSION，代表数据协议版本
         val currentCourseTableId: String,   // 备份前用户当前激活/选中的课表 ID
-        val allTables: List<SingleTablePack> // 系统中所有课表的总集合列表
+        val databasePayload: CourseDatabasePayload // 核心数据库所有实体的结构化载体
     )
 
     /**
-     * 单个课表资产的隔离包裹
+     * 全量数据库实体载体（替换原本的二进制 .db 字节数组载体）
      */
     @Serializable
-    data class SingleTablePack(
-        val tableId: String,          // 课表在数据库中的物理 UUID 主键
-        val tableName: String,        // 课表名称
-        val createdAt: Long,          // 课表本身的创建时间戳，用于恢复后列表排序
-        val tableData: CourseTableExportModel // 直接复用单表导出模型
+    data class CourseDatabasePayload(
+        // 1. 课表核心相关表数据
+        val courseTables: List<CourseTable> = emptyList(),
+        val courseTableConfigs: List<CourseTableConfig> = emptyList(),
+        val courseTimeBindings: List<CourseTimeBinding> = emptyList(),
+        val courses: List<Course> = emptyList(),
+        val courseWeeks: List<CourseWeek> = emptyList(),
+
+        // 2. 作息方案相关表数据
+        val timeTables: List<TimeTable> = emptyList(),
+        val timeSlots: List<TimeSlot> = emptyList(),
+        val timeTableCombos: List<TimeTableCombo> = emptyList(),
+        val timeTableComboRules: List<TimeTableComboRule> = emptyList()
     )
 
-
+    // =========================================================================
+    // 单表 JSON 导入/导出数据结构（用于 CourseConversionRepository）
 
     // 用于 JSON 导入和导出的配置模型
     @Serializable
     data class CourseConfigJsonModel(
         val semesterStartDate: String? = null,
         val semesterTotalWeeks: Int = 20,
-        val defaultClassDuration: Int = 45,
-        val defaultBreakDuration: Int = 10,
+        val defaultClassDuration: Int = 45, // 基准作息的默认单节时长
+        val defaultBreakDuration: Int = 10, // 基准作息的默认休息时长
         val firstDayOfWeek: Int = 1
     )
 
@@ -71,20 +92,20 @@ object CourseImportExport {
     @Serializable
     data class CourseTableImportModel(
         val courses: List<ImportCourseJsonModel>,
-        val timeSlots: List<TimeSlotJsonModel>? = emptyList(),
-        val config: CourseConfigJsonModel? = null
+        val timeSlots: List<TimeSlotJsonModel>? = emptyList(), // 跟随/基准作息
+        val config: CourseConfigJsonModel? = null,
+        val comboSchedule: ComboScheduleJsonModel? = null       // 组合作息扩展（可选）
     )
 
     @Serializable
     data class ImportCourseJsonModel(
-        val id: String? = null,
         val name: String,
         val teacher: String,
         val position: String,
         val day: Int,
         val startSection: Int? = null,
         val endSection: Int? = null,
-        val weeks: List<Int>,
+        val weeks: List<Int> = emptyList(),
         val isCustomTime: Boolean = false,
         val customStartTime: String? = null,
         val customEndTime: String? = null,
@@ -96,13 +117,13 @@ object CourseImportExport {
     @Serializable
     data class CourseTableExportModel(
         val courses: List<ExportCourseJsonModel>,
-        val timeSlots: List<TimeSlotJsonModel>,
-        val config: CourseConfigJsonModel
+        val timeSlots: List<TimeSlotJsonModel>,             // 跟随/基准作息
+        val config: CourseConfigJsonModel,
+        val comboSchedule: ComboScheduleJsonModel? = null   // 组合作息扩展（可选）
     )
 
     @Serializable
     data class ExportCourseJsonModel(
-        val id: String, // 导出时id必须
         val name: String,
         val teacher: String,
         val position: String,
@@ -114,7 +135,7 @@ object CourseImportExport {
         val isCustomTime: Boolean = false,
         val customStartTime: String? = null,
         val customEndTime: String? = null,
-        val remark: String?
+        val remark: String? = null
     )
 
     // 导入和导出都通用的时间段模型
@@ -126,4 +147,21 @@ object CourseImportExport {
         val alias: String? = null
     )
 
+    // 组合作息配置模型
+    @Serializable
+    data class ComboScheduleJsonModel(
+        val name: String? = null, // 组合作息方案名称
+        val publicSchedules: List<PublicScheduleTemplateJsonModel> = emptyList() // 公共作息模板规则列表
+    )
+
+    // 组合作息下辖的公共作息模板模型
+    @Serializable
+    data class PublicScheduleTemplateJsonModel(
+        val name: String,                   // 公共作息名称（如"夏季作息"）
+        val startDate: String,              // 生效起始日期 "2026-05-01"
+        val endDate: String,                // 生效结束日期 "2026-09-30"
+        val defaultClassDuration: Int = 45, // 该公共作息下的单节时长
+        val defaultBreakDuration: Int = 10, // 该公共作息下的休息时长
+        val timeSlots: List<TimeSlotJsonModel> // 该公共作息对应的节次时间点
+    )
 }

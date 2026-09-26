@@ -14,6 +14,32 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface TimeTableComboDao {
 
+    // --- 全量备份与恢复方法 ---
+
+    /**
+     * 获取所有组合作息元数据（用于全量备份）
+     */
+    @Query("SELECT * FROM time_table_combos")
+    suspend fun getAll(): List<TimeTableCombo>
+
+    /**
+     * 清空所有组合作息元数据（用于全量恢复）
+     */
+    @Query("DELETE FROM time_table_combos")
+    suspend fun clearAll()
+
+    /**
+     * 获取所有组合作息调度规则（用于全量备份）
+     */
+    @Query("SELECT * FROM time_table_combo_rules")
+    suspend fun getAllRules(): List<TimeTableComboRule>
+
+    /**
+     * 清空所有组合作息调度规则（用于全量恢复）
+     */
+    @Query("DELETE FROM time_table_combo_rules")
+    suspend fun clearAllRules()
+
     // --- TimeTableCombo 基础操作 ---
 
     @Query("SELECT * FROM time_table_combos WHERE id = :id LIMIT 1")

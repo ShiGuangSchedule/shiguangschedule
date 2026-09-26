@@ -2,12 +2,14 @@ package com.xingheyuzhuan.shiguangschedule.data.db.main
 
 import androidx.room3.Entity
 import androidx.room3.PrimaryKey
+import kotlinx.serialization.Serializable
 
 /**
  * 时间表实体
  * - 专属表：id == courseTableId 且 name == null
  * - 公共表：id 为独立 UUID 且 name != null
  */
+@Serializable
 @Entity(tableName = "time_tables")
 data class TimeTable(
     @PrimaryKey

@@ -13,6 +13,19 @@ import kotlinx.coroutines.flow.Flow
  */
 @Dao
 interface TimeSlotDao {
+
+    /**
+     * 获取所有时间段（用于全量备份）
+     */
+    @Query("SELECT * FROM time_slots")
+    suspend fun getAll(): List<TimeSlot>
+
+    /**
+     * 清空所有时间段数据（用于全量恢复）
+     */
+    @Query("DELETE FROM time_slots")
+    suspend fun clearAll()
+
     /**
      * 获取指定作息表 (TimeTable) 的所有时间段，并按节次编号升序排列（响应式 Flow）。
      */

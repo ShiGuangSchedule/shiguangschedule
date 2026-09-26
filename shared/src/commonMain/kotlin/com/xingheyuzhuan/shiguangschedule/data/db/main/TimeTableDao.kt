@@ -14,6 +14,18 @@ import kotlinx.coroutines.flow.Flow
 interface TimeTableDao {
 
     /**
+     * 获取所有作息表（用于全量备份）
+     */
+    @Query("SELECT * FROM time_tables")
+    suspend fun getAll(): List<TimeTable>
+
+    /**
+     * 清空所有作息表数据（用于全量恢复）
+     */
+    @Query("DELETE FROM time_tables")
+    suspend fun clearAll()
+
+    /**
      * 根据 ID 获取作息表
      */
     @Query("SELECT * FROM time_tables WHERE id = :id LIMIT 1")

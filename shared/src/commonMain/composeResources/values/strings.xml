@@ -581,6 +581,7 @@
     <string name="backup_err_empty">备份文件为空，无法恢复</string>
     <string name="backup_err_corrupted">文件解析失败，数据可能已损坏</string>
     <string name="backup_err_version_too_new">该备份数据版本过新，请升级 App 后再试</string>
+    <string name="backup_err_version_too_old">备份文件版本过低，暂不支持恢复</string>
     <string name="item_backup_restore">备份与恢复</string>
     <string name="desc_backup_restore">支持云盘与本地文件多渠道备份，保障课表数据安全</string>
     <string name="section_data_maintenance">数据维护</string>

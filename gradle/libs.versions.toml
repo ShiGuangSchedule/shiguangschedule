@@ -41,7 +41,7 @@ koin = "4.2.2"
 koin-plugin = "1.1.0"
 coil = "3.5.0"
 aboutLibraries = "15.0.4"
-kgit = "1.0.2"
+kgit = "1.0.3"
 
 
 [libraries]
@@ -95,7 +95,7 @@ androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx"
 # Ktor (跨平台 HTTP 客户端)
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
-ktor-client-android = { module = "io.ktor:ktor-client-android", version.ref = "ktor" }
+ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
 ktor-client-java = { module = "io.ktor:ktor-client-java", version.ref = "ktor" }
 ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
@@ -120,7 +120,6 @@ koin-android = { module = "io.insert-koin:koin-android" }
 koin-androidx-workmanager = { module = "io.insert-koin:koin-androidx-workmanager" }
 koin-compose = { module = "io.insert-koin:koin-compose" }
 koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel" }
-koin-compose-navigation3 = { module = "io.insert-koin:koin-compose-navigation3" }
 koin-annotations = { module = "io.insert-koin:koin-annotations", version.ref = "koin" }
 
 

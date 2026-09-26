@@ -4,12 +4,14 @@ import androidx.room3.Entity
 import androidx.room3.ForeignKey
 import androidx.room3.Index
 import androidx.room3.PrimaryKey
+import kotlinx.serialization.Serializable
 
 /**
  * Room 实体类，代表“课程”数据表。
  * 它存储每门课程的详细信息，并与 `CourseTable` 关联。
  * 支持标准节次时间和自定义周重复时间两种模式。
  */
+@Serializable
 @Entity(
     tableName = "courses",
     foreignKeys = [ForeignKey(
