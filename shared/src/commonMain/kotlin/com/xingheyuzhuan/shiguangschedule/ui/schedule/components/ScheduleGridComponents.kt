@@ -44,7 +44,7 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWithWeeks
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
-import com.xingheyuzhuan.shiguangschedule.ui.schedule.MergedCourseBlock
+import com.xingheyuzhuan.shiguangschedule.ui.schedule.model.MergedCourseBlock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock

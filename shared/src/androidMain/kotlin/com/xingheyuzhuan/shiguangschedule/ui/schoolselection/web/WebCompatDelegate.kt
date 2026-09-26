@@ -34,15 +34,17 @@ class WebCompatDelegate(private val webView: WebView) {
             allowFileAccess = true
             allowContentAccess = true
             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-            useWideViewPort = true
-            loadWithOverviewMode = true
 
             if (isDesktopMode) {
                 userAgentString = DESKTOP_USER_AGENT
-                layoutAlgorithm = WebSettings.LayoutAlgorithm.TEXT_AUTOSIZING
+                layoutAlgorithm = WebSettings.LayoutAlgorithm.NORMAL
+                useWideViewPort = false
+                loadWithOverviewMode = false
             } else {
                 userAgentString = defaultUserAgent
                 layoutAlgorithm = WebSettings.LayoutAlgorithm.NORMAL
+                useWideViewPort = true
+                loadWithOverviewMode = true
             }
 
             setSupportZoom(true)
@@ -84,14 +86,7 @@ class WebCompatDelegate(private val webView: WebView) {
             override fun onPageFinished(view: WebView?, url: String?) {
                 original.onPageFinished(view, url)
 
-                view?.let { wv ->
-                    wv.evaluateJavascript(JS_INTERCEPT_POST, null)
-
-                    if (isDesktopModeProvider()) {
-                        injectDesktopViewportFix(wv)
-                    }
-                    wv.injectAllJavaScript()
-                }
+                view?.injectAllJavaScript()
             }
 
             override fun onReceivedSslError(v: WebView?, h: SslErrorHandler?, e: SslError?) {
@@ -101,34 +96,6 @@ class WebCompatDelegate(private val webView: WebView) {
             override fun onReceivedError(v: WebView, q: WebResourceRequest, e: WebResourceError) =
                 original.onReceivedError(v, q, e)
         }
-    }
-
-    /**
-     * 仅在桌面模式下补全 Viewport Meta 标签与触发 resize，避免 PC 网页排版挤压
-     */
-    private fun injectDesktopViewportFix(view: WebView) {
-        val desktopWidth = 1280
-        view.evaluateJavascript("""
-            (function() {
-                try {
-                    var metas = document.getElementsByTagName('meta');
-                    for (var i = metas.length - 1; i >= 0; i--) {
-                        if (metas[i].getAttribute('name') === 'viewport') {
-                            metas[i].parentNode.removeChild(metas[i]);
-                        }
-                    }
-                    var meta = document.createElement('meta');
-                    meta.name = "viewport";
-                    meta.content = "width=$desktopWidth, initial-scale=1.0, minimum-scale=0.1, maximum-scale=5.0, user-scalable=yes";
-                    document.head.appendChild(meta);
-
-                    // 触发 resize 事件促使根据 window 宽高度重绘的 JS 组件重新计算高度
-                    window.dispatchEvent(new Event('resize'));
-                } catch(e) {
-                    console.error("injectDesktopViewportFix Error: ", e);
-                }
-            })();
-        """.trimIndent(), null)
     }
 
     fun wrapWebChromeClient(original: WebChromeClient, onProgress: (Int) -> Unit): WebChromeClient {

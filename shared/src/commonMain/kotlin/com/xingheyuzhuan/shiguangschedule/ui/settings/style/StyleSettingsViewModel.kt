@@ -11,10 +11,10 @@ import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.BorderTypePr
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleModeProto
 import com.xingheyuzhuan.shiguangschedule.data.repository.AppSettingsRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.StyleSettingsRepository
-import com.xingheyuzhuan.shiguangschedule.ui.schedule.MergedCourseBlock
-import com.xingheyuzhuan.shiguangschedule.ui.schedule.WeeklyScheduleUiState
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGridStyleComposed
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGridStyleComposed.Companion.toComposedStyle
+import com.xingheyuzhuan.shiguangschedule.ui.schedule.model.MergedCourseBlock
+import com.xingheyuzhuan.shiguangschedule.ui.schedule.model.WeeklyScheduleUiState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.IO

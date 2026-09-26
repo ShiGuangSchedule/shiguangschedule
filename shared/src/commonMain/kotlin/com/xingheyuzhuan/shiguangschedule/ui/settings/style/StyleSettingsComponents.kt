@@ -65,13 +65,13 @@ import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleMode
 import com.xingheyuzhuan.shiguangschedule.ui.components.AdvancedColorPicker
 import com.xingheyuzhuan.shiguangschedule.ui.components.ColorPickerConfig
 import com.xingheyuzhuan.shiguangschedule.ui.components.SliderWithInputField
-import com.xingheyuzhuan.shiguangschedule.ui.schedule.MergedCourseBlock
-import com.xingheyuzhuan.shiguangschedule.ui.schedule.WeeklyScheduleUiState
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGrid
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGridActions
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGridStyleComposed
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGridViewState
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.rememberScheduleGridState
+import com.xingheyuzhuan.shiguangschedule.ui.schedule.model.MergedCourseBlock
+import com.xingheyuzhuan.shiguangschedule.ui.schedule.model.WeeklyScheduleUiState
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.TimeZone

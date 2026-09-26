@@ -87,6 +87,7 @@ actual fun rememberWebViewController(): WebViewController {
 
 class NativeBridge(private val handler: WebBridgeHandler) {
     @JavascriptInterface
+    @Suppress("Unused")
     fun postMessage(jsonMessage: String) {
         handler.onMessageReceived(jsonMessage)
     }
@@ -138,6 +139,11 @@ actual fun PlatformWebView(
         androidController?.webViewInstance?.let { wv ->
             val delegate = WebCompatDelegate(wv)
             delegate.enhanceSettings(isDesktopMode)
+            if (isDesktopMode) {
+                wv.setInitialScale(100)
+            } else {
+                wv.setInitialScale(0)
+            }
 
             val currentRealUrl = wv.url?.takeIf { it.isNotBlank() && it != "about:blank" } ?: url
             if (currentRealUrl.isNotBlank() && currentRealUrl != "about:blank") {
@@ -146,7 +152,7 @@ actual fun PlatformWebView(
         }
     }
 
-    // 3. 监听 开发者工具 开关
+    // 监听开发者工具开关
     LaunchedEffect(isDevToolsEnabled) {
         WebView.setWebContentsDebuggingEnabled(isDevToolsEnabled)
     }
@@ -161,11 +167,15 @@ actual fun PlatformWebView(
                         ViewGroup.LayoutParams.MATCH_PARENT
                     )
 
+                    if (isDesktopMode) {
+                        setInitialScale(100)
+                    } else {
+                        setInitialScale(0)
+                    }
+
                     settings.apply {
                         javaScriptEnabled = true
                         domStorageEnabled = true
-                        useWideViewPort = true
-                        loadWithOverviewMode = true
                         setSupportZoom(true)
                         builtInZoomControls = true
                         displayZoomControls = false

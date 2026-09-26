@@ -51,7 +51,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
-import com.xingheyuzhuan.shiguangschedule.ui.schedule.MergedCourseBlock
+import com.xingheyuzhuan.shiguangschedule.ui.schedule.model.MergedCourseBlock
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource

@@ -143,10 +143,10 @@ private suspend fun realUpdateAllWidgets(context: Context) {
         val appWidgetManager = AppWidgetManager.getInstance(context)
 
         val nativeConfigs: List<Pair<Class<*>, RenderFunc>> = listOf(
-            TinyNativeProvider::class.java to { ctx, snap, _ -> TinyNativeRenderer.render(ctx, snap) },
-            CompactNativeProvider::class.java to { ctx, snap, _ -> CompactNativeRenderer.render(ctx, snap) },
-            DoubleDaysNativeProvider::class.java to { ctx, snap, _ -> DoubleDaysNativeRenderer.render(ctx, snap) },
-            ListVerticalNativeProvider::class.java to { ctx, snap, _ -> ListVerticalNativeRenderer.render(ctx, snap) }
+            TinyNativeProvider::class.java to { ctx, snap, id -> TinyNativeRenderer.render(ctx, snap, id) },
+            CompactNativeProvider::class.java to { ctx, snap, id -> CompactNativeRenderer.render(ctx, snap, id) },
+            DoubleDaysNativeProvider::class.java to { ctx, snap, id -> DoubleDaysNativeRenderer.render(ctx, snap, id) },
+            ListVerticalNativeProvider::class.java to { ctx, snap, id -> ListVerticalNativeRenderer.render(ctx, snap, id) }
         )
 
         // 5. 统一分发更新
