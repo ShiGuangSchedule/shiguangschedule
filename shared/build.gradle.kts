@@ -103,6 +103,7 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.androidx.sqlite.framework)
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.androidx.webkit)
         }
 
         jvmMain.dependencies {

@@ -3,7 +3,9 @@ package com.xingheyuzhuan.shiguangschedule.ui.schoolselection.web
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.net.http.SslError
+import android.view.ViewGroup
 import android.webkit.CookieManager
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
@@ -12,6 +14,8 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.webkit.WebViewCompat
+import androidx.webkit.WebViewFeature
 
 /**
  * WebView 代理配置与客户端包装类
@@ -21,18 +25,19 @@ class WebCompatDelegate(private val webView: WebView) {
     private val defaultUserAgent: String = webView.settings.userAgentString
     private val requestInterceptor = WebViewRequestInterceptor()
 
+    init {
+        webView.addJavascriptInterface(WebPostBridge(), "WebPostService")
+
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+            WebViewCompat.addDocumentStartJavaScript(webView, JS_INTERCEPT_POST, setOf("*"))
+        }
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     fun enhanceSettings(isDesktopMode: Boolean): WebCompatDelegate {
         webView.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
-            databaseEnabled = true
-            @Suppress("DEPRECATION")
-            allowUniversalAccessFromFileURLs = true
-            @Suppress("DEPRECATION")
-            allowFileAccessFromFileURLs = true
-            allowFileAccess = true
-            allowContentAccess = true
             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
 
             if (isDesktopMode) {
@@ -77,16 +82,27 @@ class WebCompatDelegate(private val webView: WebView) {
 
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 original.onPageStarted(view, url, favicon)
-                view?.let { wv ->
-                    // 早期注入 JS_INTERCEPT_POST 拦截网络请求
-                    wv.evaluateJavascript(JS_INTERCEPT_POST, null)
-                }
             }
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 original.onPageFinished(view, url)
 
-                view?.injectAllJavaScript()
+                if (!WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+                    view?.evaluateJavascript(JS_INTERCEPT_POST, null)
+                }
+                // 初始化 Bridge 业务代码
+                view?.evaluateJavascript(JS_BRIDGE_INIT, null)
+            }
+
+            override fun onRenderProcessGone(view: WebView?, detail: RenderProcessGoneDetail?): Boolean {
+                val handledByOriginal = runCatching { original.onRenderProcessGone(view, detail) }.getOrDefault(false)
+                if (!handledByOriginal) {
+                    view?.let { wv ->
+                        (wv.parent as? ViewGroup)?.removeView(wv)
+                        wv.destroy()
+                    }
+                }
+                return true
             }
 
             override fun onReceivedSslError(v: WebView?, h: SslErrorHandler?, e: SslError?) {
@@ -107,10 +123,4 @@ class WebCompatDelegate(private val webView: WebView) {
             override fun onReceivedTitle(v: WebView?, t: String?) = original.onReceivedTitle(v, t)
         }
     }
-}
-
-/** 统一注入 Bridge 初始化与 POST 拦截 JS */
-internal fun WebView.injectAllJavaScript() {
-    evaluateJavascript(JS_BRIDGE_INIT, null)
-    evaluateJavascript(JS_INTERCEPT_POST, null)
 }

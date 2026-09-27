@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.view.ViewGroup
 import android.webkit.JavascriptInterface
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -110,11 +111,9 @@ actual fun PlatformWebView(
 
     val currentOnProgressChange by rememberUpdatedState(onProgressChange)
     val currentOnTitleChange by rememberUpdatedState(onTitleChange)
-
     val currentIsDesktopMode by rememberUpdatedState(isDesktopMode)
 
     var loadedBaseUrl by remember { mutableStateOf("") }
-
     var isFirstLaunch by remember { mutableStateOf(true) }
 
     // 监听外部强制 URL 变更
@@ -173,20 +172,11 @@ actual fun PlatformWebView(
                         setInitialScale(0)
                     }
 
-                    settings.apply {
-                        javaScriptEnabled = true
-                        domStorageEnabled = true
-                        setSupportZoom(true)
-                        builtInZoomControls = true
-                        displayZoomControls = false
-                    }
-
                     androidController?.webViewInstance = this
 
                     val delegate = WebCompatDelegate(this)
                     delegate.enhanceSettings(isDesktopMode)
 
-                    addJavascriptInterface(WebPostBridge(), "WebPostService")
                     addJavascriptInterface(NativeBridge(bridgeHandler), "_shiguangNativeBridge")
 
                     val baseChromeClient = object : WebChromeClient() {
@@ -240,7 +230,15 @@ actual fun PlatformWebView(
             androidController?.webViewInstance?.let { wv ->
                 wv.stopLoading()
                 wv.webChromeClient = null
-                wv.webViewClient = WebViewClient()
+                wv.webViewClient = object : WebViewClient() {
+                    override fun onRenderProcessGone(
+                        view: WebView?,
+                        detail: RenderProcessGoneDetail?
+                    ): Boolean {
+                        return true
+                    }
+                }
+
                 (wv.parent as? ViewGroup)?.removeView(wv)
 
                 wv.clearHistory()

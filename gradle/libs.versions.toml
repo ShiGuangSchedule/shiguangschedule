@@ -28,6 +28,7 @@ appcompat = "1.8.0"
 activityCompose = "1.13.0"
 work-runtime = "2.11.2"
 coreRemoteViews = "1.1.0"
+webkit = "1.17.1"
 
 # 网络与持久化/序列化
 ktor = "3.5.2"
@@ -70,6 +71,7 @@ androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
 androidx-core-remoteviews = { module = "androidx.core:core-remoteviews", version.ref = "coreRemoteViews" }
+androidx-webkit = { group = "androidx.webkit", name = "webkit", version.ref = "webkit" }
 
 # KMP Lifecycle (JetBrains Compose Multiplatform 移植版)
 androidx-lifecycle-viewmodel-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "compose-multiplatform-lifecycle" }
