@@ -1,5 +1,6 @@
 package com.xingheyuzhuan.shiguangschedule.tool
 
+import android.content.Intent
 import android.graphics.BitmapFactory
 import android.webkit.MimeTypeMap
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -61,8 +62,13 @@ actual fun rememberFileManager(callbacks: FileManagerCallbacks): FileManager {
 
     // 2. 文件导入器 (GetContent)
     val importLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri ->
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode != android.app.Activity.RESULT_OK) {
+            currentCallbacks.onFileImported?.invoke(null, null)
+            return@rememberLauncherForActivityResult
+        }
+        val uri = result.data?.data
         if (uri == null) {
             currentCallbacks.onFileImported?.invoke(null, null)
             return@rememberLauncherForActivityResult
@@ -114,13 +120,27 @@ actual fun rememberFileManager(callbacks: FileManagerCallbacks): FileManager {
                 imageLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
             },
             onImportFile = { extensions ->
-                // 如果传入了限定后缀（如 json），转换对应的 mimeType，否则降级为 */*
-                val mimeType = if (extensions.isNotEmpty()) {
-                    MimeTypeMap.getSingleton().getMimeTypeFromExtension(extensions.first().lowercase()) ?: "*/*"
-                } else {
-                    "*/*"
+                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                    addCategory(Intent.CATEGORY_OPENABLE)
+
+                    if (extensions.isNotEmpty()) {
+                        val mimeTypes = extensions.mapNotNull { ext ->
+                            MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext.lowercase())
+                        }.toTypedArray()
+
+                        if (mimeTypes.isNotEmpty()) {
+                            type = mimeTypes.first()
+                            putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes)
+                        } else {
+                            type = "*/*"
+                        }
+                    } else {
+                        type = "*/*"
+                    }
+
+                    putExtra(Intent.EXTRA_ALLOW_MULTIPLE, false)
                 }
-                importLauncher.launch(mimeType)
+                importLauncher.launch(intent)
             },
             onExportFile = { fileName, bytes ->
                 pendingExportBytes = bytes

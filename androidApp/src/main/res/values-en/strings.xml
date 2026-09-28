@@ -44,4 +44,5 @@
     <string name="status_current_week_format">Week %1$d</string>
     <string name="text_no_course">No courses</string>
     <string name="widget_course_remaining_count">%1$d left</string>
+    <string name="intent_import_course_table">Import Schedule</string>
 </resources>

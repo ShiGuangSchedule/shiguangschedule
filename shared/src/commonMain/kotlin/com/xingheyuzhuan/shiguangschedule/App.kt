@@ -9,6 +9,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -23,6 +24,7 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.xingheyuzhuan.shiguangschedule.data.model.StartScreen
+import com.xingheyuzhuan.shiguangschedule.tool.ExternalFileManager
 import com.xingheyuzhuan.shiguangschedule.ui.components.AdaptiveNavigationScaffold
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.WeeklyScheduleScreen
 import com.xingheyuzhuan.shiguangschedule.ui.schoolselection.list.AdapterSelectionScreen
@@ -86,6 +88,8 @@ fun AppNavigation(startDestination: Destination) {
 
     var navHideFraction by remember { mutableFloatStateOf(0f) }
 
+    val pendingFile by ExternalFileManager.pendingFile.collectAsState()
+
     val onNavigate: (Destination) -> Unit = remember(backStack) {
         { dest ->
             if (dest.isMainScreen) {
@@ -98,6 +102,13 @@ fun AppNavigation(startDestination: Destination) {
                     backStack.add(dest)
                 }
             }
+        }
+    }
+
+    LaunchedEffect(pendingFile) {
+        val target = pendingFile?.targetDestination
+        if (target != null && backStack.lastOrNull() != target) {
+            onNavigate(target)
         }
     }
 

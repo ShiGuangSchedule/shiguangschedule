@@ -45,4 +45,5 @@
     <string name="text_no_course">無課程</string>
     <string name="widget_course_remaining_count">剩餘 %1$d 節</string>
 
+    <string name="intent_import_course_table">匯入課表</string>
 </resources>

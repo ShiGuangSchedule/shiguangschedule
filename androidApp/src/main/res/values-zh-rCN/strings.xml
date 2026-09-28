@@ -49,4 +49,5 @@
     <string name="status_current_week_format">第 %1$d 周</string>
     <string name="text_no_course">无课程</string>
 
+    <string name="intent_import_course_table">导入课表</string>
 </resources>
