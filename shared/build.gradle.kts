@@ -108,7 +108,7 @@ kotlin {
 
         jvmMain.dependencies {
             implementation(libs.androidx.sqlite.bundled)
-            implementation(libs.ktor.client.java)
+            implementation(libs.ktor.client.okhttp)
         }
 
         iosMain.dependencies {

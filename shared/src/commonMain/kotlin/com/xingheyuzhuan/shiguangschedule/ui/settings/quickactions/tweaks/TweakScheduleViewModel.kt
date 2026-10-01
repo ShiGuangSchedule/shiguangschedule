@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTable
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWithWeeks
+import com.xingheyuzhuan.shiguangschedule.data.model.Holiday
 import com.xingheyuzhuan.shiguangschedule.data.repository.AppSettingsRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseTableRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -49,6 +50,7 @@ data class TweakScheduleUiState(
     val fromCourses: List<CourseWithWeeks> = emptyList(),
     val toCourses: List<CourseWithWeeks> = emptyList(),
     val tweakMode: CourseTableRepository.TweakMode = CourseTableRepository.TweakMode.MERGE,
+    val workdays: List<Holiday> = emptyList(),
 
     // 业务逻辑和状态管理所需的数据
     val isSemesterSet: Boolean = false,
@@ -83,11 +85,14 @@ class TweakScheduleViewModel(
     }
 
     /**
-     * 刷新 UI 状态：加载配置、课表以及预览区域的课程。
+     * 刷新 UI 状态：加载配置、课表、补班数据以及预览区域的课程。
      */
     private suspend fun refreshUiState(isInitialLoad: Boolean = false) {
         val settings = appSettingsRepository.getAppSettings().first()
         val allTables = courseTableRepository.getAllCourseTables().first()
+
+        // 仅过滤出 isHoliday == false（非假期/即补班）且设置了具体日期的记录
+        val availableWorkdays = settings.holidays.filter { !it.isHoliday && it.dates.isNotEmpty() }
 
         val selectedTable = if (isInitialLoad) {
             val defaultSelectedTable = allTables.find { it.id == settings.currentCourseTableId }
@@ -149,6 +154,7 @@ class TweakScheduleViewModel(
                 fromCourses = fromCourses,
                 toCourses = toCourses,
                 semesterStartDate = semesterStartDate,
+                workdays = availableWorkdays,
                 isLoading = false
             )
         }

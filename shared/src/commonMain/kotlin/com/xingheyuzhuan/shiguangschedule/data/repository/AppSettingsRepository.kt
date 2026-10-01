@@ -20,6 +20,7 @@ import kotlinx.datetime.format
 import kotlinx.datetime.format.char
 import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.serialization.json.Json
 import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
 import kotlin.time.Clock
@@ -76,6 +77,19 @@ class AppSettingsRepository(
     }
 
     /**
+     * 判断指定日期是否处于假期（Holiday.isHoliday 为 true）中。
+     *
+     * @param date 待检测的日期
+     * @return 如果该日期匹配到任何一个假期记录，则返回 true；否则返回 false。
+     */
+    suspend fun isDateInHoliday(date: LocalDate): Boolean {
+        val appSettings = getAppSettingsOnce()
+        return appSettings.holidays.any { holiday ->
+            holiday.isHoliday && holiday.dates.contains(date)
+        }
+    }
+
+    /**
      * 更新应用设置。
      * 将对象解构并原子化地写入 DataStore。
      */
@@ -84,7 +98,7 @@ class AppSettingsRepository(
             prefs[AppSettingsModel.KEY_CURRENT_COURSE_TABLE_ID] = newSettings.currentCourseTableId
             prefs[AppSettingsModel.KEY_REMINDER_ENABLED] = newSettings.reminderEnabled
             prefs[AppSettingsModel.KEY_REMIND_BEFORE_MINUTES] = newSettings.remindBeforeMinutes
-            prefs[AppSettingsModel.KEY_SKIPPED_DATES] = newSettings.skippedDates
+            prefs[AppSettingsModel.KEY_HOLIDAYS_JSON] = Json.encodeToString(newSettings.holidays)
             prefs[AppSettingsModel.KEY_AUTO_MODE_ENABLED] = newSettings.autoModeEnabled
             prefs[AppSettingsModel.KEY_AUTO_CONTROL_MODE] = newSettings.autoControlMode.value
             prefs[AppSettingsModel.KEY_COMPAT_WEARABLE_SYNC] = newSettings.compatWearableSync

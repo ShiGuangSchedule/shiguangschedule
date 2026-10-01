@@ -503,7 +503,6 @@ class CourseConversionRepository(
      */
     suspend fun exportToIcsString(tableId: String, alarmMinutes: Int?): String? {
         val courses = courseDao.getCoursesWithWeeksByTableId(tableId).first()
-        val appSettings = appSettingsRepository.getAppSettingsOnce()
         val courseConfig = appSettingsRepository.getCourseConfigOnce(tableId)
         val semesterStartDate = courseConfig?.semesterStartDate?.let {
             try { LocalDate.parse(it) } catch (_: Exception) { null }
@@ -512,6 +511,12 @@ class CourseConversionRepository(
         if (semesterStartDate == null || courseConfig.semesterTotalWeeks <= 0) {
             return null
         }
+
+        val appSettings = appSettingsRepository.getAppSettingsOnce()
+        val holidayDatesSet = appSettings.holidays
+            .filter { it.isHoliday }
+            .flatMap { it.dates }
+            .toSet()
 
         return IcsExportTool.generateIcsFileContent(
             courses = courses,
@@ -522,7 +527,7 @@ class CourseConversionRepository(
             semesterTotalWeeks = courseConfig.semesterTotalWeeks,
             firstDayOfWeekInt = courseConfig.firstDayOfWeek,
             alarmMinutes = alarmMinutes,
-            skippedDates = appSettings.skippedDates
+            isHolidayDate = { date -> date in holidayDatesSet }
         )
     }
 
@@ -546,6 +551,11 @@ class CourseConversionRepository(
             return true
         }
 
+        val holidayDatesSet = appSettings.holidays
+            .filter { it.isHoliday }
+            .flatMap { it.dates }
+            .toSet()
+
         return CalendarAccountManager.syncCurrentTableToSystemCalendar(
             courses = courses,
             getTimeSlotsForDate = { date ->
@@ -555,7 +565,7 @@ class CourseConversionRepository(
             semesterTotalWeeks = courseConfig.semesterTotalWeeks,
             firstDayOfWeekInt = courseConfig.firstDayOfWeek,
             alarmMinutes = alarmMinutes,
-            skippedDates = appSettings.skippedDates
+            isHolidayDate = { date -> date in holidayDatesSet }
         )
     }
 }

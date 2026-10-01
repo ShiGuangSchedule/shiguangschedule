@@ -28,6 +28,9 @@
     <string name="action_reset">重置</string>
     <string name="floating_course_hint">已挂起，左右滑周点击空白处放下</string>
     <string name="error_name_cannot_be_empty">名称不能为空</string>
+    <string name="action_clear_selected">清空已选</string>
+    <string name="action_select_date_range">选择日期范围</string>
+    <string name="action_custom_date">自定义日期</string>
 
     <!-- 主界面及今日课表 -->
     <string name="nav_today_schedule">今日课表</string>
@@ -414,6 +417,7 @@
     <string name="tweak_mode_overwrite">覆盖 (A → B)</string>
     <string name="tweak_mode_exchange">交换 (A ↔ B)</string>
     <string name="date_format_month_day">%1$d月%2$d日</string>
+    <string name="dialog_title_select_workday">选择调至补班日</string>
 
     <!-- 教务导入 -->
     <string name="title_select_school">选择学校</string>
@@ -562,7 +566,6 @@
     <string name="quick_delete_filter_weeks_days_hint">设置重复周次与星期 (可选)</string>
     <string name="quick_delete_filter_date_range_hint">设置特定日期范围 (可选)</string>
     <string name="quick_delete_label_days_prefix">星期: %1$s</string>
-    <string name="quick_delete_dialog_select_date_title">选择日期范围</string>
     <string name="quick_delete_success">课表清理成功</string>
     <string name="error_load_failed">初始化失败，请重试</string>
     <string name="error_op_failed">操作失败: %1$s</string>
@@ -616,5 +619,23 @@
     <string name="backup_err_restore_failed_prefix">还原失败: %1$s</string>
     <string name="backup_target_webdav">WebDAV 云同步</string>
     <string name="backup_target_local_zip">本地 ZIP 文件</string>
+
+
+    <!-- 假期与调休管理 -->
+    <string name="holiday_management_title">假期与调休管理</string>
+    <string name="holiday_management_desc">节假日及调休安排</string>
+    <string name="holiday_empty_hint">暂无假期/调休数据\n点击右上角可自动在线同步</string>
+    <string name="holiday_sync_online">在线同步数据</string>
+    <string name="holiday_dialog_title_add">添加假期/调休</string>
+    <string name="holiday_dialog_title_edit">编辑假期/调休</string>
+    <string name="holiday_field_name">名称</string>
+    <string name="holiday_type_off">放假</string>
+    <string name="holiday_type_work">调休/补班</string>
+    <string name="holiday_no_selected_dates">暂无已选日期</string>
+    <string name="holiday_included_dates_count_format">包含日期 (%1$d)</string>
+    <string name="holiday_picker_title">选取要追加的区间/单天</string>
+    <string name="holiday_picker_hint_range_selected">已选新区间</string>
+    <string name="holiday_picker_hint_select_end">请选择结束日期(单天点击确认即可)</string>
+    <string name="holiday_picker_hint_select_start">点击选择开始日期</string>
 
 </resources>

@@ -42,6 +42,7 @@ import com.xingheyuzhuan.shiguangschedule.ui.settings.course.AddEditCourseScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.coursemanagement.CourseInstanceListScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.coursemanagement.CourseNameListScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.coursetables.ManageCourseTablesScreen
+import com.xingheyuzhuan.shiguangschedule.ui.settings.holiday.HolidayManagementScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.notification.NotificationSettingsScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.quickactions.QuickActionsScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.quickactions.delete.QuickDeleteScreen
@@ -202,6 +203,7 @@ fun ScreenContent(
         Destination.BackupAndRestore -> BackupScreen(onBack)
         Destination.LanguageSettings -> LanguageSettingScreen(onBack)
         Destination.WidgetStyleSettings -> WidgetStyleSettingsScreen(onBack)
+        Destination.HolidayManagement -> HolidayManagementScreen(onBack = onBack)
 
         Destination.TimeScheduleManagement -> TimeScheduleManagementScreen(
             onBack = onBack,

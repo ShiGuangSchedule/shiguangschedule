@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,10 +14,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -25,6 +31,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -38,11 +45,12 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWithWeeks
+import com.xingheyuzhuan.shiguangschedule.data.model.Holiday
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseTableRepository.TweakMode
 import com.xingheyuzhuan.shiguangschedule.ui.components.CourseTablePickerDialog
-import com.xingheyuzhuan.shiguangschedule.ui.components.DatePickerModal
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringArrayResource
@@ -53,16 +61,20 @@ import shiguangschedule.shared.generated.resources.Res
 import shiguangschedule.shared.generated.resources.a11y_arrow
 import shiguangschedule.shared.generated.resources.a11y_back
 import shiguangschedule.shared.generated.resources.a11y_save_tweak
+import shiguangschedule.shared.generated.resources.action_cancel
+import shiguangschedule.shared.generated.resources.action_confirm
+import shiguangschedule.shared.generated.resources.action_custom_date
 import shiguangschedule.shared.generated.resources.action_select_table
 import shiguangschedule.shared.generated.resources.arrow_back_24px
 import shiguangschedule.shared.generated.resources.arrow_downward_24px
 import shiguangschedule.shared.generated.resources.arrow_drop_down_24px
 import shiguangschedule.shared.generated.resources.arrow_forward_24px
+import shiguangschedule.shared.generated.resources.check_24px
 import shiguangschedule.shared.generated.resources.course_time_day_section_details_tweak
 import shiguangschedule.shared.generated.resources.course_time_day_time_details_tweak
 import shiguangschedule.shared.generated.resources.date_format_month_day
 import shiguangschedule.shared.generated.resources.dialog_title_select_export_table
-import shiguangschedule.shared.generated.resources.check_24px
+import shiguangschedule.shared.generated.resources.dialog_title_select_workday
 import shiguangschedule.shared.generated.resources.double_arrow_24px
 import shiguangschedule.shared.generated.resources.label_select_tweak_table
 import shiguangschedule.shared.generated.resources.label_tweak_from_date
@@ -100,6 +112,9 @@ fun TweakScheduleScreen(
 
     var showCourseTablePicker by remember { mutableStateOf(false) }
     var showFromDatePicker by remember { mutableStateOf(false) }
+
+    // 控制弹窗类型
+    var showWorkdayQuickPicker by remember { mutableStateOf(false) }
     var showToDatePicker by remember { mutableStateOf(false) }
 
     val titleTweakSchedule = stringResource(Res.string.title_tweak_schedule)
@@ -189,7 +204,17 @@ fun TweakScheduleScreen(
                     horizontalArrangement = Arrangement.SpaceAround
                 ) {
                     DateButton(label = labelTweakFromDate, date = uiState.fromDate, onClick = { showFromDatePicker = true })
-                    DateButton(label = labelTweakToDate, date = uiState.toDate, onClick = { showToDatePicker = true })
+                    DateButton(
+                        label = labelTweakToDate,
+                        date = uiState.toDate,
+                        onClick = {
+                            if (uiState.workdays.isNotEmpty()) {
+                                showWorkdayQuickPicker = true
+                            } else {
+                                showToDatePicker = true
+                            }
+                        }
+                    )
                 }
             }
 
@@ -278,14 +303,158 @@ fun TweakScheduleScreen(
     }
 
     if (showFromDatePicker) {
-        DatePickerModal(onDateSelected = { it?.let { viewModel.onFromDateSelected(it.toLocalDate()) } }, onDismiss = { showFromDatePicker = false })
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = remember(uiState.fromDate) {
+                uiState.fromDate.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()
+            }
+        )
+
+        DatePickerDialog(
+            onDismissRequest = { showFromDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { selectedMillis ->
+                            viewModel.onFromDateSelected(selectedMillis.toLocalDate())
+                        }
+                        showFromDatePicker = false
+                    }
+                ) {
+                    Text(stringResource(Res.string.action_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showFromDatePicker = false }) {
+                    Text(stringResource(Res.string.action_cancel))
+                }
+            }
+        ) {
+            DatePicker(
+                state = datePickerState,
+                showModeToggle = false
+            )
+        }
     }
 
+    // 快捷补班选择弹窗
+    if (showWorkdayQuickPicker) {
+        WorkdayQuickPickerDialog(
+            toDate = uiState.toDate,
+            workdays = uiState.workdays,
+            onDismissRequest = { showWorkdayQuickPicker = false },
+            onDateSelected = { selectedDate ->
+                viewModel.onToDateSelected(selectedDate)
+                showWorkdayQuickPicker = false
+            },
+            onOpenFullDatePicker = {
+                showWorkdayQuickPicker = false
+                showToDatePicker = true
+            }
+        )
+    }
+
+    // 原生通用 DatePicker 弹窗
     if (showToDatePicker) {
-        DatePickerModal(onDateSelected = { it?.let { viewModel.onToDateSelected(it.toLocalDate()) } }, onDismiss = { showToDatePicker = false })
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = remember(uiState.toDate) {
+                uiState.toDate.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()
+            }
+        )
+
+        DatePickerDialog(
+            onDismissRequest = { showToDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { selectedMillis ->
+                            viewModel.onToDateSelected(selectedMillis.toLocalDate())
+                        }
+                        showToDatePicker = false
+                    }
+                ) {
+                    Text(stringResource(Res.string.action_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showToDatePicker = false }) {
+                    Text(stringResource(Res.string.action_cancel))
+                }
+            }
+        ) {
+            DatePicker(
+                state = datePickerState,
+                showModeToggle = false
+            )
+        }
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun WorkdayQuickPickerDialog(
+    toDate: LocalDate,
+    workdays: List<Holiday>,
+    onDismissRequest: () -> Unit,
+    onDateSelected: (LocalDate) -> Unit,
+    onOpenFullDatePicker: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        title = {
+            Text(
+                text = stringResource(Res.string.dialog_title_select_workday),
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
+        text = {
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(workdays) { holiday ->
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "${holiday.name}:",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.align(Alignment.CenterVertically)
+                        )
+
+                        holiday.dates.sorted().forEach { date ->
+                            val isSelected = date == toDate
+                            val labelText = "${date.year}/${date.month.number}/${date.day}"
+
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { onDateSelected(date) },
+                                label = {
+                                    Text(
+                                        text = labelText,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onOpenFullDatePicker) {
+                Text(stringResource(Res.string.action_custom_date))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismissRequest) {
+                Text(stringResource(Res.string.action_cancel))
+            }
+        }
+    )
+}
 @Composable
 private fun TweakModeSelector(currentMode: TweakMode, onModeSelected: (TweakMode) -> Unit) {
     var expanded by remember { mutableStateOf(false) }

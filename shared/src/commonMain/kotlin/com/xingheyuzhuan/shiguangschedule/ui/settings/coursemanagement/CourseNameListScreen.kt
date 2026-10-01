@@ -36,6 +36,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -57,9 +58,9 @@ import shiguangschedule.shared.generated.resources.action_deselect_all
 import shiguangschedule.shared.generated.resources.action_select_all
 import shiguangschedule.shared.generated.resources.add_24px
 import shiguangschedule.shared.generated.resources.arrow_back_24px
-import shiguangschedule.shared.generated.resources.check_24px
 import shiguangschedule.shared.generated.resources.close_24px
 import shiguangschedule.shared.generated.resources.delete_24px
+import shiguangschedule.shared.generated.resources.done_all_24px
 import shiguangschedule.shared.generated.resources.item_course_management
 import shiguangschedule.shared.generated.resources.menu_open_24px
 import shiguangschedule.shared.generated.resources.text_no_unique_courses_hint
@@ -139,7 +140,7 @@ fun CourseNameListScreen(
                             enabled = totalCount > 0
                         ) {
                             val selectAllStringRes = if (isAllSelected) Res.string.action_deselect_all else Res.string.action_select_all
-                            Icon(vectorResource(Res.drawable.check_24px), contentDescription = stringResource(selectAllStringRes))
+                            Icon(vectorResource(Res.drawable.done_all_24px), contentDescription = stringResource(selectAllStringRes))
                         }
                     }
 
@@ -280,18 +281,22 @@ fun CourseNameCard(
         )
     }
 
+    val cardShape = MaterialTheme.shapes.medium
+
     Card(
+        shape = cardShape,
         colors = cardColors,
         modifier = Modifier
             .fillMaxWidth()
             .height(96.dp)
+            .clip(cardShape)
             .combinedClickable(
                 onClick = { onCourseClick(name) },
                 onLongClick = { onCourseLongClick(name) }
             )
             .then(
                 if (isSelected) {
-                    Modifier.border(2.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.medium)
+                    Modifier.border(2.dp, MaterialTheme.colorScheme.primary, cardShape)
                 } else Modifier
             )
     ) {

@@ -70,6 +70,7 @@ import shiguangschedule.shared.generated.resources.action_cancel
 import shiguangschedule.shared.generated.resources.action_confirm
 import shiguangschedule.shared.generated.resources.action_deselect_all
 import shiguangschedule.shared.generated.resources.action_select_all
+import shiguangschedule.shared.generated.resources.action_select_date_range
 import shiguangschedule.shared.generated.resources.arrow_back_24px
 import shiguangschedule.shared.generated.resources.calendar_today_24px
 import shiguangschedule.shared.generated.resources.close_24px
@@ -87,7 +88,6 @@ import shiguangschedule.shared.generated.resources.label_dimension_dates
 import shiguangschedule.shared.generated.resources.label_dimension_weeks_days
 import shiguangschedule.shared.generated.resources.label_none
 import shiguangschedule.shared.generated.resources.label_weeks_format
-import shiguangschedule.shared.generated.resources.quick_delete_dialog_select_date_title
 import shiguangschedule.shared.generated.resources.quick_delete_filter_date_range_hint
 import shiguangschedule.shared.generated.resources.quick_delete_filter_weeks_days_hint
 import shiguangschedule.shared.generated.resources.quick_delete_label_days_prefix
@@ -454,7 +454,7 @@ fun DateRangePickerModal(
             title = {
                 Text(
                     modifier = Modifier.padding(16.dp),
-                    text = stringResource(Res.string.quick_delete_dialog_select_date_title)
+                    text = stringResource(Res.string.action_select_date_range)
                 )
             }
         )

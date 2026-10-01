@@ -512,7 +512,6 @@
     <string name="quick_delete_filter_weeks_days_hint">設置重複周次與星期 (可選)</string>
     <string name="quick_delete_filter_date_range_hint">設置特定日期範圍 (可選)</string>
     <string name="quick_delete_label_days_prefix">星期: %1$s</string>
-    <string name="quick_delete_dialog_select_date_title">選擇日期範圍</string>
     <string name="quick_delete_success">課表清理成功</string>
     <string name="error_load_failed">初始化失敗，請重試</string>
     <string name="error_op_failed">操作失敗: %1$s</string>
@@ -612,4 +611,24 @@
     <string name="label_credit">學分</string>
     <string name="credit_error_invalid">請輸入有效的學分</string>
     <string name="credit_support_format">支援整數或小數，如 2 或 1.5</string>
+    <string name="action_select_date_range">選擇日期範圍</string>
+    <string name="holiday_management_title">假期與調休管理</string>
+    <string name="holiday_management_desc">節假日及調休安排</string>
+    <string name="holiday_empty_hint">暫無假期/調休資料\n點擊右上角可自動線上同步</string>
+    <string name="holiday_sync_online">線上同步資料</string>
+    <string name="holiday_dialog_title_add">新增假期/調休</string>
+    <string name="holiday_dialog_title_edit">編輯假期/調休</string>
+    <string name="holiday_field_name">名稱</string>
+    <string name="holiday_type_off">放假</string>
+    <string name="holiday_type_work">調休/補班</string>
+    <string name="holiday_no_selected_dates">暫無已選日期</string>
+    <string name="holiday_included_dates_count_format">包含日期 (%1$d)</string>
+    <string name="holiday_picker_title">選取要追加的區間/單天</string>
+    <string name="holiday_picker_hint_range_selected">已選新區間</string>
+    <string name="holiday_picker_hint_select_end">請選擇結束日期(單天點擊確認即可)</string>
+    <string name="holiday_picker_hint_select_start">點擊選擇開始日期</string>
+    <string name="a11y_back">返回</string>
+    <string name="action_clear_selected">清空已選</string>
+    <string name="dialog_title_select_workday">選擇調至補班日</string>
+    <string name="action_custom_date">自訂日期</string>
 </resources>

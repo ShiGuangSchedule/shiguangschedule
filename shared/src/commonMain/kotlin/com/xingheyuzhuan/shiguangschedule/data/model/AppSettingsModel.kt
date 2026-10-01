@@ -6,10 +6,31 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.core.stringSetPreferencesKey
-import org.jetbrains.compose.resources.StringResource
-import shiguangschedule.shared.generated.resources.*
 import com.xingheyuzhuan.shiguangschedule.ui.theme.DefaultThemeColor
+import kotlinx.datetime.LocalDate
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import org.jetbrains.compose.resources.StringResource
+import shiguangschedule.shared.generated.resources.Res
+import shiguangschedule.shared.generated.resources.nav_course_schedule
+import shiguangschedule.shared.generated.resources.nav_today_schedule
+import shiguangschedule.shared.generated.resources.theme_dark
+import shiguangschedule.shared.generated.resources.theme_follow_system
+import shiguangschedule.shared.generated.resources.theme_light
+
+/**
+ * 节假日/调休 数据结构
+ *
+ * @property name 名称字符字段
+ * @property isHoliday 是否是假期 (true: 假期/放假; false: 调休/补班)
+ * @property dates 所属日期集合 (KMP 官方库强类型，默认以 ISO-8601 "YYYY-MM-DD" 序列化存储)
+ */
+@Serializable
+data class Holiday(
+    val name: String,
+    val isHoliday: Boolean = true,
+    val dates: Set<LocalDate> = emptySet()
+)
 
 /**
  * 上课时的自动化控制模式枚举
@@ -82,8 +103,8 @@ data class AppSettingsModel(
     /** 提前提醒的时间（分钟） */
     val remindBeforeMinutes: Int = 15,
 
-    /** 需要跳过的日期集合 (例如: "2024-03-15") */
-    val skippedDates: Set<String> = emptySet(),
+    /** 节假日及调休列表 */
+    val holidays: List<Holiday> = emptyList(),
 
     /** 自动化模式的总开关 */
     val autoModeEnabled: Boolean = false,
@@ -128,7 +149,7 @@ data class AppSettingsModel(
         val KEY_CURRENT_COURSE_TABLE_ID = stringPreferencesKey("current_course_table_id")
         val KEY_REMINDER_ENABLED = booleanPreferencesKey("reminder_enabled")
         val KEY_REMIND_BEFORE_MINUTES = intPreferencesKey("remind_before_minutes")
-        val KEY_SKIPPED_DATES = stringSetPreferencesKey("skipped_dates")
+        val KEY_HOLIDAYS_JSON = stringPreferencesKey("holidays_json")
         val KEY_AUTO_MODE_ENABLED = booleanPreferencesKey("auto_mode_enabled")
         val KEY_AUTO_CONTROL_MODE = stringPreferencesKey("auto_control_mode")
         val KEY_COMPAT_WEARABLE_SYNC = booleanPreferencesKey("compat_wearable_sync")
@@ -140,16 +161,26 @@ data class AppSettingsModel(
         val KEY_CUSTOM_DARK_PRIMARY = longPreferencesKey("custom_dark_primary")
         val KEY_DEVELOPER_MODE_ENABLED = booleanPreferencesKey("developer_mode_enabled")
 
+        private val json = Json { ignoreUnknownKeys = true }
+
         /**
          * 从 Preferences 中解析出 AppSettingsModel
          */
         fun fromPreferences(prefs: Preferences, fallbackTableId: String): AppSettingsModel {
             val d = AppSettingsModel() // 默认值模板
+
+            val rawHolidaysJson = prefs[KEY_HOLIDAYS_JSON]
+            val parsedHolidays = if (!rawHolidaysJson.isNullOrEmpty()) {
+                runCatching { json.decodeFromString<List<Holiday>>(rawHolidaysJson) }.getOrDefault(emptyList())
+            } else {
+                emptyList()
+            }
+
             return AppSettingsModel(
                 currentCourseTableId = prefs[KEY_CURRENT_COURSE_TABLE_ID] ?: fallbackTableId.ifEmpty { d.currentCourseTableId },
                 reminderEnabled = prefs[KEY_REMINDER_ENABLED] ?: d.reminderEnabled,
                 remindBeforeMinutes = prefs[KEY_REMIND_BEFORE_MINUTES] ?: d.remindBeforeMinutes,
-                skippedDates = prefs[KEY_SKIPPED_DATES] ?: d.skippedDates,
+                holidays = parsedHolidays,
                 autoModeEnabled = prefs[KEY_AUTO_MODE_ENABLED] ?: d.autoModeEnabled,
                 autoControlMode = AutoControlMode.fromString(prefs[KEY_AUTO_CONTROL_MODE]),
                 compatWearableSync = prefs[KEY_COMPAT_WEARABLE_SYNC] ?: d.compatWearableSync,

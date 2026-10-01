@@ -185,7 +185,11 @@ class WidgetDataSynchronizer(
         )
         widgetRepository.insertOrUpdateAppSettings(widgetSettings)
 
-        val skippedDates = appSettings.skippedDates
+        val holidayDatesSet = appSettings.holidays
+            .filter { it.isHoliday }
+            .flatMap { it.dates }
+            .toSet()
+
         val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
 
         val semesterStartDate: LocalDate = try {
@@ -245,7 +249,7 @@ class WidgetDataSynchronizer(
                     }
 
                     // 检查该日期是否被设为调休/停课
-                    val isSkipped = skippedDates.contains(dateString)
+                    val isSkipped = date in holidayDatesSet
 
                     val widgetCourse = WidgetCourse(
                         id = "${course.id}-$dateString",

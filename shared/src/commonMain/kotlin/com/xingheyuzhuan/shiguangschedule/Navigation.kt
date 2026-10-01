@@ -49,6 +49,7 @@ sealed interface Destination : NavKey {
     @Serializable data object BackupAndRestore : Destination
     @Serializable data object LanguageSettings : Destination
     @Serializable data object WidgetStyleSettings : Destination
+    @Serializable data object HolidayManagement : Destination
 
     // --- 动态传参页面 ---
     @Serializable
@@ -121,6 +122,7 @@ val navSerializersModule = SerializersModule {
         subclass(Destination.BackupAndRestore::class)
         subclass(Destination.LanguageSettings::class)
         subclass(Destination.WidgetStyleSettings::class)
+        subclass(Destination.HolidayManagement::class)
 
         // 带参数据类
         subclass(Destination.AdapterSelection::class)
