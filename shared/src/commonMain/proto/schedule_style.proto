@@ -97,7 +97,8 @@ message ScheduleGridStyleProto {
   optional int64 course_text_color_long = 26; // 课程块文字颜色
   optional ScheduleModeProto schedule_mode = 27; // 课表时间段模式
 
-  optional string background_image_path = 19; // 存储图片在私有目录下的绝对路径
+  // 壁纸路径已迁移至 AppSettings 数据源，此字段仅作旧版本数据迁移过渡使用
+  optional string background_image_path = 19 [deprecated = true];
 
   optional WidgetStyleProto widget_style = 28;   // 小组件样式配置
 }

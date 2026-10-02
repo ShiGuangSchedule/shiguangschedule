@@ -2,6 +2,7 @@ package com.xingheyuzhuan.shiguangschedule.ui.schedule
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -94,6 +95,11 @@ fun WeeklyScheduleScreen(
     viewModel: WeeklyScheduleViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    val isDark = isSystemInDarkTheme()
+    LaunchedEffect(isDark) {
+        viewModel.updateDarkTheme(isDark)
+    }
 
     val today = remember {
         Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
@@ -188,9 +194,9 @@ fun WeeklyScheduleScreen(
     val dynamicBottomOffset = systemNavigationBarInset + (88.dp * (1f - navHideFraction))
 
     Box(modifier = Modifier.fillMaxSize()) {
-        if (composedStyle.backgroundImagePath.isNotEmpty()) {
+        uiState.wallpaperPath?.let { path ->
             AsyncImage(
-                model = composedStyle.backgroundImagePath,
+                model = path,
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop

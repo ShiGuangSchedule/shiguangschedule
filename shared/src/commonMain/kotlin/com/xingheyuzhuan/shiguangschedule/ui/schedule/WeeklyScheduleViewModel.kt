@@ -57,6 +57,12 @@ class WeeklyScheduleViewModel(
         getTodayLocalDate().startOfWeek(DayOfWeek.MONDAY)
     )
 
+    private val _isDarkTheme = MutableStateFlow(false)
+
+    fun updateDarkTheme(isDark: Boolean) {
+        _isDarkTheme.value = isDark
+    }
+
     private val appSettingsFlow = appSettingsRepository.getAppSettings()
     private val styleFlow = styleSettingsRepository.styleFlow
 
@@ -153,7 +159,7 @@ class WeeklyScheduleViewModel(
                 ScheduleConfigPackage(settings, config, style, mondayDate)
             }
 
-            combine(configAndTimeFlow, currentCoursesFlow, timeSlotsFlow) { configPkg, cache, timeSlots ->
+            combine(configAndTimeFlow, currentCoursesFlow, timeSlotsFlow, _isDarkTheme) { configPkg, cache, timeSlots, isDark ->
                 val config = configPkg.config
                 val startDate = config?.semesterStartDate?.let { LocalDate.parse(it) }
                 val firstDayOfWeekInt = config?.firstDayOfWeek ?: DayOfWeek.MONDAY.isoDayNumber
@@ -181,6 +187,8 @@ class WeeklyScheduleViewModel(
                 val currentWeekCourses = cache[configPkg.mondayDate.toString()] ?: emptyList()
                 fixInvalidCourseColors(currentWeekCourses.flatMap { it.courses }, configPkg.style)
 
+                val wallpaperPath = appSettingsRepository.getActiveWallpaperPath(isDark)
+
                 val previousState = _uiState.value
 
                 WeeklyScheduleUiState(
@@ -199,7 +207,8 @@ class WeeklyScheduleViewModel(
                     currentSectionIndex = currentSectionIndex,
                     daysUntilStart = daysUntil,
                     floatingCourse = previousState.floatingCourse,
-                    floatingSourceWeek = previousState.floatingSourceWeek
+                    floatingSourceWeek = previousState.floatingSourceWeek,
+                    wallpaperPath = wallpaperPath
                 )
             }.collect { _uiState.value = it }
         }

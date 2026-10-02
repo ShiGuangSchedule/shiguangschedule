@@ -7,6 +7,7 @@ import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTableConfig
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTableConfigDao
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTableDao
 import com.xingheyuzhuan.shiguangschedule.data.model.AppSettingsModel
+import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleGridStyleProto
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -21,6 +22,9 @@ import kotlinx.datetime.format.char
 import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
+import okio.FileSystem
+import okio.Path
+import okio.Path.Companion.toPath
 import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
 import kotlin.time.Clock
@@ -35,8 +39,11 @@ import kotlin.time.Clock
 @Single
 class AppSettingsRepository(
     @Named("AppSettings") private val dataStore: DataStore<Preferences>,
+    private val styleDataStore: DataStore<ScheduleGridStyleProto>,
     private val courseTableDao: CourseTableDao,
-    private val courseTableConfigDao: CourseTableConfigDao
+    private val courseTableConfigDao: CourseTableConfigDao,
+    @Named("FilesDir") private val filesDir: Path,
+    private val fileSystem: FileSystem
 ) {
     private val DATE_FORMATTER = LocalDate.Format {
         year()
@@ -67,6 +74,71 @@ class AppSettingsRepository(
         val dbFirstTableId = courseTableDao.getFirstTableOnce()?.id ?: ""
 
         AppSettingsModel.fromPreferences(prefs, dbFirstTableId)
+    }
+
+    /**
+     * 检查并执行旧版壁纸路径的“消费式迁移”
+     * 只有当旧 styleDataStore 中有路径，且新架构未设置时才会触发，迁移后立即清空旧路径。
+     */
+    private suspend fun checkAndMigrateIfNeeded() {
+        try {
+            val styleProto = styleDataStore.data.first()
+            val oldPath = styleProto.background_image_path
+
+            if (!oldPath.isNullOrEmpty()) {
+                val currentSettings = getAppSettingsOnce()
+
+                if (currentSettings.backgroundImagePath.light.isEmpty() && currentSettings.backgroundImagePath.dark.isEmpty()) {
+                    val updatedSettings = currentSettings.copy(
+                        backgroundImagePath = currentSettings.backgroundImagePath.copy(
+                            light = oldPath,
+                            dark = oldPath
+                        )
+                    )
+                    insertOrUpdateAppSettings(updatedSettings)
+                }
+
+                styleDataStore.updateData { currentProto ->
+                    currentProto.copy(background_image_path = "")
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    /**
+     * 获取当前生效的壁纸图片绝对路径字符串。
+     * 严格根据深浅色模式独立路径读取，互不干扰。
+     *
+     * @param isDarkTheme 当前界面是否处于深色模式
+     * @return 壁纸文件的绝对路径字符串；若未设置壁纸或文件在磁盘上实际不存在则返回 null。
+     */
+    suspend fun getActiveWallpaperPath(isDarkTheme: Boolean): String? {
+        checkAndMigrateIfNeeded()
+
+        val appSettings = getAppSettingsOnce()
+
+        val pathSetting = if (isDarkTheme) {
+            appSettings.backgroundImagePath.dark
+        } else {
+            appSettings.backgroundImagePath.light
+        }
+
+        val rawPath = pathSetting.takeIf { it.isNotEmpty() } ?: return null
+
+        try {
+            val path = rawPath.toPath()
+            val absolutePath = if (path.isAbsolute) path else filesDir.resolve(path)
+
+            if (fileSystem.exists(absolutePath)) {
+                return absolutePath.toString()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        return null
     }
 
     /**
@@ -106,8 +178,10 @@ class AppSettingsRepository(
             prefs[AppSettingsModel.KEY_START_SCREEN] = newSettings.startScreen.value
             prefs[AppSettingsModel.KEY_THEME_MODE] = newSettings.themeMode.value
             prefs[AppSettingsModel.KEY_USE_DYNAMIC_COLOR] = newSettings.useDynamicColor
-            prefs[AppSettingsModel.KEY_CUSTOM_LIGHT_PRIMARY] = newSettings.customLightPrimary
-            prefs[AppSettingsModel.KEY_CUSTOM_DARK_PRIMARY] = newSettings.customDarkPrimary
+            prefs[AppSettingsModel.KEY_CUSTOM_LIGHT_PRIMARY] = newSettings.customPrimaryColor.light
+            prefs[AppSettingsModel.KEY_CUSTOM_DARK_PRIMARY] = newSettings.customPrimaryColor.dark
+            prefs[AppSettingsModel.KEY_BACKGROUND_IMAGE_PATH_LIGHT] = newSettings.backgroundImagePath.light
+            prefs[AppSettingsModel.KEY_BACKGROUND_IMAGE_PATH_DARK] = newSettings.backgroundImagePath.dark
             prefs[AppSettingsModel.KEY_DEVELOPER_MODE_ENABLED] = newSettings.developerModeEnabled
         }
     }

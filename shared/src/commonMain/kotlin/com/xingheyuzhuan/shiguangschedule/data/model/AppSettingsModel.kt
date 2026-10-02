@@ -19,6 +19,18 @@ import shiguangschedule.shared.generated.resources.theme_follow_system
 import shiguangschedule.shared.generated.resources.theme_light
 
 /**
+ * 通用的深浅色配置包装类
+ *
+ * @param light 浅色模式下的配置项
+ * @param dark 深色模式下的配置项
+ */
+@Serializable
+data class LightDarkValue<T>(
+    val light: T,
+    val dark: T
+)
+
+/**
  * 节假日/调休 数据结构
  *
  * @property name 名称字符字段
@@ -131,11 +143,17 @@ data class AppSettingsModel(
     /** 是否开启动态取色 (Material You) */
     val useDynamicColor: Boolean = true,
 
-    /** 自定义浅色主题主色 */
-    val customLightPrimary: Long = DefaultThemeColor.toArgb().toLong(),
+    /** 自定义主题主色（包含浅色和深色模式） */
+    val customPrimaryColor: LightDarkValue<Long> = LightDarkValue(
+        light = DefaultThemeColor.toArgb().toLong(),
+        dark = DefaultThemeColor.toArgb().toLong()
+    ),
 
-    /** 自定义深色主题主色 */
-    val customDarkPrimary: Long = DefaultThemeColor.toArgb().toLong(),
+    /** 背景壁纸路径 (包含浅色和深色模式，存储在私有目录下的绝对路径) */
+    val backgroundImagePath: LightDarkValue<String> = LightDarkValue(
+        light = "",
+        dark = ""
+    ),
 
     /** 开发者功能总开关（默认关闭） */
     val developerModeEnabled: Boolean = false,
@@ -159,6 +177,8 @@ data class AppSettingsModel(
         val KEY_USE_DYNAMIC_COLOR = booleanPreferencesKey("use_dynamic_color")
         val KEY_CUSTOM_LIGHT_PRIMARY = longPreferencesKey("custom_light_primary")
         val KEY_CUSTOM_DARK_PRIMARY = longPreferencesKey("custom_dark_primary")
+        val KEY_BACKGROUND_IMAGE_PATH_LIGHT = stringPreferencesKey("background_image_path_light")
+        val KEY_BACKGROUND_IMAGE_PATH_DARK = stringPreferencesKey("background_image_path_dark")
         val KEY_DEVELOPER_MODE_ENABLED = booleanPreferencesKey("developer_mode_enabled")
 
         private val json = Json { ignoreUnknownKeys = true }
@@ -188,8 +208,14 @@ data class AppSettingsModel(
                 startScreen = prefs[KEY_START_SCREEN]?.let { StartScreen.fromString(it) } ?: d.startScreen,
                 themeMode = prefs[KEY_THEME_MODE]?.let { AppThemeMode.fromString(it) } ?: d.themeMode,
                 useDynamicColor = prefs[KEY_USE_DYNAMIC_COLOR] ?: d.useDynamicColor,
-                customLightPrimary = prefs[KEY_CUSTOM_LIGHT_PRIMARY] ?: d.customLightPrimary,
-                customDarkPrimary = prefs[KEY_CUSTOM_DARK_PRIMARY] ?: d.customDarkPrimary,
+                customPrimaryColor = LightDarkValue(
+                    light = prefs[KEY_CUSTOM_LIGHT_PRIMARY] ?: d.customPrimaryColor.light,
+                    dark = prefs[KEY_CUSTOM_DARK_PRIMARY] ?: d.customPrimaryColor.dark
+                ),
+                backgroundImagePath = LightDarkValue(
+                    light = prefs[KEY_BACKGROUND_IMAGE_PATH_LIGHT] ?: d.backgroundImagePath.light,
+                    dark = prefs[KEY_BACKGROUND_IMAGE_PATH_DARK] ?: d.backgroundImagePath.dark
+                ),
                 developerModeEnabled = prefs[KEY_DEVELOPER_MODE_ENABLED] ?: d.developerModeEnabled,
             )
         }

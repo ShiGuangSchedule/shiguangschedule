@@ -1,6 +1,7 @@
 package com.xingheyuzhuan.shiguangschedule.ui.settings.style
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -136,6 +137,8 @@ import kotlin.time.Clock
 fun SettingsListContent(
     currentStyle: ScheduleGridStyleComposed,
     viewModel: StyleSettingsViewModel,
+    isPreviewDark: Boolean,
+    wallpaperPath: String? = null,
     onWallpaperClick: () -> Unit,
     onNavigate: (Destination) -> Unit,
     onPick: (isDark: Boolean, index: Int) -> Unit
@@ -211,9 +214,9 @@ fun SettingsListContent(
 
         Text(stringResource(Res.string.style_category_interface), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
         WallpaperItem(
-            path = currentStyle.backgroundImagePath,
+            wallpaperPath = wallpaperPath,
             onClick = onWallpaperClick,
-            onLongClick = { viewModel.removeWallpaper() }
+            onLongClick = { viewModel.removeWallpaper(isPreviewDark) }
         )
         StyleSwitchItem(
             label = stringResource(Res.string.label_schedule_mode_24h),
@@ -266,7 +269,6 @@ fun SettingsListContent(
         SliderWithInputField(stringResource(Res.string.label_outer_padding), currentStyle.courseBlockOuterPadding.value, 0f..8f, 1f) { viewModel.updateOuterPadding(it) }
         SliderWithInputField(stringResource(Res.string.label_opacity), currentStyle.courseBlockAlpha, 0.1f..1f, 0.05f) { viewModel.updateAlpha(it) }
 
-
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
         Text(stringResource(Res.string.style_category_color_scheme), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
@@ -284,7 +286,7 @@ fun SettingsListContent(
             bgColor = darkColorScheme().surfaceContainerLow,
             isDarkSection = true,
             colors = currentStyle.courseColorMaps.map { it.dark },
-            onEditColor = { onPick( true, it) }
+            onEditColor = { onPick(true, it) }
         )
     }
 }
@@ -366,7 +368,8 @@ fun ColorPreviewBox(color: Color, isLightModeUI: Boolean) {
 @Composable
 fun ScheduleGridContent(
     style: ScheduleGridStyleComposed,
-    demoUiState: WeeklyScheduleUiState
+    demoUiState: WeeklyScheduleUiState,
+    wallpaperPath: String? = null
 ) {
     val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
     val localDates = remember(demoUiState.firstDayOfWeek) {
@@ -411,10 +414,18 @@ fun ScheduleGridContent(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        if (style.backgroundImagePath.isNotEmpty()) {
+    val hasWallpaper = !wallpaperPath.isNullOrEmpty()
+
+    val backgroundModifier = if (hasWallpaper) {
+        Modifier.fillMaxSize()
+    } else {
+        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
+    }
+
+    Box(modifier = backgroundModifier) {
+        if (hasWallpaper) {
             AsyncImage(
-                model = style.backgroundImagePath,
+                model = wallpaperPath,
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
@@ -477,13 +488,14 @@ fun StyleSwitchItem(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun WallpaperItem(
-    path: String,
+    wallpaperPath: String?,
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
-    val hasWallpaper = path.isNotEmpty()
+    val hasWallpaper = !wallpaperPath.isNullOrEmpty()
 
     Row(
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))

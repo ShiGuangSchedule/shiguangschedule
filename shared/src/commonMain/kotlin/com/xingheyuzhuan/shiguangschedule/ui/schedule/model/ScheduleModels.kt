@@ -42,7 +42,8 @@ data class WeeklyScheduleUiState(
     val currentSectionIndex: Int = -1,
     val daysUntilStart: Long = 0,
     val floatingCourse: CourseWithWeeks? = null,
-    val floatingSourceWeek: Int? = null
+    val floatingSourceWeek: Int? = null,
+    val wallpaperPath: String? = null
 )
 
 /**

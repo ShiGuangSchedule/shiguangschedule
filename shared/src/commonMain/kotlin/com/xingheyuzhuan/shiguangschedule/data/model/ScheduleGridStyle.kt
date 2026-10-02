@@ -79,9 +79,6 @@ data class ScheduleGridStyle(
     val pageTextColorLong: Long? = null,
     val courseTextColorLong: Long? = null,
 
-    // 背景壁纸路径 (存储在私有目录下的绝对路径)
-    val backgroundImagePath: String? = null,
-
     // 小组件独立外观样式配置
     val widgetStyle: WidgetStyle = WidgetStyle.DEFAULT
 ) {
@@ -143,7 +140,6 @@ data class ScheduleGridStyle(
             scheduleMode = ScheduleModeProto.SECTION_MODE,
             pageTextColorLong = null,
             courseTextColorLong = null,
-            backgroundImagePath = null,
             widgetStyle = WidgetStyle.DEFAULT
         )
     }
@@ -153,15 +149,13 @@ data class ScheduleGridStyle(
 // 2. Proto ⇔ Compose 转换扩展函数
 
 fun DualColorProto.toCompose(): DualColor {
-    // Wire 中属性是直接访问的，long 类型不需要 toInt (除非颜色存储逻辑需要)
     return DualColor(
-        light = Color(this.light_color), // Wire 属性名是下划线风格
+        light = Color(this.light_color),
         dark = Color(this.dark_color)
     )
 }
 
 fun DualColor.toProto(): DualColorProto {
-    // Wire 不使用 Builder，而是直接构造类或使用 copy()
     return DualColorProto(
         light_color = this.light.toArgb().toLong(),
         dark_color = this.dark.toArgb().toLong()
@@ -235,10 +229,7 @@ fun ScheduleGridStyleProto.toCompose(): ScheduleGridStyle {
         borderType = this.border_type ?: d.borderType,
         scheduleMode = this.schedule_mode ?: d.scheduleMode,
 
-        // 8. 背景图路径映射
-        backgroundImagePath = if (!this.background_image_path.isNullOrEmpty()) this.background_image_path else null,
-
-        // 9. 小组件独立样式映射
+        // 8. 小组件独立样式映射
         widgetStyle = this.widget_style?.toCompose() ?: d.widgetStyle
     )
 }
@@ -271,7 +262,6 @@ fun ScheduleGridStyle.toProto(): ScheduleGridStyleProto {
 
         page_text_color_long = this.pageTextColorLong,
         course_text_color_long = this.courseTextColorLong,
-        background_image_path = this.backgroundImagePath ?: "",
         widget_style = this.widgetStyle.toProto()
     )
 }

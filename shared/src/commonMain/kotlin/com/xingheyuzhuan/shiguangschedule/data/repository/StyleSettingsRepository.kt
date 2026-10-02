@@ -93,25 +93,19 @@ class StyleSettingsRepository(
     // --- 备份与恢复扩展 API ---
 
     /**
-     * 仅导出当前原生的样式配置字节数组，排除壁纸路径。
+     * 导出当前原生的样式配置字节数组。
      */
     suspend fun exportRawStyleBytes(): ByteArray {
         val currentProto = dataStore.data.first()
-        val exportProto = currentProto.copy(background_image_path = "")
-        return ScheduleGridStyleProto.ADAPTER.encode(exportProto)
+        return ScheduleGridStyleProto.ADAPTER.encode(currentProto)
     }
 
     /**
-     * 将还原的字节数组与本地壁纸路径合并后写入 DataStore。
+     * 将还原的字节数组写入 DataStore。
      */
     suspend fun restoreRawStyleBytes(bytes: ByteArray): Result<Unit> = runCatching {
-        val currentLocalProto = dataStore.data.first()
-        val localWallpaperPath = currentLocalProto.background_image_path
-
         val backupProto = ScheduleGridStyleProto.ADAPTER.decode(bytes)
-        val finalProto = backupProto.copy(background_image_path = localWallpaperPath)
-
-        dataStore.updateData { finalProto }
+        dataStore.updateData { backupProto }
         _styleUpdatedChannel.trySend(Unit)
     }
 
@@ -259,18 +253,11 @@ class StyleSettingsRepository(
         it.copy(course_text_color_long = color?.toArgb()?.toLong())
     }
 
-    /** 设置背景壁纸路径 */
-    suspend fun setBackgroundImagePath(path: String) = updateStyle {
-        it.copy(background_image_path = path)
-    }
-
-    /** 重置主界面样式设置（保留壁纸和小组件样式） */
+    /** 重置主界面样式设置（保留小组件样式） */
     suspend fun resetAllStyleSettingsExceptWallpaper() {
         dataStore.updateData { currentProto ->
-            val currentPath = currentProto.background_image_path
             val currentWidgetStyle = currentProto.widget_style
             ScheduleGridStyleProto().copy(
-                background_image_path = currentPath,
                 widget_style = currentWidgetStyle
             )
         }
@@ -323,7 +310,7 @@ class StyleSettingsRepository(
     }
 
     /**
-     * 重置小组件样式为默认设置（不影响主界面课表样式与壁纸）
+     * 重置小组件样式为默认设置（不影响主界面课表样式）
      */
     suspend fun resetWidgetStyleSettings() = updateStyle { current ->
         current.copy(widget_style = WidgetStyleProto())

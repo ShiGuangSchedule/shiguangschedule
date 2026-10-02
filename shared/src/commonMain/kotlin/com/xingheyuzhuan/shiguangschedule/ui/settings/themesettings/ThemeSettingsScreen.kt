@@ -151,14 +151,14 @@ fun ThemeSettingsScreen(
                     if (isDark) {
                         ColorPickerItem(
                             label = stringResource(Res.string.dark_primary_color),
-                            currentColor = Color(settings.customDarkPrimary),
+                            currentColor = Color(settings.customPrimaryColor.dark),
                             onColorChanged = { viewModel.onCustomDarkPrimaryChanged(it) },
                             onReset = { viewModel.onCustomDarkPrimaryChanged() }
                         )
                     } else {
                         ColorPickerItem(
                             label = stringResource(Res.string.light_primary_color),
-                            currentColor = Color(settings.customLightPrimary),
+                            currentColor = Color(settings.customPrimaryColor.light),
                             onColorChanged = { viewModel.onCustomLightPrimaryChanged(it) },
                             onReset = { viewModel.onCustomLightPrimaryChanged() }
                         )

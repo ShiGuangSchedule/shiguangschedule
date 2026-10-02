@@ -195,11 +195,12 @@ class SettingsViewModel(
     fun onCustomLightPrimaryChanged(color: Color? = null) {
         viewModelScope.launch {
             val currentSettings = uiState.value.appSettings
+            val defaultSettings = AppSettingsModel()
             val newColorArgb = color?.toArgb()?.toLong()
-                ?: AppSettingsModel().customLightPrimary
+                ?: defaultSettings.customPrimaryColor.light
 
             val updatedSettings = currentSettings.copy(
-                customLightPrimary = newColorArgb
+                customPrimaryColor = currentSettings.customPrimaryColor.copy(light = newColorArgb)
             )
             appSettingsRepository.insertOrUpdateAppSettings(updatedSettings)
         }
@@ -211,11 +212,12 @@ class SettingsViewModel(
     fun onCustomDarkPrimaryChanged(color: Color? = null) {
         viewModelScope.launch {
             val currentSettings = uiState.value.appSettings
+            val defaultSettings = AppSettingsModel()
             val newColorArgb = color?.toArgb()?.toLong()
-                ?: AppSettingsModel().customDarkPrimary
+                ?: defaultSettings.customPrimaryColor.dark
 
             val updatedSettings = currentSettings.copy(
-                customDarkPrimary = newColorArgb
+                customPrimaryColor = currentSettings.customPrimaryColor.copy(dark = newColorArgb)
             )
             appSettingsRepository.insertOrUpdateAppSettings(updatedSettings)
         }
