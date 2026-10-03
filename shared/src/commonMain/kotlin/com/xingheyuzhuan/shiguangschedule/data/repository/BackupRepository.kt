@@ -1,8 +1,8 @@
 package com.xingheyuzhuan.shiguangschedule.data.repository
 
+import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseDao
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTableConfigDao
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTableDao
-import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseDao
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTimeBindingDao
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWeekDao
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlotDao
@@ -12,8 +12,8 @@ import com.xingheyuzhuan.shiguangschedule.data.model.CourseImportExport
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.Serializable
 import org.jetbrains.compose.resources.getString
 import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
@@ -29,7 +29,8 @@ import kotlin.time.Clock
  */
 enum class BackupModule(val key: String) {
     COURSE("course"),
-    STYLE("style")
+    STYLE("style"),
+    APP_SETTINGS("app_settings")
 }
 
 /**
@@ -55,6 +56,16 @@ data class ModuleInfo(
 )
 
 /**
+ * 应用设置专属 CBOR 信封载体
+ */
+@Serializable
+data class AppSettingsBackupEnvelope(
+    val backupTimestamp: Long,
+    val appVersionCode: Int,
+    val settingsMap: Map<String, String>
+)
+
+/**
  * 备份与恢复的中央总仓库（KMP 共享层）
  */
 @Single
@@ -73,6 +84,27 @@ class BackupRepository(
     private val timeTableComboDao: TimeTableComboDao
 ) {
 
+    companion object {
+        /**
+         * 课表数据备份协议版本号
+         * v1: 单表 JSON 导出的多课表集合协议
+         * v2: 基于 CBOR 的多表结构化全量数据备份协议
+         */
+        const val COURSE_SCHEMA_VERSION = 2
+
+        /**
+         * 界面与小组件样式 (Style Grid DataStore Proto) 备份协议版本号
+         * v1: 基于 Proto DataStore 字节序列化的 CBOR 封装协议
+         */
+        const val STYLE_SCHEMA_VERSION = 1
+
+        /**
+         * 应用设置 (AppSettings DataStore) 备份协议版本号
+         * v1: 键值对映射表 CBOR 序列化封装协议
+         */
+        const val APP_SETTINGS_SCHEMA_VERSION = 1
+    }
+
     /**
      * 构建全软件多模块统一内存备份包
      */
@@ -86,13 +118,19 @@ class BackupRepository(
                     BackupModule.COURSE -> {
                         exportAllCourseTablesCbor()?.let {
                             payloadMap[module.key] = it
-                            moduleInfos.add(ModuleInfo(module.key, CourseImportExport.COURSE_SCHEMA_VERSION))
+                            moduleInfos.add(ModuleInfo(module.key, COURSE_SCHEMA_VERSION))
                         }
                     }
                     BackupModule.STYLE -> {
                         exportAppStyleBytes()?.let {
                             payloadMap[module.key] = it
-                            moduleInfos.add(ModuleInfo(module.key, StyleSettingsRepository.STYLE_SCHEMA_VERSION))
+                            moduleInfos.add(ModuleInfo(module.key, STYLE_SCHEMA_VERSION))
+                        }
+                    }
+                    BackupModule.APP_SETTINGS -> {
+                        exportAppSettingsBytes()?.let {
+                            payloadMap[module.key] = it
+                            moduleInfos.add(ModuleInfo(module.key, APP_SETTINGS_SCHEMA_VERSION))
                         }
                     }
                 }
@@ -122,15 +160,20 @@ class BackupRepository(
             backupPackage.meta.modules.forEach { info ->
                 when (info.key) {
                     BackupModule.COURSE.key -> {
-                        if (info.schemaVersion > CourseImportExport.COURSE_SCHEMA_VERSION) {
+                        if (info.schemaVersion > COURSE_SCHEMA_VERSION) {
                             return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_version_too_new)))
                         }
-                        if (info.schemaVersion < CourseImportExport.COURSE_SCHEMA_VERSION) {
+                        if (info.schemaVersion < COURSE_SCHEMA_VERSION) {
                             return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_version_too_old)))
                         }
                     }
                     BackupModule.STYLE.key -> {
-                        if (info.schemaVersion > StyleSettingsRepository.STYLE_SCHEMA_VERSION) {
+                        if (info.schemaVersion > STYLE_SCHEMA_VERSION) {
+                            return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_version_too_new)))
+                        }
+                    }
+                    BackupModule.APP_SETTINGS.key -> {
+                        if (info.schemaVersion > APP_SETTINGS_SCHEMA_VERSION) {
                             return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_version_too_new)))
                         }
                     }
@@ -141,6 +184,7 @@ class BackupRepository(
                 val result = when (info.key) {
                     BackupModule.COURSE.key -> restoreAllCourseTablesCbor(data)
                     BackupModule.STYLE.key -> restoreAppStyleBytes(data)
+                    BackupModule.APP_SETTINGS.key -> restoreAppSettingsBytes(data)
                     else -> Result.success(Unit)
                 }
                 if (result.isFailure) return@withContext result
@@ -159,13 +203,9 @@ class BackupRepository(
     @OptIn(ExperimentalSerializationApi::class)
     suspend fun exportAllCourseTablesCbor(): ByteArray? = withContext(Dispatchers.IO) {
         try {
-            val appSettings = appSettingsRepository.getAppSettingsOnce()
-
-            // 使用 CourseImportExport 中定义的总信封及实体载体
             val envelope = CourseImportExport.TotalAppBackupEnvelope(
                 backupTimestamp = Clock.System.now().toEpochMilliseconds(),
-                appVersionCode = CourseImportExport.COURSE_SCHEMA_VERSION,
-                currentCourseTableId = appSettings.currentCourseTableId,
+                appVersionCode = COURSE_SCHEMA_VERSION,
                 databasePayload = CourseImportExport.CourseDatabasePayload(
                     courseTables = courseTableDao.getAll(),
                     courseTableConfigs = courseTableConfigDao.getAll(),
@@ -201,11 +241,11 @@ class BackupRepository(
                 return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_corrupted)))
             }
 
-            if (envelope.appVersionCode > CourseImportExport.COURSE_SCHEMA_VERSION) {
+            if (envelope.appVersionCode > COURSE_SCHEMA_VERSION) {
                 return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_version_too_new)))
             }
 
-            if (envelope.appVersionCode < CourseImportExport.COURSE_SCHEMA_VERSION) {
+            if (envelope.appVersionCode < COURSE_SCHEMA_VERSION) {
                 return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_version_too_old)))
             }
 
@@ -255,9 +295,6 @@ class BackupRepository(
                 timeTableComboDao.insertRules(payload.timeTableComboRules)
             }
 
-            val currentSettings = appSettingsRepository.getAppSettingsOnce()
-            envelope.currentCourseTableId.let { appSettingsRepository.insertOrUpdateAppSettings(currentSettings.copy(currentCourseTableId = it)) }
-
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -275,7 +312,7 @@ class BackupRepository(
             val rawProtoBytes = styleSettingsRepository.exportRawStyleBytes()
             val envelope = StyleBackupEnvelope(
                 backupTimestamp = Clock.System.now().toEpochMilliseconds(),
-                appVersionCode = StyleSettingsRepository.STYLE_SCHEMA_VERSION,
+                appVersionCode = STYLE_SCHEMA_VERSION,
                 styleProtoBytes = rawProtoBytes
             )
             CourseImportExport.cbor.encodeToByteArray(StyleBackupEnvelope.serializer(), envelope)
@@ -300,16 +337,63 @@ class BackupRepository(
                 return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_corrupted)))
             }
 
-            if (envelope.appVersionCode > StyleSettingsRepository.STYLE_SCHEMA_VERSION) {
+            if (envelope.appVersionCode > STYLE_SCHEMA_VERSION) {
                 return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_version_too_new)))
             }
 
-            val migratedProtoBytes = if (envelope.appVersionCode < StyleSettingsRepository.STYLE_SCHEMA_VERSION) {
+            val migratedProtoBytes = if (envelope.appVersionCode < STYLE_SCHEMA_VERSION) {
                 envelope.styleProtoBytes
             } else {
                 envelope.styleProtoBytes
             }
             styleSettingsRepository.restoreRawStyleBytes(migratedProtoBytes)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // 3. 全局应用配置核心业务通道（DataStore AppSettings）
+
+    /**
+     * 导出应用设置独立通道
+     */
+    @OptIn(ExperimentalSerializationApi::class)
+    suspend fun exportAppSettingsBytes(): ByteArray? = withContext(Dispatchers.IO) {
+        try {
+            val settingsMap = appSettingsRepository.getAppSettingsBackupMap()
+            val envelope = AppSettingsBackupEnvelope(
+                backupTimestamp = Clock.System.now().toEpochMilliseconds(),
+                appVersionCode = APP_SETTINGS_SCHEMA_VERSION,
+                settingsMap = settingsMap
+            )
+            CourseImportExport.cbor.encodeToByteArray(AppSettingsBackupEnvelope.serializer(), envelope)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
+     * 还原应用设置独立通道
+     */
+    @OptIn(ExperimentalSerializationApi::class)
+    suspend fun restoreAppSettingsBytes(bytes: ByteArray): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            if (bytes.isEmpty()) {
+                return@withContext Result.failure(IllegalArgumentException(getString(Res.string.backup_err_empty)))
+            }
+
+            val envelope = try {
+                CourseImportExport.cbor.decodeFromByteArray(AppSettingsBackupEnvelope.serializer(), bytes)
+            } catch (_: Exception) {
+                return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_corrupted)))
+            }
+
+            if (envelope.appVersionCode > APP_SETTINGS_SCHEMA_VERSION) {
+                return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_version_too_new)))
+            }
+
+            appSettingsRepository.restoreAppSettingsFromBackupMap(envelope.settingsMap)
+            Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }

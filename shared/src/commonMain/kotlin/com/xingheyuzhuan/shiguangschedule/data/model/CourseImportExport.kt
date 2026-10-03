@@ -17,13 +17,6 @@ import kotlinx.serialization.json.Json
 object CourseImportExport {
 
     /**
-     * 核心数据规范版本号
-     * v1: 单表 JSON 导出的多课表集合协议 (List<SingleTablePack>)
-     * v2: 全盘 CBOR 结构化全量数据备份协议 (CourseDatabasePayload)
-     */
-    const val COURSE_SCHEMA_VERSION = 2
-
-    /**
      * 自定义 Json 解析器（用于单表 JSON 导出导入）
      * ignoreUnknownKeys = true: 确保旧版 App 遇到新加的字段时能跳过而不崩溃
      * encodeDefaults = true: 导出时即使字段是默认值也会包含在 JSON 中
@@ -52,7 +45,6 @@ object CourseImportExport {
     data class TotalAppBackupEnvelope(
         val backupTimestamp: Long,          // 备份生成的时间戳
         val appVersionCode: Int,            // 实际承载 COURSE_SCHEMA_VERSION，代表数据协议版本
-        val currentCourseTableId: String,   // 备份前用户当前激活/选中的课表 ID
         val databasePayload: CourseDatabasePayload // 核心数据库所有实体的结构化载体
     )
 

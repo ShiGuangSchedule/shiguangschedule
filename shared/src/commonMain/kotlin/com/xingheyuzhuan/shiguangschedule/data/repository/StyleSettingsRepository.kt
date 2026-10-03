@@ -82,11 +82,6 @@ class StyleSettingsRepository(
     private val dataStore: DataStore<ScheduleGridStyleProto>
 ) {
 
-    companion object {
-        /** 当前样式备份的版本号 */
-        const val STYLE_SCHEMA_VERSION = 1
-    }
-
     private val _styleUpdatedChannel = Channel<Unit>(Channel.CONFLATED)
     val styleUpdatedFlow: Flow<Unit> = _styleUpdatedChannel.receiveAsFlow()
 

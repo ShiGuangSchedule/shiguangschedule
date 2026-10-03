@@ -186,6 +186,57 @@ class AppSettingsRepository(
         }
     }
 
+    /**
+     * 导出备份设置字典。
+     * 自动遍历 BACKUP_KEYS 白名单，提取 DataStore 中现存的原始偏好键值字符串。
+     */
+    suspend fun getAppSettingsBackupMap(): Map<String, String> {
+        val prefs = dataStore.data.first()
+        val result = mutableMapOf<String, String>()
+
+        AppSettingsModel.BACKUP_KEYS.forEach { key ->
+            if (prefs.contains(key)) {
+                prefs[key]?.let { value ->
+                    result[key.name] = value.toString()
+                }
+            }
+        }
+        return result
+    }
+
+    /**
+     * 从备份中恢复设置。
+     * 严格根据 BACKUP_KEYS 白名单自动类型强转并更新 DataStore，绝不污染非白名单项。
+     */
+    suspend fun restoreAppSettingsFromBackupMap(backupMap: Map<String, String>) {
+        dataStore.edit { prefs ->
+            AppSettingsModel.BACKUP_KEYS.forEach { key ->
+                val strValue = backupMap[key.name] ?: return@forEach
+
+                when (key) {
+                    AppSettingsModel.KEY_CURRENT_COURSE_TABLE_ID -> {
+                        prefs[AppSettingsModel.KEY_CURRENT_COURSE_TABLE_ID] = strValue
+                    }
+                    AppSettingsModel.KEY_REMIND_BEFORE_MINUTES -> {
+                        strValue.toIntOrNull()?.let { prefs[AppSettingsModel.KEY_REMIND_BEFORE_MINUTES] = it }
+                    }
+                    AppSettingsModel.KEY_HOLIDAYS_JSON -> {
+                        prefs[AppSettingsModel.KEY_HOLIDAYS_JSON] = strValue
+                    }
+                    AppSettingsModel.KEY_SHOW_NON_CURRENT_WEEK_COURSES -> {
+                        strValue.toBooleanStrictOrNull()?.let { prefs[AppSettingsModel.KEY_SHOW_NON_CURRENT_WEEK_COURSES] = it }
+                    }
+                    AppSettingsModel.KEY_CUSTOM_LIGHT_PRIMARY -> {
+                        strValue.toLongOrNull()?.let { prefs[AppSettingsModel.KEY_CUSTOM_LIGHT_PRIMARY] = it }
+                    }
+                    AppSettingsModel.KEY_CUSTOM_DARK_PRIMARY -> {
+                        strValue.toLongOrNull()?.let { prefs[AppSettingsModel.KEY_CUSTOM_DARK_PRIMARY] = it }
+                    }
+                }
+            }
+        }
+    }
+
     // 课表具体物理配置 (Room)
 
     /**

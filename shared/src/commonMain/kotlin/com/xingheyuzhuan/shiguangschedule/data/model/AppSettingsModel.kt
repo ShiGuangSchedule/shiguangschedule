@@ -164,22 +164,50 @@ data class AppSettingsModel(
      * 避免了修改一处逻辑需要动多个文件的问题。
      */
     companion object {
+        /** 当前正在使用的课表 ID 的存储键 */
         val KEY_CURRENT_COURSE_TABLE_ID = stringPreferencesKey("current_course_table_id")
+        /** 是否开启上课前提醒的存储键 */
         val KEY_REMINDER_ENABLED = booleanPreferencesKey("reminder_enabled")
+        /** 提前提醒时间（分钟）的存储键 */
         val KEY_REMIND_BEFORE_MINUTES = intPreferencesKey("remind_before_minutes")
+        /** 节假日及调休列表 JSON 字符串的存储键 */
         val KEY_HOLIDAYS_JSON = stringPreferencesKey("holidays_json")
+        /** 自动化模式总开关的存储键 */
         val KEY_AUTO_MODE_ENABLED = booleanPreferencesKey("auto_mode_enabled")
+        /** 自动化控制具体模式的存储键 */
         val KEY_AUTO_CONTROL_MODE = stringPreferencesKey("auto_control_mode")
+        /** 兼容穿戴设备同步通知开关的存储键 */
         val KEY_COMPAT_WEARABLE_SYNC = booleanPreferencesKey("compat_wearable_sync")
+        /** 是否显示非本周课程的存储键 */
         val KEY_SHOW_NON_CURRENT_WEEK_COURSES = booleanPreferencesKey("show_non_current_week_courses")
+        /** 应用启动页面的存储键 */
         val KEY_START_SCREEN = stringPreferencesKey("start_screen")
+        /** 应用主题模式的存储键 */
         val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
+        /** 是否开启动态取色 (Material You) 的存储键 */
         val KEY_USE_DYNAMIC_COLOR = booleanPreferencesKey("use_dynamic_color")
+        /** 自定义主题浅色主色的存储键 */
         val KEY_CUSTOM_LIGHT_PRIMARY = longPreferencesKey("custom_light_primary")
+        /** 自定义主题深色主色的存储键 */
         val KEY_CUSTOM_DARK_PRIMARY = longPreferencesKey("custom_dark_primary")
+        /** 浅色模式背景壁纸路径的存储键 */
         val KEY_BACKGROUND_IMAGE_PATH_LIGHT = stringPreferencesKey("background_image_path_light")
+        /** 深色模式背景壁纸路径的存储键 */
         val KEY_BACKGROUND_IMAGE_PATH_DARK = stringPreferencesKey("background_image_path_dark")
+        /** 开发者模式总开关的存储键 */
         val KEY_DEVELOPER_MODE_ENABLED = booleanPreferencesKey("developer_mode_enabled")
+
+        /**
+         * 允许备份的 DataStore 键集合白名单。
+         */
+        val BACKUP_KEYS: Set<Preferences.Key<*>> = setOf(
+            KEY_CURRENT_COURSE_TABLE_ID,
+            KEY_REMIND_BEFORE_MINUTES,
+            KEY_HOLIDAYS_JSON,
+            KEY_SHOW_NON_CURRENT_WEEK_COURSES,
+            KEY_CUSTOM_LIGHT_PRIMARY,
+            KEY_CUSTOM_DARK_PRIMARY
+        )
 
         private val json = Json { ignoreUnknownKeys = true }
 
