@@ -18,6 +18,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -25,7 +27,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -41,10 +45,11 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.xingheyuzhuan.shiguangschedule.Destination
-import com.xingheyuzhuan.shiguangschedule.ui.components.DatePickerModal
 import com.xingheyuzhuan.shiguangschedule.ui.components.NativeNumberPicker
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.number
 import org.jetbrains.compose.resources.stringResource
@@ -74,6 +79,8 @@ import shiguangschedule.shared.generated.resources.desc_total_weeks
 import shiguangschedule.shared.generated.resources.dialog_title_manual_set_week
 import shiguangschedule.shared.generated.resources.dialog_title_select_total_weeks
 import shiguangschedule.shared.generated.resources.dialog_title_set_first_day_of_week
+import shiguangschedule.shared.generated.resources.holiday_management_desc
+import shiguangschedule.shared.generated.resources.holiday_management_title
 import shiguangschedule.shared.generated.resources.item_course_conversion
 import shiguangschedule.shared.generated.resources.item_course_management
 import shiguangschedule.shared.generated.resources.item_current_week
@@ -194,12 +201,37 @@ fun SettingsScreen(
             }
 
             if (showDatePickerModal) {
-                DatePickerModal(
-                    onDateSelected = { selectedDateMillis ->
-                        viewModel.onSemesterStartDateSelected(selectedDateMillis)
-                    },
-                    onDismiss = { showDatePickerModal = false }
+                val datePickerState = rememberDatePickerState(
+                    initialSelectedDateMillis = remember(semesterStartDate) {
+                        semesterStartDate?.let {
+                            LocalDate(it.year, it.month.number, it.day)
+                                .atStartOfDayIn(TimeZone.UTC)
+                                .toEpochMilliseconds()
+                        }
+                    }
                 )
+
+                DatePickerDialog(
+                    onDismissRequest = { showDatePickerModal = false },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            datePickerState.selectedDateMillis?.let { viewModel.onSemesterStartDateSelected(it) }
+                            showDatePickerModal = false
+                        }) {
+                            Text(stringResource(Res.string.action_confirm))
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showDatePickerModal = false }) {
+                            Text(stringResource(Res.string.action_cancel))
+                        }
+                    }
+                ) {
+                    DatePicker(
+                        state = datePickerState,
+                        showModeToggle = false
+                    )
+                }
             }
 
             if (showTotalWeeksDialog) {
@@ -407,6 +439,11 @@ private fun AdvancedSettingsSection(onNavigate: (Destination) -> Unit) {
                 title = stringResource(Res.string.item_personalization),
                 subtitle = stringResource(Res.string.desc_personalization),
                 onClick = { onNavigate(Destination.StyleSettings) }
+            )
+            SettingItem(
+                title = stringResource(Res.string.holiday_management_title),
+                subtitle = stringResource(Res.string.holiday_management_desc),
+                onClick = { onNavigate(Destination.HolidayManagement) }
             )
             SettingItem(
                 title = stringResource(Res.string.item_more_options),

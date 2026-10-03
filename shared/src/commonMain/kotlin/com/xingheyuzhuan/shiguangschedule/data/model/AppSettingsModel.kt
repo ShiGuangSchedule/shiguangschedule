@@ -6,10 +6,43 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.core.stringSetPreferencesKey
-import org.jetbrains.compose.resources.StringResource
-import shiguangschedule.shared.generated.resources.*
 import com.xingheyuzhuan.shiguangschedule.ui.theme.DefaultThemeColor
+import kotlinx.datetime.LocalDate
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import org.jetbrains.compose.resources.StringResource
+import shiguangschedule.shared.generated.resources.Res
+import shiguangschedule.shared.generated.resources.nav_course_schedule
+import shiguangschedule.shared.generated.resources.nav_today_schedule
+import shiguangschedule.shared.generated.resources.theme_dark
+import shiguangschedule.shared.generated.resources.theme_follow_system
+import shiguangschedule.shared.generated.resources.theme_light
+
+/**
+ * 通用的深浅色配置包装类
+ *
+ * @param light 浅色模式下的配置项
+ * @param dark 深色模式下的配置项
+ */
+@Serializable
+data class LightDarkValue<T>(
+    val light: T,
+    val dark: T
+)
+
+/**
+ * 节假日/调休 数据结构
+ *
+ * @property name 名称字符字段
+ * @property isHoliday 是否是假期 (true: 假期/放假; false: 调休/补班)
+ * @property dates 所属日期集合 (KMP 官方库强类型，默认以 ISO-8601 "YYYY-MM-DD" 序列化存储)
+ */
+@Serializable
+data class Holiday(
+    val name: String,
+    val isHoliday: Boolean = true,
+    val dates: Set<LocalDate> = emptySet()
+)
 
 /**
  * 上课时的自动化控制模式枚举
@@ -82,8 +115,8 @@ data class AppSettingsModel(
     /** 提前提醒的时间（分钟） */
     val remindBeforeMinutes: Int = 15,
 
-    /** 需要跳过的日期集合 (例如: "2024-03-15") */
-    val skippedDates: Set<String> = emptySet(),
+    /** 节假日及调休列表 */
+    val holidays: List<Holiday> = emptyList(),
 
     /** 自动化模式的总开关 */
     val autoModeEnabled: Boolean = false,
@@ -110,11 +143,17 @@ data class AppSettingsModel(
     /** 是否开启动态取色 (Material You) */
     val useDynamicColor: Boolean = true,
 
-    /** 自定义浅色主题主色 */
-    val customLightPrimary: Long = DefaultThemeColor.toArgb().toLong(),
+    /** 自定义主题主色（包含浅色和深色模式） */
+    val customPrimaryColor: LightDarkValue<Long> = LightDarkValue(
+        light = DefaultThemeColor.toArgb().toLong(),
+        dark = DefaultThemeColor.toArgb().toLong()
+    ),
 
-    /** 自定义深色主题主色 */
-    val customDarkPrimary: Long = DefaultThemeColor.toArgb().toLong(),
+    /** 背景壁纸路径 (包含浅色和深色模式，存储在私有目录下的绝对路径) */
+    val backgroundImagePath: LightDarkValue<String> = LightDarkValue(
+        light = "",
+        dark = ""
+    ),
 
     /** 开发者功能总开关（默认关闭） */
     val developerModeEnabled: Boolean = false,
@@ -125,31 +164,71 @@ data class AppSettingsModel(
      * 避免了修改一处逻辑需要动多个文件的问题。
      */
     companion object {
+        /** 当前正在使用的课表 ID 的存储键 */
         val KEY_CURRENT_COURSE_TABLE_ID = stringPreferencesKey("current_course_table_id")
+        /** 是否开启上课前提醒的存储键 */
         val KEY_REMINDER_ENABLED = booleanPreferencesKey("reminder_enabled")
+        /** 提前提醒时间（分钟）的存储键 */
         val KEY_REMIND_BEFORE_MINUTES = intPreferencesKey("remind_before_minutes")
-        val KEY_SKIPPED_DATES = stringSetPreferencesKey("skipped_dates")
+        /** 节假日及调休列表 JSON 字符串的存储键 */
+        val KEY_HOLIDAYS_JSON = stringPreferencesKey("holidays_json")
+        /** 自动化模式总开关的存储键 */
         val KEY_AUTO_MODE_ENABLED = booleanPreferencesKey("auto_mode_enabled")
+        /** 自动化控制具体模式的存储键 */
         val KEY_AUTO_CONTROL_MODE = stringPreferencesKey("auto_control_mode")
+        /** 兼容穿戴设备同步通知开关的存储键 */
         val KEY_COMPAT_WEARABLE_SYNC = booleanPreferencesKey("compat_wearable_sync")
+        /** 是否显示非本周课程的存储键 */
         val KEY_SHOW_NON_CURRENT_WEEK_COURSES = booleanPreferencesKey("show_non_current_week_courses")
+        /** 应用启动页面的存储键 */
         val KEY_START_SCREEN = stringPreferencesKey("start_screen")
+        /** 应用主题模式的存储键 */
         val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
+        /** 是否开启动态取色 (Material You) 的存储键 */
         val KEY_USE_DYNAMIC_COLOR = booleanPreferencesKey("use_dynamic_color")
+        /** 自定义主题浅色主色的存储键 */
         val KEY_CUSTOM_LIGHT_PRIMARY = longPreferencesKey("custom_light_primary")
+        /** 自定义主题深色主色的存储键 */
         val KEY_CUSTOM_DARK_PRIMARY = longPreferencesKey("custom_dark_primary")
+        /** 浅色模式背景壁纸路径的存储键 */
+        val KEY_BACKGROUND_IMAGE_PATH_LIGHT = stringPreferencesKey("background_image_path_light")
+        /** 深色模式背景壁纸路径的存储键 */
+        val KEY_BACKGROUND_IMAGE_PATH_DARK = stringPreferencesKey("background_image_path_dark")
+        /** 开发者模式总开关的存储键 */
         val KEY_DEVELOPER_MODE_ENABLED = booleanPreferencesKey("developer_mode_enabled")
+
+        /**
+         * 允许备份的 DataStore 键集合白名单。
+         */
+        val BACKUP_KEYS: Set<Preferences.Key<*>> = setOf(
+            KEY_CURRENT_COURSE_TABLE_ID,
+            KEY_REMIND_BEFORE_MINUTES,
+            KEY_HOLIDAYS_JSON,
+            KEY_SHOW_NON_CURRENT_WEEK_COURSES,
+            KEY_CUSTOM_LIGHT_PRIMARY,
+            KEY_CUSTOM_DARK_PRIMARY
+        )
+
+        private val json = Json { ignoreUnknownKeys = true }
 
         /**
          * 从 Preferences 中解析出 AppSettingsModel
          */
         fun fromPreferences(prefs: Preferences, fallbackTableId: String): AppSettingsModel {
             val d = AppSettingsModel() // 默认值模板
+
+            val rawHolidaysJson = prefs[KEY_HOLIDAYS_JSON]
+            val parsedHolidays = if (!rawHolidaysJson.isNullOrEmpty()) {
+                runCatching { json.decodeFromString<List<Holiday>>(rawHolidaysJson) }.getOrDefault(emptyList())
+            } else {
+                emptyList()
+            }
+
             return AppSettingsModel(
                 currentCourseTableId = prefs[KEY_CURRENT_COURSE_TABLE_ID] ?: fallbackTableId.ifEmpty { d.currentCourseTableId },
                 reminderEnabled = prefs[KEY_REMINDER_ENABLED] ?: d.reminderEnabled,
                 remindBeforeMinutes = prefs[KEY_REMIND_BEFORE_MINUTES] ?: d.remindBeforeMinutes,
-                skippedDates = prefs[KEY_SKIPPED_DATES] ?: d.skippedDates,
+                holidays = parsedHolidays,
                 autoModeEnabled = prefs[KEY_AUTO_MODE_ENABLED] ?: d.autoModeEnabled,
                 autoControlMode = AutoControlMode.fromString(prefs[KEY_AUTO_CONTROL_MODE]),
                 compatWearableSync = prefs[KEY_COMPAT_WEARABLE_SYNC] ?: d.compatWearableSync,
@@ -157,8 +236,14 @@ data class AppSettingsModel(
                 startScreen = prefs[KEY_START_SCREEN]?.let { StartScreen.fromString(it) } ?: d.startScreen,
                 themeMode = prefs[KEY_THEME_MODE]?.let { AppThemeMode.fromString(it) } ?: d.themeMode,
                 useDynamicColor = prefs[KEY_USE_DYNAMIC_COLOR] ?: d.useDynamicColor,
-                customLightPrimary = prefs[KEY_CUSTOM_LIGHT_PRIMARY] ?: d.customLightPrimary,
-                customDarkPrimary = prefs[KEY_CUSTOM_DARK_PRIMARY] ?: d.customDarkPrimary,
+                customPrimaryColor = LightDarkValue(
+                    light = prefs[KEY_CUSTOM_LIGHT_PRIMARY] ?: d.customPrimaryColor.light,
+                    dark = prefs[KEY_CUSTOM_DARK_PRIMARY] ?: d.customPrimaryColor.dark
+                ),
+                backgroundImagePath = LightDarkValue(
+                    light = prefs[KEY_BACKGROUND_IMAGE_PATH_LIGHT] ?: d.backgroundImagePath.light,
+                    dark = prefs[KEY_BACKGROUND_IMAGE_PATH_DARK] ?: d.backgroundImagePath.dark
+                ),
                 developerModeEnabled = prefs[KEY_DEVELOPER_MODE_ENABLED] ?: d.developerModeEnabled,
             )
         }

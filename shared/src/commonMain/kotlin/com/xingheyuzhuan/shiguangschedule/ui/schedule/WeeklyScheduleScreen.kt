@@ -2,6 +2,7 @@ package com.xingheyuzhuan.shiguangschedule.ui.schedule
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -58,6 +59,7 @@ import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGridSty
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGridViewState
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.WeekSelectorBottomSheet
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.rememberScheduleGridState
+import com.xingheyuzhuan.shiguangschedule.ui.schedule.model.MergedCourseBlock
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
@@ -93,6 +95,11 @@ fun WeeklyScheduleScreen(
     viewModel: WeeklyScheduleViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    val isDark = isSystemInDarkTheme()
+    LaunchedEffect(isDark) {
+        viewModel.updateDarkTheme(isDark)
+    }
 
     val today = remember {
         Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
@@ -161,18 +168,18 @@ fun WeeklyScheduleScreen(
     val customTextColor = composedStyle.pageTextColor ?: MaterialTheme.colorScheme.onSurface
     val customSubTextColor = customTextColor.copy(alpha = 0.7f)
 
-    val displayTitle = when {
+    val (displayTitle, titleTextColor) = when {
         !uiState.isSemesterSet || uiState.semesterStartDate == null -> {
-            stringResource(Res.string.title_semester_not_set)
+            stringResource(Res.string.title_semester_not_set) to MaterialTheme.colorScheme.error
         }
         uiState.daysUntilStart > 0 -> {
-            stringResource(Res.string.title_vacation_until_start, uiState.daysUntilStart.toString())
+            stringResource(Res.string.title_vacation_until_start, uiState.daysUntilStart.toString()) to customTextColor
         }
         uiState.weekIndexInPager != null && uiState.weekIndexInPager!! in 1..uiState.totalWeeks -> {
-            stringResource(Res.string.title_current_week, uiState.weekIndexInPager.toString())
+            stringResource(Res.string.title_current_week, uiState.weekIndexInPager.toString()) to customTextColor
         }
         else -> {
-            stringResource(Res.string.title_vacation)
+            stringResource(Res.string.title_vacation) to customTextColor
         }
     }
 
@@ -187,9 +194,9 @@ fun WeeklyScheduleScreen(
     val dynamicBottomOffset = systemNavigationBarInset + (88.dp * (1f - navHideFraction))
 
     Box(modifier = Modifier.fillMaxSize()) {
-        if (composedStyle.backgroundImagePath.isNotEmpty()) {
+        uiState.wallpaperPath?.let { path ->
             AsyncImage(
-                model = composedStyle.backgroundImagePath,
+                model = path,
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
@@ -220,7 +227,7 @@ fun WeeklyScheduleScreen(
                             Text(
                                 text = displayTitle,
                                 style = MaterialTheme.typography.titleLarge,
-                                color = customTextColor
+                                color = titleTextColor
                             )
                             Icon(
                                 imageVector = vectorResource(Res.drawable.arrow_drop_down_24px),

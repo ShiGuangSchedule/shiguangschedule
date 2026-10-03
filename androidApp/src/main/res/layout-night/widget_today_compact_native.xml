@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/widget_root_dark"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- 1. 暗色主卡片视图：包含背景 ImageView 与内容布局 -->
+    <FrameLayout
+        android:id="@+id/inner_content_card_dark"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <!-- 专门接收暗色背景着色与透明度的 ImageView -->
+        <ImageView
+            android:id="@+id/card_bg_image_dark"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/widget_bg_rounded" />
+
+        <!-- 内容布局（保持透明背景） -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:padding="10dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tv_header_title_dark"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="11dp"
+                    android:textStyle="bold"
+                    tools:text="周三" />
+
+                <LinearLayout
+                    android:layout_width="4dp"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal" />
+
+                <TextView
+                    android:id="@+id/tv_footer_dark"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/widget_text_hint"
+                    android:textSize="8dp"
+                    tools:text="剩余 3 节" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:orientation="horizontal" />
+
+                <TextView
+                    android:id="@+id/tv_current_week_dark"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="10dp"
+                    tools:text="第 18 周" />
+            </LinearLayout>
+
+            <!-- 暗色版 ListView -->
+            <ListView
+                android:id="@+id/list_view_courses_dark"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_marginTop="2dp"
+                android:layout_weight="1"
+                android:divider="@null"
+                android:dividerHeight="0dp" />
+
+            <!-- 暗色无课/已结束 嵌入式状态提示 -->
+            <LinearLayout
+                android:id="@+id/container_status_dark"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:visibility="gone"
+                tools:visibility="gone">
+
+                <TextView
+                    android:id="@+id/tv_status_title_dark"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="16dp"
+                    android:textStyle="bold"
+                    tools:text="今日课程已结束" />
+
+                <TextView
+                    android:id="@+id/tv_status_msg_dark"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="11dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- 2. 暗色假期全屏覆盖视图 -->
+    <FrameLayout
+        android:id="@+id/container_full_status_dark"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        tools:visibility="gone">
+
+        <ImageView
+            android:id="@+id/full_status_bg_image_dark"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/widget_bg_rounded" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="10dp">
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/tv_full_status_title_dark"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="18dp"
+                android:textStyle="bold"
+                tools:text="假期中" />
+
+            <TextView
+                android:id="@+id/tv_full_status_msg_dark"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="13dp"
+                tools:text="期待新学期" />
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+        </LinearLayout>
+    </FrameLayout>
+
+</FrameLayout>

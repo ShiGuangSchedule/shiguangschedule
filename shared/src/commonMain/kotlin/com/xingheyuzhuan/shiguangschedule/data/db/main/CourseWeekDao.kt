@@ -12,6 +12,19 @@ import kotlinx.coroutines.flow.Flow
  */
 @Dao
 interface CourseWeekDao {
+
+    /**
+     * 获取所有课程周数关联数据（用于全量备份）
+     */
+    @Query("SELECT * FROM course_weeks")
+    suspend fun getAll(): List<CourseWeek>
+
+    /**
+     * 清空所有课程周数关联数据（用于全量恢复）
+     */
+    @Query("DELETE FROM course_weeks")
+    suspend fun clearAll()
+
     /**
      * 获取指定课程的所有周数。
      */

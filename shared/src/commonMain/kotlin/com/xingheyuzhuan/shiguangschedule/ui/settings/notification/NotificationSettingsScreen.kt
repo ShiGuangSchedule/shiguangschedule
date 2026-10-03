@@ -58,15 +58,6 @@ fun NotificationSettingsScreen(
                     viewModel = viewModel
                 )
             }
-            // 高级卡片是跨平台通用的
-            item {
-                AdvancedSettingsCard(
-                    uiState = uiState,
-                    onUpdateHolidays = { viewModel.updateHolidays() },
-                    onClearSkippedDates = { viewModel.showDialog(NotificationDialogType.ClearConfirmation) },
-                    onViewSkippedDates = { viewModel.showDialog(NotificationDialogType.ViewSkippedDates) }
-                )
-            }
         }
     }
 

@@ -26,9 +26,6 @@ data class ScheduleGridStyleComposed(
     val courseBlockInnerPadding: Dp,
     val courseBlockAlpha: Float,
 
-    // 壁纸路径
-    val backgroundImagePath: String,
-
     // 字体缩放比例
     val fontScale: Float,
 
@@ -48,7 +45,7 @@ data class ScheduleGridStyleComposed(
     val textAlignCenterHorizontal: Boolean, // 文字水平居中
     val textAlignCenterVertical: Boolean,   // 文字垂直居中
     val borderType: BorderTypeProto,        // 边框类型 (NONE/SOLID/DASHED)
-    val scheduleMode: ScheduleModeProto,         // 供 UI 和逻辑层判断当前走哪种排版规则
+    val scheduleMode: ScheduleModeProto,    // 供 UI 和逻辑层判断当前走哪种排版规则
 
     val pageTextColor: Color?, // 页面字符颜色
     val courseTextColor: Color?, // 课程块文字颜色
@@ -80,7 +77,6 @@ data class ScheduleGridStyleComposed(
                 hideLocation = this.hideLocation,
                 hideTeacher = this.hideTeacher,
                 removeLocationAt = this.removeLocationAt,
-                backgroundImagePath = this.backgroundImagePath ?: "",
                 textAlignCenterHorizontal = this.textAlignCenterHorizontal,
                 textAlignCenterVertical = this.textAlignCenterVertical,
                 borderType = this.borderType,

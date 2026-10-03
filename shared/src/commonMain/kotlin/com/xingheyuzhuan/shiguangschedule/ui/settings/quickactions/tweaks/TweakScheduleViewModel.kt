@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTable
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWithWeeks
+import com.xingheyuzhuan.shiguangschedule.data.model.Holiday
 import com.xingheyuzhuan.shiguangschedule.data.repository.AppSettingsRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseTableRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,10 +13,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.until
 import kotlinx.datetime.todayIn
 import org.jetbrains.compose.resources.StringResource
 import org.koin.core.annotation.KoinViewModel
@@ -51,6 +50,7 @@ data class TweakScheduleUiState(
     val fromCourses: List<CourseWithWeeks> = emptyList(),
     val toCourses: List<CourseWithWeeks> = emptyList(),
     val tweakMode: CourseTableRepository.TweakMode = CourseTableRepository.TweakMode.MERGE,
+    val workdays: List<Holiday> = emptyList(),
 
     // 业务逻辑和状态管理所需的数据
     val isSemesterSet: Boolean = false,
@@ -85,11 +85,14 @@ class TweakScheduleViewModel(
     }
 
     /**
-     * 刷新 UI 状态：加载配置、课表以及预览区域的课程。
+     * 刷新 UI 状态：加载配置、课表、补班数据以及预览区域的课程。
      */
     private suspend fun refreshUiState(isInitialLoad: Boolean = false) {
         val settings = appSettingsRepository.getAppSettings().first()
         val allTables = courseTableRepository.getAllCourseTables().first()
+
+        // 仅过滤出 isHoliday == false（非假期/即补班）且设置了具体日期的记录
+        val availableWorkdays = settings.holidays.filter { !it.isHoliday && it.dates.isNotEmpty() }
 
         val selectedTable = if (isInitialLoad) {
             val defaultSelectedTable = allTables.find { it.id == settings.currentCourseTableId }
@@ -121,9 +124,20 @@ class TweakScheduleViewModel(
         var toCourses = emptyList<CourseWithWeeks>()
 
         if (isSemesterSet && selectedTable != null) {
-            val fromWeekNumber = semesterStartDate.until(currentFromDate, DateTimeUnit.WEEK).toInt() + 1
+            val fromWeekNumber = appSettingsRepository.getWeekIndexAtDate(
+                targetDate = currentFromDate,
+                startDateStr = courseConfig?.semesterStartDate,
+                firstDayOfWeekInt = courseConfig?.firstDayOfWeek ?: 1
+            ) ?: 1
+
             val fromDay = currentFromDate.dayOfWeek.ordinal + 1
-            val toWeekNumber = semesterStartDate.until(currentToDate, DateTimeUnit.WEEK).toInt() + 1
+
+            val toWeekNumber = appSettingsRepository.getWeekIndexAtDate(
+                targetDate = currentToDate,
+                startDateStr = courseConfig?.semesterStartDate,
+                firstDayOfWeekInt = courseConfig?.firstDayOfWeek ?: 1
+            ) ?: 1
+
             val toDay = currentToDate.dayOfWeek.ordinal + 1
 
             fromCourses = courseTableRepository.getCoursesForDay(selectedTable.id, fromWeekNumber, fromDay).first()
@@ -140,6 +154,7 @@ class TweakScheduleViewModel(
                 fromCourses = fromCourses,
                 toCourses = toCourses,
                 semesterStartDate = semesterStartDate,
+                workdays = availableWorkdays,
                 isLoading = false
             )
         }
@@ -195,10 +210,22 @@ class TweakScheduleViewModel(
             }
 
             try {
-                val semesterStartDate = state.semesterStartDate
-                val fromWeek = semesterStartDate.until(state.fromDate, DateTimeUnit.WEEK).toInt() + 1
+                val courseConfig = appSettingsRepository.getCourseConfigOnce(state.selectedCourseTable.id)
+
+                val fromWeek = appSettingsRepository.getWeekIndexAtDate(
+                    targetDate = state.fromDate,
+                    startDateStr = courseConfig?.semesterStartDate,
+                    firstDayOfWeekInt = courseConfig?.firstDayOfWeek ?: 1
+                ) ?: 1
+
                 val fromDay = state.fromDate.dayOfWeek.ordinal + 1
-                val toWeek = semesterStartDate.until(state.toDate, DateTimeUnit.WEEK).toInt() + 1
+
+                val toWeek = appSettingsRepository.getWeekIndexAtDate(
+                    targetDate = state.toDate,
+                    startDateStr = courseConfig?.semesterStartDate,
+                    firstDayOfWeekInt = courseConfig?.firstDayOfWeek ?: 1
+                ) ?: 1
+
                 val toDay = state.toDate.dayOfWeek.ordinal + 1
 
                 courseTableRepository.tweakCoursesOnDate(

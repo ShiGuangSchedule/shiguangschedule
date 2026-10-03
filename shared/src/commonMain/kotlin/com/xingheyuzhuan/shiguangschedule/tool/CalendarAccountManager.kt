@@ -15,6 +15,6 @@ expect object CalendarAccountManager {
         semesterTotalWeeks: Int,
         firstDayOfWeekInt: Int,
         alarmMinutes: Int?,
-        skippedDates: Set<String>?
+        isHolidayDate: suspend (LocalDate) -> Boolean = { false }
     ): Boolean
 }

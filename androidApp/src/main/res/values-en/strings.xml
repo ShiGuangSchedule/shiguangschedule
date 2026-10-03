@@ -29,10 +29,11 @@
     <string name="widget_name_compact">Compact 2x2</string>
     <string name="widget_name_double_days">Recent Days 4x2</string>
     <string name="widget_name_list_vertical">Vertical Course List 4xN</string>
-    <string name="widget_tomorrow_course_preview">Tomorrow</string>
+    <string name="widget_tomorrow_course_preview">Next Day</string>
     <string name="widget_no_courses_tomorrow">No courses tomorrow</string>
     <string name="widget_today_courses_finished">Today\'s classes ended.</string>
     <string name="widget_vacation_expecting">Looking forward to new semester</string>
+    <string name="widget_days_until_term_start">%1$d days until school starts</string>
     <string name="widget_remaining_courses_format_today">%1$d courses left today</string>
     <string name="widget_remaining_courses_format_tomorrow">%1$d courses tomorrow</string>
     <string name="widget_title_today">Today</string>
@@ -43,4 +44,5 @@
     <string name="status_current_week_format">Week %1$d</string>
     <string name="text_no_course">No courses</string>
     <string name="widget_course_remaining_count">%1$d left</string>
+    <string name="intent_import_course_table">Import Schedule</string>
 </resources>

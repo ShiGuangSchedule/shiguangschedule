@@ -27,6 +27,8 @@ coreKtx = "1.19.0"
 appcompat = "1.8.0"
 activityCompose = "1.13.0"
 work-runtime = "2.11.2"
+coreRemoteViews = "1.1.0"
+webkit = "1.17.1"
 
 # 网络与持久化/序列化
 ktor = "3.5.2"
@@ -40,7 +42,7 @@ koin = "4.2.2"
 koin-plugin = "1.1.0"
 coil = "3.5.0"
 aboutLibraries = "15.0.4"
-kgit = "1.0.2"
+kgit = "1.0.3"
 
 
 [libraries]
@@ -68,6 +70,8 @@ androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = 
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
+androidx-core-remoteviews = { module = "androidx.core:core-remoteviews", version.ref = "coreRemoteViews" }
+androidx-webkit = { group = "androidx.webkit", name = "webkit", version.ref = "webkit" }
 
 # KMP Lifecycle (JetBrains Compose Multiplatform 移植版)
 androidx-lifecycle-viewmodel-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "compose-multiplatform-lifecycle" }
@@ -93,6 +97,8 @@ androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx"
 # Ktor (跨平台 HTTP 客户端)
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
+ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
+ktor-client-java = { module = "io.ktor:ktor-client-java", version.ref = "ktor" }
 ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
@@ -116,7 +122,6 @@ koin-android = { module = "io.insert-koin:koin-android" }
 koin-androidx-workmanager = { module = "io.insert-koin:koin-androidx-workmanager" }
 koin-compose = { module = "io.insert-koin:koin-compose" }
 koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel" }
-koin-compose-navigation3 = { module = "io.insert-koin:koin-compose-navigation3" }
 koin-annotations = { module = "io.insert-koin:koin-annotations", version.ref = "koin" }
 
 

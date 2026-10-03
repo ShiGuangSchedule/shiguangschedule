@@ -26,6 +26,32 @@ enum ScheduleModeProto {
   TIME_24H_MODE = 1;   // 24小时绝对时间轴模式
 }
 
+// 定义小组件主题深浅模式枚举
+enum WidgetThemeModeProto {
+  WIDGET_THEME_FOLLOW_SYSTEM = 0; // 跟随系统 (默认)
+  WIDGET_THEME_LIGHT = 1;         // 强制浅色模式
+  WIDGET_THEME_DARK = 2;          // 强制深色模式
+}
+
+// 小组件独立外观样式配置
+message WidgetStyleProto {
+  // 独立外观属性
+  optional float font_scale = 1;         // 小组件字体缩放比例 (如 1.0)
+  optional float background_alpha = 2;   // 背景透明度 (0.0 - 1.0)
+
+  // 显示控制开关
+  // 注意语义：本来显示的属性用 hide_（默认 false 不隐藏）；本来不显示的用 show_
+  optional bool hide_teacher = 3;        // 是否隐藏老师 (默认 false，即显示)
+  optional bool hide_location = 4;       // 是否隐藏地点 (默认 false，即显示)
+  optional bool hide_date = 5;           // 是否隐藏日期 (默认 false，即显示)
+
+  // 深浅色模式控制
+  optional WidgetThemeModeProto theme_mode = 6; // 小组件主题模式 (默认 FOLLOW_SYSTEM)
+
+  // 主题配色
+  optional int64 seed_color = 7;         // 小组件自定义主题种子色 (ARGB Long)
+}
+
 // 课表网格样式配置
 message ScheduleGridStyleProto {
 
@@ -71,5 +97,8 @@ message ScheduleGridStyleProto {
   optional int64 course_text_color_long = 26; // 课程块文字颜色
   optional ScheduleModeProto schedule_mode = 27; // 课表时间段模式
 
-  optional string background_image_path = 19; // 存储图片在私有目录下的绝对路径
+  // 壁纸路径已迁移至 AppSettings 数据源，此字段仅作旧版本数据迁移过渡使用
+  optional string background_image_path = 19 [deprecated = true];
+
+  optional WidgetStyleProto widget_style = 28;   // 小组件样式配置
 }

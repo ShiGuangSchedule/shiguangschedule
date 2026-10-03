@@ -13,10 +13,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DatePeriod
-import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
-import kotlinx.datetime.until
 import org.jetbrains.compose.resources.StringResource
 import org.koin.core.annotation.KoinViewModel
 import shiguangschedule.shared.generated.resources.Res
@@ -148,7 +146,6 @@ class QuickDeleteViewModel(
         viewModelScope.launch {
             val state = _uiState.value
             val tableId = state.selectedCourseTable?.id ?: return@launch
-            val semesterStart = state.semesterStartDate ?: return@launch
 
             val noWeekDaySelection = state.selectedWeeks.isEmpty() || state.selectedDays.isEmpty()
             val noDateRangeSelection = state.startDate == null || state.endDate == null
@@ -160,6 +157,9 @@ class QuickDeleteViewModel(
 
             _uiState.update { it.copy(isLoading = true) }
             val queryPairs = mutableSetOf<Pair<Int, Int>>()
+
+            // 获取当前课表的配置以对齐周次计算
+            val courseConfig = appSettingsRepository.getCourseConfigOnce(tableId)
 
             // 处理：周次 x 星期
             if (state.selectedWeeks.isNotEmpty() && state.selectedDays.isNotEmpty()) {
@@ -173,8 +173,12 @@ class QuickDeleteViewModel(
                 state.endDate?.let { end ->
                     var curr: LocalDate = start
                     while (curr <= end) {
-                        val daysBetween = semesterStart.until(curr, DateTimeUnit.DAY)
-                        val w = (daysBetween / 7).toInt() + 1
+                        val w = appSettingsRepository.getWeekIndexAtDate(
+                            targetDate = curr,
+                            startDateStr = courseConfig?.semesterStartDate,
+                            firstDayOfWeekInt = courseConfig?.firstDayOfWeek ?: 1
+                        ) ?: 1
+
                         val d = curr.dayOfWeek.ordinal + 1
                         queryPairs.add(w to d)
                         curr = curr.plus(DatePeriod(days = 1))

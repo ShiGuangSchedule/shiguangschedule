@@ -76,16 +76,18 @@ data class ColorPickerConfig(
 
 private object ColorInternalUtils {
     fun hsvToColor(h: Float, s: Float, v: Float, a: Float = 1f): Color {
+        // 对 h 做 0..360 规范化，防止边界越界
+        val safeH = (h % 360f + 360f) % 360f
         val c = v * s
-        val x = c * (1 - kotlin.math.abs((h / 60f) % 2 - 1))
+        val x = c * (1 - kotlin.math.abs((safeH / 60f) % 2 - 1))
         val m = v - c
 
         val (rPrime, gPrime, bPrime) = when {
-            h < 60f -> Triple(c, x, 0f)
-            h < 120f -> Triple(x, c, 0f)
-            h < 180f -> Triple(0f, c, x)
-            h < 240f -> Triple(0f, x, c)
-            h < 300f -> Triple(x, 0f, c)
+            safeH < 60f -> Triple(c, x, 0f)
+            safeH < 120f -> Triple(x, c, 0f)
+            safeH < 180f -> Triple(0f, c, x)
+            safeH < 240f -> Triple(0f, x, c)
+            safeH < 300f -> Triple(x, 0f, c)
             else -> Triple(c, 0f, x)
         }
 
@@ -218,7 +220,7 @@ fun AdvancedColorPicker(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (config.showHue) {
                     ColorLabel(stringResource(Res.string.color_picker_label_hue), "${h.toInt()}°")
-                    InternalGradientSlider(h, { updateHsv(it, s, v, a) }, 0f..360f, Brush.horizontalGradient(listOf(Color.Red, Color.Yellow, Color.Green, Color.Cyan, Color.Blue, Color.Magenta, Color.Red)))
+                    InternalGradientSlider(h, { updateHsv(it, s, v, a) }, 0f..359f, Brush.horizontalGradient(listOf(Color.Red, Color.Yellow, Color.Green, Color.Cyan, Color.Blue, Color.Magenta, Color.Red)))
                 }
                 if (config.showSaturation) {
                     ColorLabel(stringResource(Res.string.color_picker_label_saturation), "${(s * 100).toInt()}%")

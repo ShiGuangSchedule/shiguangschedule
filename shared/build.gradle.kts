@@ -74,7 +74,6 @@ kotlin {
                 implementation(libs.koin.core)
                 implementation(libs.koin.compose)
                 implementation(libs.koin.compose.viewmodel)
-                implementation(libs.koin.compose.navigation3)
 
                 // Serialization & 工具库
                 implementation(libs.kotlinx.serialization.json)
@@ -103,12 +102,13 @@ kotlin {
 
         androidMain.dependencies {
             implementation(libs.androidx.sqlite.framework)
-            implementation(libs.ktor.client.cio)
+            implementation(libs.ktor.client.okhttp)
+            implementation(libs.androidx.webkit)
         }
 
         jvmMain.dependencies {
             implementation(libs.androidx.sqlite.bundled)
-            implementation(libs.ktor.client.cio)
+            implementation(libs.ktor.client.okhttp)
         }
 
         iosMain.dependencies {

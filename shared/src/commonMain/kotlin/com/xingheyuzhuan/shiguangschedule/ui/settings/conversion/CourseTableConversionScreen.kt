@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.xingheyuzhuan.shiguangschedule.Destination
 import com.xingheyuzhuan.shiguangschedule.data.di.AppStorage
+import com.xingheyuzhuan.shiguangschedule.tool.ExternalFileManager
 import com.xingheyuzhuan.shiguangschedule.tool.FileManagerCallbacks
 import com.xingheyuzhuan.shiguangschedule.tool.rememberFileManager
 import com.xingheyuzhuan.shiguangschedule.ui.components.ShareDialog
@@ -85,6 +86,7 @@ fun CourseTableConversionScreen(
     appStorage: AppStorage = koinInject()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val pendingFile by ExternalFileManager.pendingFile.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -97,6 +99,12 @@ fun CourseTableConversionScreen(
     var pendingShareFilePath by remember { mutableStateOf<String?>(null) }
     var shareFilePath by remember { mutableStateOf<String?>(null) }
     var shareFileMimeType by remember { mutableStateOf("application/json") }
+
+    LaunchedEffect(pendingFile) {
+        if (pendingFile?.targetDestination == Destination.CourseTableConversion) {
+            viewModel.onImportClick()
+        }
+    }
 
     val fileManager = rememberFileManager(
         callbacks = FileManagerCallbacks(
@@ -274,8 +282,20 @@ fun CourseTableConversionScreen(
 
     ConversionDialogOverlay(
         uiState = uiState,
-        onDismiss = { viewModel.dismissDialog() },
-        onConfirmImport = { viewModel.onImportTableSelected(it) },
+        onDismiss = {
+            viewModel.dismissDialog()
+            ExternalFileManager.consumeFile()
+        },
+        onConfirmImport = { tableId ->
+            val externalFile = ExternalFileManager.consumeFile()
+            if (externalFile?.targetDestination == Destination.CourseTableConversion) {
+                val source = Buffer().write(externalFile.bytes)
+                viewModel.handleFileImport(tableId, source)
+                viewModel.dismissDialog()
+            } else {
+                viewModel.onImportTableSelected(tableId)
+            }
+        },
         onConfirmExport = { id, mins -> viewModel.onExportTableSelected(id, mins) }
     )
 

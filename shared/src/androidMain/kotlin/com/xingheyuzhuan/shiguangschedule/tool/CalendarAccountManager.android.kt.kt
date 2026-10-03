@@ -80,7 +80,7 @@ actual object CalendarAccountManager : KoinComponent {
         semesterTotalWeeks: Int,
         firstDayOfWeekInt: Int,
         alarmMinutes: Int?,
-        skippedDates: Set<String>?
+        isHolidayDate: suspend (LocalDate) -> Boolean
     ): Boolean {
         return withContext(Dispatchers.IO) {
             try {
@@ -107,7 +107,7 @@ actual object CalendarAccountManager : KoinComponent {
                     semesterStartDate = semesterStartDate,
                     semesterTotalWeeks = semesterTotalWeeks,
                     firstDayOfWeekInt = firstDayOfWeekInt,
-                    skippedDates = skippedDates
+                    isHolidayDate = isHolidayDate
                 ) { course, start, end, _ ->
                     val startMillis = start.toInstant(timeZone).toEpochMilliseconds()
                     val endMillis = end.toInstant(timeZone).toEpochMilliseconds()

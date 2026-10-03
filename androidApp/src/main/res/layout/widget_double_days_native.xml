@@ -1,33 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <LinearLayout
+    <!-- 1. 浅色主卡片视图：包含背景 ImageView 与双列内容布局 -->
+    <FrameLayout
         android:id="@+id/inner_content_card"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@drawable/widget_bg_rounded"
-        android:orientation="vertical"
-        android:padding="14dp">
+        android:layout_height="match_parent">
 
-        <TextView
-            android:id="@+id/tv_current_week"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="end"
-            android:textColor="@color/widget_text_secondary"
-            android:textSize="10dp"
-            tools:text="第 18 周" />
+        <!-- 专门接收浅色背景着色与透明度的 ImageView -->
+        <ImageView
+            android:id="@+id/card_bg_image"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/widget_bg_rounded" />
 
+        <!-- 双列内容容器（保持背景透明） -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:baselineAligned="false"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:padding="10dp">
 
+            <!-- 左侧：今日课程区域 -->
             <RelativeLayout
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
@@ -38,6 +37,7 @@
                     android:layout_height="match_parent"
                     android:orientation="vertical">
 
+                    <!-- 今日头部（日期 + 周数 + 尾部提示） -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -46,18 +46,15 @@
 
                         <TextView
                             android:id="@+id/tv_today_date"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:textColor="@color/widget_text_secondary"
-                            android:textSize="11dp"
-                            android:textStyle="bold"
-                            tools:text="今日 1.07 周三" />
-
-                        <LinearLayout
                             android:layout_width="0dp"
-                            android:layout_height="0dp"
+                            android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:orientation="horizontal" />
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_secondary"
+                            android:textSize="10dp"
+                            android:textStyle="bold"
+                            tools:text="今日 01.07 周三 第18周" />
 
                         <TextView
                             android:id="@+id/tv_today_footer"
@@ -68,22 +65,26 @@
                             tools:text="剩余 2 节" />
                     </LinearLayout>
 
-                    <LinearLayout
-                        android:id="@+id/container_today"
+                    <!-- 今日课程 ListView -->
+                    <ListView
+                        android:id="@+id/list_view_today"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:orientation="vertical">
-                        <include layout="@layout/widget_item_course_common" />
-                    </LinearLayout>
+                        android:layout_height="0dp"
+                        android:layout_marginTop="2dp"
+                        android:layout_weight="1"
+                        android:divider="@null"
+                        android:dividerHeight="0dp" />
                 </LinearLayout>
 
+                <!-- 今日无课提示 -->
                 <LinearLayout
                     android:id="@+id/empty_today_container"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:gravity="center"
-                    android:visibility="gone">
+                    android:visibility="gone"
+                    tools:visibility="gone">
+
                     <TextView
                         android:id="@+id/empty_today"
                         android:layout_width="wrap_content"
@@ -94,15 +95,17 @@
                 </LinearLayout>
             </RelativeLayout>
 
+            <!-- 中间分割线 -->
             <ImageView
                 android:id="@+id/widget_divider"
                 android:layout_width="1dp"
                 android:layout_height="match_parent"
-                android:layout_marginHorizontal="8dp"
-                android:layout_marginVertical="8dp"
+                android:layout_marginHorizontal="6dp"
+                android:layout_marginVertical="4dp"
                 android:alpha="0.2"
                 android:background="@color/widget_divider" />
 
+            <!-- 右侧：明日课程区域 -->
             <RelativeLayout
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
@@ -113,6 +116,7 @@
                     android:layout_height="match_parent"
                     android:orientation="vertical">
 
+                    <!-- 明日头部（日期 + 周数 + 尾部提示） -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -121,18 +125,15 @@
 
                         <TextView
                             android:id="@+id/tv_tomorrow_date"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:textColor="@color/widget_text_secondary"
-                            android:textSize="11dp"
-                            android:textStyle="bold"
-                            tools:text="明日 1.08 周四" />
-
-                        <LinearLayout
                             android:layout_width="0dp"
-                            android:layout_height="0dp"
+                            android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:orientation="horizontal" />
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_secondary"
+                            android:textSize="10dp"
+                            android:textStyle="bold"
+                            tools:text="明日 01.08 周四 第18周" />
 
                         <TextView
                             android:id="@+id/tv_tomorrow_footer"
@@ -143,22 +144,26 @@
                             tools:text="共有 4 节" />
                     </LinearLayout>
 
-                    <LinearLayout
-                        android:id="@+id/container_tomorrow"
+                    <!-- 明日课程 ListView -->
+                    <ListView
+                        android:id="@+id/list_view_tomorrow"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:orientation="vertical">
-                        <include layout="@layout/widget_item_course_common" />
-                    </LinearLayout>
+                        android:layout_height="0dp"
+                        android:layout_marginTop="2dp"
+                        android:layout_weight="1"
+                        android:divider="@null"
+                        android:dividerHeight="0dp" />
                 </LinearLayout>
 
+                <!-- 明日无课提示 -->
                 <LinearLayout
                     android:id="@+id/empty_tomorrow_container"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:gravity="center"
-                    android:visibility="gone">
+                    android:visibility="gone"
+                    tools:visibility="gone">
+
                     <TextView
                         android:id="@+id/empty_tomorrow"
                         android:layout_width="wrap_content"
@@ -169,34 +174,57 @@
                 </LinearLayout>
             </RelativeLayout>
         </LinearLayout>
-    </LinearLayout>
+    </FrameLayout>
 
-    <LinearLayout
-        android:id="@+id/container_vacation"
+    <!-- 2. 浅色假期全屏覆盖视图 -->
+    <FrameLayout
+        android:id="@+id/container_full_status"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@drawable/widget_bg_rounded"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:padding="14dp"
-        android:visibility="gone">
-        <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
-        <TextView
-            android:id="@+id/tv_vacation_title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/widget_text_primary"
-            android:textSize="18dp"
-            android:textStyle="bold"
-            tools:text="暑假快乐" />
-        <TextView
-            android:id="@+id/tv_vacation_msg"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:textColor="@color/widget_text_secondary"
-            android:textSize="13dp"
-            tools:text="愿你的假期充满阳光" />
-        <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
-    </LinearLayout>
-</RelativeLayout>
+        android:visibility="gone"
+        tools:visibility="gone">
+
+        <ImageView
+            android:id="@+id/full_status_bg_image"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/widget_bg_rounded" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="10dp">
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/tv_full_status_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="18dp"
+                android:textStyle="bold"
+                tools:text="假期中" />
+
+            <TextView
+                android:id="@+id/tv_full_status_msg"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="13dp"
+                tools:text="期待新学期" />
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+        </LinearLayout>
+    </FrameLayout>
+
+</FrameLayout>

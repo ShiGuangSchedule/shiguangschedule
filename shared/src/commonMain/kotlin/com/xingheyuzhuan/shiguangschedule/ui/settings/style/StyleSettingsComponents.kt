@@ -1,6 +1,7 @@
 package com.xingheyuzhuan.shiguangschedule.ui.settings.style
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -26,10 +27,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -37,10 +38,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -60,21 +57,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.xingheyuzhuan.shiguangschedule.Destination
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.BorderTypeProto
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleModeProto
 import com.xingheyuzhuan.shiguangschedule.ui.components.AdvancedColorPicker
 import com.xingheyuzhuan.shiguangschedule.ui.components.ColorPickerConfig
-import com.xingheyuzhuan.shiguangschedule.ui.schedule.MergedCourseBlock
-import com.xingheyuzhuan.shiguangschedule.ui.schedule.WeeklyScheduleUiState
+import com.xingheyuzhuan.shiguangschedule.ui.components.SliderWithInputField
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGrid
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGridActions
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGridStyleComposed
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGridViewState
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.rememberScheduleGridState
+import com.xingheyuzhuan.shiguangschedule.ui.schedule.model.MergedCourseBlock
+import com.xingheyuzhuan.shiguangschedule.ui.schedule.model.WeeklyScheduleUiState
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.TimeZone
@@ -113,7 +111,6 @@ import shiguangschedule.shared.generated.resources.label_none
 import shiguangschedule.shared.generated.resources.label_opacity
 import shiguangschedule.shared.generated.resources.label_outer_padding
 import shiguangschedule.shared.generated.resources.label_page_text_color
-import shiguangschedule.shared.generated.resources.label_range
 import shiguangschedule.shared.generated.resources.label_remove_location_at
 import shiguangschedule.shared.generated.resources.label_schedule_mode_24h
 import shiguangschedule.shared.generated.resources.label_section_height
@@ -122,7 +119,6 @@ import shiguangschedule.shared.generated.resources.label_text_align_center_h
 import shiguangschedule.shared.generated.resources.label_text_align_center_v
 import shiguangschedule.shared.generated.resources.label_time_column_width
 import shiguangschedule.shared.generated.resources.label_wallpaper
-import shiguangschedule.shared.generated.resources.placeholder_input_value
 import shiguangschedule.shared.generated.resources.preview_dark_mode
 import shiguangschedule.shared.generated.resources.preview_light_mode
 import shiguangschedule.shared.generated.resources.refresh_24px
@@ -131,16 +127,20 @@ import shiguangschedule.shared.generated.resources.style_category_color_scheme
 import shiguangschedule.shared.generated.resources.style_category_course_block
 import shiguangschedule.shared.generated.resources.style_category_grid_size
 import shiguangschedule.shared.generated.resources.style_category_interface
+import shiguangschedule.shared.generated.resources.style_category_other
 import shiguangschedule.shared.generated.resources.title_dark_color_pool
 import shiguangschedule.shared.generated.resources.title_light_color_pool
-import kotlin.math.roundToInt
+import shiguangschedule.shared.generated.resources.title_widget_style
 import kotlin.time.Clock
 
 @Composable
 fun SettingsListContent(
     currentStyle: ScheduleGridStyleComposed,
     viewModel: StyleSettingsViewModel,
+    isPreviewDark: Boolean,
+    wallpaperPath: String? = null,
     onWallpaperClick: () -> Unit,
+    onNavigate: (Destination) -> Unit,
     onPick: (isDark: Boolean, index: Int) -> Unit
 ) {
     var showResetDialog by remember { mutableStateOf(false) }
@@ -151,13 +151,23 @@ fun SettingsListContent(
             title = { Text(stringResource(Res.string.dialog_reset_title)) },
             text = { Text(stringResource(Res.string.dialog_reset_message)) },
             confirmButton = {
-                TextButton(onClick = {
-                    viewModel.resetStyleSettings()
-                    showResetDialog = false
-                }) { Text(stringResource(Res.string.action_confirm), color = MaterialTheme.colorScheme.error) }
+                Button(
+                    onClick = {
+                        viewModel.resetStyleSettings()
+                        showResetDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    )
+                ) {
+                    Text(stringResource(Res.string.action_confirm))
+                }
             },
             dismissButton = {
-                TextButton(onClick = { showResetDialog = false }) { Text(stringResource(Res.string.action_cancel)) }
+                TextButton(onClick = { showResetDialog = false }) {
+                    Text(stringResource(Res.string.action_cancel))
+                }
             }
         )
     }
@@ -177,11 +187,36 @@ fun SettingsListContent(
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
+        // 其他样式分类
+        Text(
+            text = stringResource(Res.string.style_category_other),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary
+        )
+
+        // 小组件样式设置跳转入口
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .clickable { onNavigate(Destination.WidgetStyleSettings) }
+                .padding(vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = stringResource(Res.string.title_widget_style),
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
         Text(stringResource(Res.string.style_category_interface), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
         WallpaperItem(
-            path = currentStyle.backgroundImagePath,
+            wallpaperPath = wallpaperPath,
             onClick = onWallpaperClick,
-            onLongClick = { viewModel.removeWallpaper() }
+            onLongClick = { viewModel.removeWallpaper(isPreviewDark) }
         )
         StyleSwitchItem(
             label = stringResource(Res.string.label_schedule_mode_24h),
@@ -207,9 +242,9 @@ fun SettingsListContent(
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
         Text(stringResource(Res.string.style_category_grid_size), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
-        StyleSliderItem(stringResource(Res.string.label_section_height), currentStyle.sectionHeight.value, 40f..120f) { viewModel.updateSectionHeight(it) }
-        StyleSliderItem(stringResource(Res.string.label_time_column_width), currentStyle.timeColumnWidth.value, 20f..80f) { viewModel.updateTimeColumnWidth(it) }
-        StyleSliderItem(stringResource(Res.string.label_day_header_height), currentStyle.dayHeaderHeight.value, 30f..80f) { viewModel.updateDayHeaderHeight(it) }
+        SliderWithInputField(stringResource(Res.string.label_section_height), currentStyle.sectionHeight.value, 40f..120f) { viewModel.updateSectionHeight(it) }
+        SliderWithInputField(stringResource(Res.string.label_time_column_width), currentStyle.timeColumnWidth.value, 20f..80f) { viewModel.updateTimeColumnWidth(it) }
+        SliderWithInputField(stringResource(Res.string.label_day_header_height), currentStyle.dayHeaderHeight.value, 30f..80f) { viewModel.updateDayHeaderHeight(it) }
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
@@ -228,12 +263,11 @@ fun SettingsListContent(
         StyleSwitchItem(stringResource(Res.string.label_text_align_center_v), currentStyle.textAlignCenterVertical) { viewModel.updateTextAlignCenterVertical(it) }
         BorderTypeSelector(currentStyle.borderType) { viewModel.updateBorderType(it) }
 
-        StyleSliderItem(stringResource(Res.string.label_font_scale), currentStyle.fontScale, 0.5f..2.0f, 0.1f) { viewModel.updateCourseBlockFontScale(it) }
-        StyleSliderItem(stringResource(Res.string.label_corner_radius), currentStyle.courseBlockCornerRadius.value, 0f..24f, 1f) { viewModel.updateCornerRadius(it) }
-        StyleSliderItem(stringResource(Res.string.label_inner_padding), currentStyle.courseBlockInnerPadding.value, 0f..12f, 1f) { viewModel.updateInnerPadding(it) }
-        StyleSliderItem(stringResource(Res.string.label_outer_padding), currentStyle.courseBlockOuterPadding.value, 0f..8f, 1f) { viewModel.updateOuterPadding(it) }
-        StyleSliderItem(stringResource(Res.string.label_opacity), currentStyle.courseBlockAlpha, 0.1f..1f, 0.05f) { viewModel.updateAlpha(it) }
-
+        SliderWithInputField(stringResource(Res.string.label_font_scale), currentStyle.fontScale, 0.5f..2.0f, 0.1f) { viewModel.updateCourseBlockFontScale(it) }
+        SliderWithInputField(stringResource(Res.string.label_corner_radius), currentStyle.courseBlockCornerRadius.value, 0f..24f, 1f) { viewModel.updateCornerRadius(it) }
+        SliderWithInputField(stringResource(Res.string.label_inner_padding), currentStyle.courseBlockInnerPadding.value, 0f..12f, 1f) { viewModel.updateInnerPadding(it) }
+        SliderWithInputField(stringResource(Res.string.label_outer_padding), currentStyle.courseBlockOuterPadding.value, 0f..8f, 1f) { viewModel.updateOuterPadding(it) }
+        SliderWithInputField(stringResource(Res.string.label_opacity), currentStyle.courseBlockAlpha, 0.1f..1f, 0.05f) { viewModel.updateAlpha(it) }
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
@@ -252,7 +286,7 @@ fun SettingsListContent(
             bgColor = darkColorScheme().surfaceContainerLow,
             isDarkSection = true,
             colors = currentStyle.courseColorMaps.map { it.dark },
-            onEditColor = { onPick( true, it) }
+            onEditColor = { onPick(true, it) }
         )
     }
 }
@@ -334,7 +368,8 @@ fun ColorPreviewBox(color: Color, isLightModeUI: Boolean) {
 @Composable
 fun ScheduleGridContent(
     style: ScheduleGridStyleComposed,
-    demoUiState: WeeklyScheduleUiState
+    demoUiState: WeeklyScheduleUiState,
+    wallpaperPath: String? = null
 ) {
     val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
     val localDates = remember(demoUiState.firstDayOfWeek) {
@@ -379,10 +414,18 @@ fun ScheduleGridContent(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        if (style.backgroundImagePath.isNotEmpty()) {
+    val hasWallpaper = !wallpaperPath.isNullOrEmpty()
+
+    val backgroundModifier = if (hasWallpaper) {
+        Modifier.fillMaxSize()
+    } else {
+        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
+    }
+
+    Box(modifier = backgroundModifier) {
+        if (hasWallpaper) {
             AsyncImage(
-                model = style.backgroundImagePath,
+                model = wallpaperPath,
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
@@ -419,147 +462,6 @@ fun ScheduleGridContent(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun StyleSliderItem(
-    label: String,
-    value: Float,
-    range: ClosedFloatingPointRange<Float>,
-    stepValue: Float = 1f,
-    onValueChange: (Float) -> Unit
-) {
-    var showDialog by remember { mutableStateOf(false) }
-    val isIntegerStep = stepValue >= 1f
-
-    fun formatValue(v: Float): String {
-        return if (isIntegerStep) {
-            "${v.toInt()}"
-        } else {
-            val rounded = (v * 10).roundToInt() / 10.0
-            if (rounded % 1.0 == 0.0) "${rounded.toInt()}.0" else "$rounded"
-        }
-    }
-
-    val steps = remember(range, stepValue) {
-        if (stepValue > 0f) {
-            ((range.endInclusive - range.start) / stepValue).toInt() - 1
-        } else 0
-    }
-
-    if (showDialog) {
-        var textFieldValue by remember { mutableStateOf(formatValue(value)) }
-
-        AlertDialog(
-            onDismissRequest = { showDialog = false },
-            title = { Text(label) },
-            text = {
-                Column {
-                    Text(
-                        text = "${stringResource(Res.string.label_range)}: ${formatValue(range.start)} - ${formatValue(range.endInclusive)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    OutlinedTextField(
-                        value = textFieldValue,
-                        onValueChange = { input ->
-                            if (isIntegerStep) {
-                                if (input.all { it.isDigit() }) textFieldValue = input
-                            } else {
-                                if (input.all { it.isDigit() || it == '.' }) textFieldValue = input
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = if (isIntegerStep) KeyboardType.Number
-                            else KeyboardType.Decimal
-                        ),
-                        placeholder = { Text(stringResource(Res.string.placeholder_input_value)) }
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    val newValue = textFieldValue.toFloatOrNull()
-                    if (newValue != null) {
-                        val clampedValue = newValue.coerceIn(range.start, range.endInclusive)
-                        val steppedValue = if (stepValue > 0f) {
-                            val count = ((clampedValue - range.start) / stepValue).roundToInt()
-                            range.start + count * stepValue
-                        } else clampedValue
-
-                        onValueChange(steppedValue)
-                        showDialog = false
-                    }
-                }) {
-                    Text(stringResource(Res.string.action_confirm))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDialog = false }) {
-                    Text(stringResource(Res.string.action_cancel))
-                }
-            }
-        )
-    }
-
-    Column {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(label, style = MaterialTheme.typography.bodyMedium)
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(4.dp))
-                    .clickable { showDialog = true }
-                    .padding(horizontal = 4.dp, vertical = 2.dp)
-            ) {
-                Text(
-                    text = formatValue(value),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-        Slider(
-            value = value,
-            onValueChange = onValueChange,
-            valueRange = range,
-            steps = if (steps > 0) steps else 0,
-            modifier = Modifier.height(32.dp),
-            thumb = {
-                Surface(
-                    modifier = Modifier.size(16.dp),
-                    shape = CircleShape,
-                    color = Color.White,
-                    shadowElevation = 1.dp,
-                    border = BorderStroke(0.5.dp, Color.LightGray.copy(alpha = 0.5f))
-                ) {}
-            },
-            track = { sliderState ->
-                Box(
-                    modifier = Modifier.fillMaxWidth().height(22.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    SliderDefaults.Track(
-                        sliderState = sliderState,
-                        modifier = Modifier.fillMaxWidth().height(22.dp),
-                        colors = SliderDefaults.colors(
-                            activeTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                            inactiveTrackColor = Color.Transparent
-                        ),
-                        thumbTrackGapSize = 0.dp,
-                        trackInsideCornerSize = 0.dp
-                    )
-                }
-            }
-        )
-    }
-}
-
 @Composable
 fun StyleSwitchItem(
     label: String,
@@ -567,7 +469,11 @@ fun StyleSwitchItem(
     onCheckedChange: (Boolean) -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().clickable { onCheckedChange(!checked) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable { onCheckedChange(!checked) }
+            .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -582,13 +488,14 @@ fun StyleSwitchItem(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun WallpaperItem(
-    path: String,
+    wallpaperPath: String?,
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
-    val hasWallpaper = path.isNotEmpty()
+    val hasWallpaper = !wallpaperPath.isNullOrEmpty()
 
     Row(
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))

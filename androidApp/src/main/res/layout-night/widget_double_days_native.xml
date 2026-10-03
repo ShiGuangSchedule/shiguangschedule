@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/widget_root_dark"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- 1. 暗色主卡片视图：包含背景 ImageView 与双列内容布局 -->
+    <FrameLayout
+        android:id="@+id/inner_content_card_dark"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <!-- 专门接收暗色背景着色与透明度的 ImageView -->
+        <ImageView
+            android:id="@+id/card_bg_image_dark"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/widget_bg_rounded" />
+
+        <!-- 双列内容容器（保持背景透明） -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:baselineAligned="false"
+            android:orientation="horizontal"
+            android:padding="10dp">
+
+            <!-- 左侧：今日课程区域 -->
+            <RelativeLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical">
+
+                    <!-- 今日头部（日期 + 周数 + 尾部提示） -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/tv_today_date_dark"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_secondary"
+                            android:textSize="10dp"
+                            android:textStyle="bold"
+                            tools:text="今日 01.07 周三 第18周" />
+
+                        <TextView
+                            android:id="@+id/tv_today_footer_dark"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/widget_text_hint"
+                            android:textSize="8dp"
+                            tools:text="剩余 2 节" />
+                    </LinearLayout>
+
+                    <!-- 今日课程 ListView -->
+                    <ListView
+                        android:id="@+id/list_view_today_dark"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_marginTop="2dp"
+                        android:layout_weight="1"
+                        android:divider="@null"
+                        android:dividerHeight="0dp" />
+                </LinearLayout>
+
+                <!-- 今日无课提示 -->
+                <LinearLayout
+                    android:id="@+id/empty_today_container_dark"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:visibility="gone"
+                    tools:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/empty_today_dark"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="无课程"
+                        android:textColor="@color/widget_text_hint"
+                        android:textSize="12dp" />
+                </LinearLayout>
+            </RelativeLayout>
+
+            <!-- 中间分割线 -->
+            <ImageView
+                android:id="@+id/widget_divider_dark"
+                android:layout_width="1dp"
+                android:layout_height="match_parent"
+                android:layout_marginHorizontal="6dp"
+                android:layout_marginVertical="4dp"
+                android:alpha="0.2"
+                android:background="@color/widget_divider" />
+
+            <!-- 右侧：明日课程区域 -->
+            <RelativeLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical">
+
+                    <!-- 明日头部（日期 + 周数 + 尾部提示） -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/tv_tomorrow_date_dark"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/widget_text_secondary"
+                            android:textSize="10dp"
+                            android:textStyle="bold"
+                            tools:text="明日 01.08 周四 第18周" />
+
+                        <TextView
+                            android:id="@+id/tv_tomorrow_footer_dark"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/widget_text_hint"
+                            android:textSize="8dp"
+                            tools:text="共有 4 节" />
+                    </LinearLayout>
+
+                    <!-- 明日课程 ListView -->
+                    <ListView
+                        android:id="@+id/list_view_tomorrow_dark"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_marginTop="2dp"
+                        android:layout_weight="1"
+                        android:divider="@null"
+                        android:dividerHeight="0dp" />
+                </LinearLayout>
+
+                <!-- 明日无课提示 -->
+                <LinearLayout
+                    android:id="@+id/empty_tomorrow_container_dark"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:visibility="gone"
+                    tools:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/empty_tomorrow_dark"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="无课程"
+                        android:textColor="@color/widget_text_hint"
+                        android:textSize="12dp" />
+                </LinearLayout>
+            </RelativeLayout>
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- 2. 暗色假期全屏覆盖视图 -->
+    <FrameLayout
+        android:id="@+id/container_full_status_dark"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        tools:visibility="gone">
+
+        <ImageView
+            android:id="@+id/full_status_bg_image_dark"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/widget_bg_rounded" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="10dp">
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/tv_full_status_title_dark"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="18dp"
+                android:textStyle="bold"
+                tools:text="假期中" />
+
+            <TextView
+                android:id="@+id/tv_full_status_msg_dark"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="13dp"
+                tools:text="期待新学期" />
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+        </LinearLayout>
+    </FrameLayout>
+
+</FrameLayout>

@@ -6,6 +6,8 @@ import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.BorderTypePr
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.DualColorProto
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleGridStyleProto
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleModeProto
+import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.WidgetStyleProto
+import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.WidgetThemeModeProto
 
 // 1. Compose 业务模型
 
@@ -13,6 +15,33 @@ import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleMode
  * 浅色和深色模式下的颜色对。
  */
 data class DualColor(val light: Color, val dark: Color)
+
+/**
+ * 小组件独立外观样式配置的业务模型
+ */
+data class WidgetStyle(
+    val fontScale: Float = DEFAULT_FONT_SCALE,
+    val backgroundAlpha: Float = DEFAULT_BACKGROUND_ALPHA,
+    val hideTeacher: Boolean = false,
+    val hideLocation: Boolean = false,
+    val hideDate: Boolean = false,
+    val themeMode: WidgetThemeModeProto = WidgetThemeModeProto.WIDGET_THEME_FOLLOW_SYSTEM,
+    val seedColor: Long? = null
+) {
+    companion object {
+        val DEFAULT_FONT_SCALE = 1.0f
+        val DEFAULT_BACKGROUND_ALPHA = 1.0f
+
+        val DEFAULT = WidgetStyle(
+            fontScale = DEFAULT_FONT_SCALE,
+            backgroundAlpha = DEFAULT_BACKGROUND_ALPHA,
+            hideTeacher = false,
+            hideLocation = false,
+            hideDate = false,
+            themeMode = WidgetThemeModeProto.WIDGET_THEME_FOLLOW_SYSTEM
+        )
+    }
+}
 
 /**
  * 课表网格样式配置的业务模型
@@ -50,8 +79,8 @@ data class ScheduleGridStyle(
     val pageTextColorLong: Long? = null,
     val courseTextColorLong: Long? = null,
 
-    // 背景壁纸路径 (存储在私有目录下的绝对路径)
-    val backgroundImagePath: String? = null
+    // 小组件独立外观样式配置
+    val widgetStyle: WidgetStyle = WidgetStyle.DEFAULT
 ) {
 
     fun generateRandomColorIndex(): Int {
@@ -111,7 +140,7 @@ data class ScheduleGridStyle(
             scheduleMode = ScheduleModeProto.SECTION_MODE,
             pageTextColorLong = null,
             courseTextColorLong = null,
-            backgroundImagePath = null
+            widgetStyle = WidgetStyle.DEFAULT
         )
     }
 }
@@ -120,18 +149,42 @@ data class ScheduleGridStyle(
 // 2. Proto ⇔ Compose 转换扩展函数
 
 fun DualColorProto.toCompose(): DualColor {
-    // Wire 中属性是直接访问的，long 类型不需要 toInt (除非颜色存储逻辑需要)
     return DualColor(
-        light = Color(this.light_color), // Wire 属性名是下划线风格
+        light = Color(this.light_color),
         dark = Color(this.dark_color)
     )
 }
 
 fun DualColor.toProto(): DualColorProto {
-    // Wire 不使用 Builder，而是直接构造类或使用 copy()
     return DualColorProto(
         light_color = this.light.toArgb().toLong(),
         dark_color = this.dark.toArgb().toLong()
+    )
+}
+
+fun WidgetStyleProto.toCompose(): WidgetStyle {
+    val d = WidgetStyle.DEFAULT
+
+    return WidgetStyle(
+        fontScale = this.font_scale ?: d.fontScale,
+        backgroundAlpha = this.background_alpha ?: d.backgroundAlpha,
+        hideTeacher = this.hide_teacher ?: d.hideTeacher,
+        hideLocation = this.hide_location ?: d.hideLocation,
+        hideDate = this.hide_date ?: d.hideDate,
+        themeMode = this.theme_mode ?: d.themeMode,
+        seedColor = this.seed_color
+    )
+}
+
+fun WidgetStyle.toProto(): WidgetStyleProto {
+    return WidgetStyleProto(
+        font_scale = this.fontScale,
+        background_alpha = this.backgroundAlpha,
+        hide_teacher = this.hideTeacher,
+        hide_location = this.hideLocation,
+        hide_date = this.hideDate,
+        theme_mode = this.themeMode,
+        seed_color = this.seedColor
     )
 }
 
@@ -142,8 +195,7 @@ fun ScheduleGridStyleProto.toCompose(): ScheduleGridStyle {
     val d = ScheduleGridStyle.DEFAULT
 
     return ScheduleGridStyle(
-        // Wire 中不使用 hasXXX() 判定，而是直接判定是否为 null 或默认值 (Proto3)
-        // 1. 基础布局尺寸 (Wire 生成的是可空或带默认值的属性)
+        // 1. 基础布局尺寸
         timeColumnWidthDp = this.time_column_width_dp ?: d.timeColumnWidthDp,
         dayHeaderHeightDp = this.day_header_height_dp ?: d.dayHeaderHeightDp,
         sectionHeightDp = this.section_height_dp ?: d.sectionHeightDp,
@@ -157,7 +209,7 @@ fun ScheduleGridStyleProto.toCompose(): ScheduleGridStyle {
         courseBlockAlphaFloat = this.course_block_alpha_float ?: d.courseBlockAlphaFloat,
         courseBlockFontScale = this.course_block_font_scale ?: d.courseBlockFontScale,
 
-        // 5. 列表转换 (Wire 中 List 不会是 null，为空则是 EmptyList)
+        // 5. 列表转换
         courseColorMaps = if (this.course_color_maps.isEmpty()) d.courseColorMaps else this.course_color_maps.map { it.toCompose() },
 
         // 6. 开关映射
@@ -177,8 +229,8 @@ fun ScheduleGridStyleProto.toCompose(): ScheduleGridStyle {
         borderType = this.border_type ?: d.borderType,
         scheduleMode = this.schedule_mode ?: d.scheduleMode,
 
-        // 8. 背景图路径映射
-        backgroundImagePath = if (!this.background_image_path.isNullOrEmpty()) this.background_image_path else null
+        // 8. 小组件独立样式映射
+        widgetStyle = this.widget_style?.toCompose() ?: d.widgetStyle
     )
 }
 
@@ -210,6 +262,6 @@ fun ScheduleGridStyle.toProto(): ScheduleGridStyleProto {
 
         page_text_color_long = this.pageTextColorLong,
         course_text_color_long = this.courseTextColorLong,
-        background_image_path = this.backgroundImagePath ?: ""
+        widget_style = this.widgetStyle.toProto()
     )
 }

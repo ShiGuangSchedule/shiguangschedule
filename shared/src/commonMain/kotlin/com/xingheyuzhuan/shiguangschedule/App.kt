@@ -9,6 +9,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -23,6 +24,7 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.xingheyuzhuan.shiguangschedule.data.model.StartScreen
+import com.xingheyuzhuan.shiguangschedule.tool.ExternalFileManager
 import com.xingheyuzhuan.shiguangschedule.ui.components.AdaptiveNavigationScaffold
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.WeeklyScheduleScreen
 import com.xingheyuzhuan.shiguangschedule.ui.schoolselection.list.AdapterSelectionScreen
@@ -40,11 +42,13 @@ import com.xingheyuzhuan.shiguangschedule.ui.settings.course.AddEditCourseScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.coursemanagement.CourseInstanceListScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.coursemanagement.CourseNameListScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.coursetables.ManageCourseTablesScreen
+import com.xingheyuzhuan.shiguangschedule.ui.settings.holiday.HolidayManagementScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.notification.NotificationSettingsScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.quickactions.QuickActionsScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.quickactions.delete.QuickDeleteScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.quickactions.tweaks.TweakScheduleScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.style.StyleSettingsScreen
+import com.xingheyuzhuan.shiguangschedule.ui.settings.style.widget.WidgetStyleSettingsScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.themesettings.ThemeSettingsScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.time.ComboScheduleEditScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.time.SingleScheduleEditScreen
@@ -85,6 +89,8 @@ fun AppNavigation(startDestination: Destination) {
 
     var navHideFraction by remember { mutableFloatStateOf(0f) }
 
+    val pendingFile by ExternalFileManager.pendingFile.collectAsState()
+
     val onNavigate: (Destination) -> Unit = remember(backStack) {
         { dest ->
             if (dest.isMainScreen) {
@@ -97,6 +103,13 @@ fun AppNavigation(startDestination: Destination) {
                     backStack.add(dest)
                 }
             }
+        }
+    }
+
+    LaunchedEffect(pendingFile) {
+        val target = pendingFile?.targetDestination
+        if (target != null && backStack.lastOrNull() != target) {
+            onNavigate(target)
         }
     }
 
@@ -184,11 +197,13 @@ fun ScreenContent(
         Destination.TweakSchedule -> TweakScheduleScreen(onBack)
         Destination.ContributionList -> ContributionScreen(onBack)
         Destination.CourseManagementList -> CourseNameListScreen(onNavigate, onBack)
-        Destination.StyleSettings -> StyleSettingsScreen(onBack)
+        Destination.StyleSettings -> StyleSettingsScreen(onNavigate,onBack)
         Destination.QuickDelete -> QuickDeleteScreen(onBack)
         Destination.ThemeSettings -> ThemeSettingsScreen(onBack)
         Destination.BackupAndRestore -> BackupScreen(onBack)
         Destination.LanguageSettings -> LanguageSettingScreen(onBack)
+        Destination.WidgetStyleSettings -> WidgetStyleSettingsScreen(onBack)
+        Destination.HolidayManagement -> HolidayManagementScreen(onBack = onBack)
 
         Destination.TimeScheduleManagement -> TimeScheduleManagementScreen(
             onBack = onBack,

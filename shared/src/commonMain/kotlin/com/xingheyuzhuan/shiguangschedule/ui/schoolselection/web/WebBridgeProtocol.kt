@@ -68,6 +68,11 @@ data class SaveTimeSlotsPayload(
     val timeSlotsJsonString: String
 )
 
+@Serializable
+data class SaveComboSchedulePayload(
+    val comboScheduleJsonString: String
+)
+
 // =========================================================================
 // Helper 工具函数
 // =========================================================================
@@ -199,6 +204,14 @@ val JS_BRIDGE_INIT = """
                 var id = 'cb_' + (++callbackCounter) + '_' + Date.now();
                 callbacks[id] = { resolve: resolve, reject: reject };
                 postMessageToNative('savePresetTimeSlots', { timeSlotsJsonString: timeSlotsJsonString }, id);
+            });
+        },
+        saveComboSchedule: function(comboScheduleJsonString) {
+            return new Promise(function(resolve, reject) {
+                var id = 'cb_' + (++callbackCounter) + '_' + Date.now();
+                callbacks[id] = { resolve: resolve, reject: reject };
+                var comboJson = (typeof comboScheduleJsonString === 'string') ? comboScheduleJsonString : JSON.stringify(comboScheduleJsonString || {});
+                postMessageToNative('saveComboSchedule', { comboScheduleJsonString: comboJson }, id);
             });
         }
     };

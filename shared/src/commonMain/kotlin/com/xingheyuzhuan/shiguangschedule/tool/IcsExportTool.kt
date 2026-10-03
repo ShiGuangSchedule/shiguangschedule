@@ -35,7 +35,7 @@ object IcsExportTool {
         semesterStartDate: LocalDate,
         semesterTotalWeeks: Int,
         firstDayOfWeekInt: Int,
-        skippedDates: Set<String>? = null,
+        crossinline isHolidayDate: suspend (LocalDate) -> Boolean,
         crossinline action: suspend (course: Course, startDateTime: LocalDateTime, endDateTime: LocalDateTime, weekNumber: Int) -> Unit
     ) {
         val dayOfWeekMap = mapOf(
@@ -68,7 +68,7 @@ object IcsExportTool {
                 val weekIndex = alignedSemesterStart.daysUntil(date) / 7 + 1
                 if (weekIndex > semesterTotalWeeks) return@forEach
 
-                if (skippedDates?.contains(date.toString()) == true) return@forEach
+                if (isHolidayDate(date)) return@forEach
 
                 val timeSlots = getTimeSlotsForDate(date)
                 val timeSlotMap = timeSlots.associateBy { it.number }
@@ -111,7 +111,7 @@ object IcsExportTool {
         semesterTotalWeeks: Int,
         firstDayOfWeekInt: Int,
         alarmMinutes: Int? = null,
-        skippedDates: Set<String>? = null
+        isHolidayDate: suspend (LocalDate) -> Boolean = { false }
     ): String {
         val ics = StringBuilder()
 
@@ -133,7 +133,7 @@ object IcsExportTool {
         val dtStampStr = formatDateTimeUtc(Clock.System.now())
 
         processCourseInstances(
-            courses, getTimeSlotsForDate, semesterStartDate, semesterTotalWeeks, firstDayOfWeekInt, skippedDates
+            courses, getTimeSlotsForDate, semesterStartDate, semesterTotalWeeks, firstDayOfWeekInt, isHolidayDate
         ) { course, start, end, _ ->
             ics.append("BEGIN:VEVENT\r\n")
             ics.append("UID:${generateUid()}@shiguangschedule.com\r\n")

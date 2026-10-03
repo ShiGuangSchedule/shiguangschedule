@@ -1,113 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <LinearLayout
-        android:id="@+id/inner_content_card"
+    <!-- 实际课程列表（有课时显示） -->
+    <StackView
+        android:id="@+id/stack_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@drawable/widget_bg_rounded"
-        android:orientation="vertical"
-        android:padding="14dp">
+        android:gravity="center"
+        android:loopViews="true" />
 
-        <RelativeLayout
+    <!-- 状态视图：无课 / 假期中（无课时显示） -->
+    <FrameLayout
+        android:id="@+id/container_status"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/status_bg_image"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent"
+            android:src="@drawable/widget_bg_rounded" />
 
-            <LinearLayout
-                android:id="@+id/container_info"
-                android:layout_width="match_parent"
+        <!-- 居中的提示文本内容 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="10dp">
+
+            <TextView
+                android:id="@+id/tv_status_title"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_centerVertical="true"
-                android:layout_toStartOf="@+id/bubble_frame"
-                android:orientation="vertical"
-                tools:visibility="visible">
+                android:textColor="@color/widget_text_primary"
+                android:textSize="15dp"
+                android:textStyle="bold" />
 
-                <TextView
-                    android:id="@+id/tv_course_name"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:textColor="@color/widget_text_primary"
-                    android:textSize="14dp"
-                    android:textStyle="bold"
-                    tools:text="计算机网络" />
-
-                <TextView
-                    android:id="@+id/tv_course_time"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="1dp"
-                    android:textColor="@color/widget_text_secondary"
-                    android:textSize="12dp"
-                    tools:text="08:30 - 23:59" />
-
-                <TextView
-                    android:id="@+id/tv_course_position"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="0dp"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:textColor="@color/widget_text_hint"
-                    android:textSize="12dp"
-                    tools:text="实验楼 402" />
-            </LinearLayout>
-
-            <FrameLayout
-                android:id="@+id/bubble_frame"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:layout_alignParentEnd="true"
-                android:layout_alignParentTop="true"
-                tools:visibility="visible">
-
-                <include layout="@layout/widget_tiny_circle" />
-
-                <TextView
-                    android:id="@+id/tv_remaining_count"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:textColor="@color/widget_text_primary"
-                    android:textSize="11dp"
-                    android:textStyle="bold"
-                    tools:text="1" />
-            </FrameLayout>
-
-            <LinearLayout
-                android:id="@+id/container_status"
-                android:layout_width="match_parent"
+            <TextView
+                android:id="@+id/tv_status_msg"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_centerInParent="true"
-                android:gravity="center"
-                android:orientation="vertical"
-                android:visibility="gone"
-                tools:visibility="gone">
+                android:layout_marginTop="4dp"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="11dp"
+                android:visibility="gone" />
+        </LinearLayout>
+    </FrameLayout>
 
-                <TextView
-                    android:id="@+id/tv_status_title"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="@color/widget_text_primary"
-                    android:textSize="15dp"
-                    android:textStyle="bold"
-                    tools:text="假期中" />
-
-                <TextView
-                    android:id="@+id/tv_status_msg"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:textColor="@color/widget_text_secondary"
-                    android:textSize="11dp"
-                    tools:text="期待新学期" />
-            </LinearLayout>
-
-        </RelativeLayout>
-    </LinearLayout>
-</RelativeLayout>
+</FrameLayout>

@@ -36,8 +36,8 @@ fun ShiguangScheduleTheme(
         ShiguangScheduleTheme(
             darkTheme = darkTheme,
             dynamicColor = settings.useDynamicColor,
-            customLightPrimary = Color(settings.customLightPrimary),
-            customDarkPrimary = Color(settings.customDarkPrimary),
+            customLightPrimary = Color(settings.customPrimaryColor.light),
+            customDarkPrimary = Color(settings.customPrimaryColor.dark),
             themeMode = settings.themeMode,
             content = content
         )

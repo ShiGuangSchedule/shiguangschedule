@@ -16,6 +16,19 @@ import kotlinx.coroutines.flow.Flow
  */
 @Dao
 interface CourseDao {
+
+    /**
+     * 获取所有课程（用于全量备份）
+     */
+    @Query("SELECT * FROM courses")
+    suspend fun getAll(): List<Course>
+
+    /**
+     * 清空所有课程数据（用于全量恢复）
+     */
+    @Query("DELETE FROM courses")
+    suspend fun clearAll()
+
     /**
      * 获取指定课表ID的所有课程。
      * 排序逻辑已调整，支持按节次和自定义时间字符串混合排序。

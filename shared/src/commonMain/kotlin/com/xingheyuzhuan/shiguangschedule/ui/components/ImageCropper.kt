@@ -17,7 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,10 +33,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.ClipOp
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -98,7 +96,7 @@ fun ImageCropper(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.surface)
             .zIndex(10f),
         contentAlignment = Alignment.Center
     ) {
@@ -185,10 +183,12 @@ fun ImageCropper(
                     )
                 }
 
+                val scrimColor = MaterialTheme.colorScheme.scrim
+
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     val path = Path().apply { addRect(cropRect) }
                     clipPath(path, clipOp = ClipOp.Difference) {
-                        drawRect(Color.Black.copy(alpha = 0.75f))
+                        drawRect(scrimColor.copy(alpha = 0.75f))
                     }
                 }
 
@@ -196,7 +196,7 @@ fun ImageCropper(
                     modifier = Modifier
                         .offset { IntOffset(cropRect.left.roundToInt(), cropRect.top.roundToInt()) }
                         .size(with(density) { cropWidth.toDp() }, with(density) { cropHeight.toDp() })
-                        .border(1.5.dp, Color.White.copy(alpha = 0.8f))
+                        .border(1.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.8f))
                 )
             }
 
@@ -209,15 +209,13 @@ fun ImageCropper(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // 取消按钮
-                OutlinedButton(
+                Button(
                     enabled = !isCropping,
                     onClick = onDismiss,
                     shape = RoundedCornerShape(24.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color.White
-                    ),
-                    border = ButtonDefaults.outlinedButtonBorder(!isCropping).copy(
-                        brush = SolidColor(Color.White.copy(alpha = 0.6f))
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 ) {
                     Text(stringResource(Res.string.action_cancel))
@@ -252,13 +250,12 @@ fun ImageCropper(
                             onCropConfirmed(croppedBytes)
                         }
                     },
-                    shape = RoundedCornerShape(24.dp),
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
+                    shape = RoundedCornerShape(24.dp)
                 ) {
                     if (isCropping) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(20.dp),
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onPrimary,
                             strokeWidth = 2.dp
                         )
                     } else {

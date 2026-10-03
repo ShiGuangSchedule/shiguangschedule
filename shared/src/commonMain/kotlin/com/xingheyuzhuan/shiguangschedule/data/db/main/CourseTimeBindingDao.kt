@@ -11,6 +11,19 @@ import kotlinx.coroutines.flow.Flow
  */
 @Dao
 interface CourseTimeBindingDao {
+
+    /**
+     * 获取所有课表作息绑定关系（用于全量备份）
+     */
+    @Query("SELECT * FROM course_time_bindings")
+    suspend fun getAll(): List<CourseTimeBinding>
+
+    /**
+     * 清空所有课表作息绑定关系（用于全量恢复）
+     */
+    @Query("DELETE FROM course_time_bindings")
+    suspend fun clearAll()
+
     /**
      * 获取指定课表的作息绑定关系
      */

@@ -9,6 +9,8 @@ import com.xingheyuzhuan.shiguangschedule.data.model.ScheduleGridStyle
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.BorderTypeProto
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleGridStyleProto
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleModeProto
+import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.WidgetStyleProto
+import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.WidgetThemeModeProto
 import com.xingheyuzhuan.shiguangschedule.data.model.toCompose
 import com.xingheyuzhuan.shiguangschedule.data.model.toProto
 import kotlinx.coroutines.channels.Channel
@@ -80,36 +82,25 @@ class StyleSettingsRepository(
     private val dataStore: DataStore<ScheduleGridStyleProto>
 ) {
 
-    companion object {
-        /** 当前样式备份的版本号 */
-        const val STYLE_SCHEMA_VERSION = 1
-    }
-
     private val _styleUpdatedChannel = Channel<Unit>(Channel.CONFLATED)
     val styleUpdatedFlow: Flow<Unit> = _styleUpdatedChannel.receiveAsFlow()
 
     // --- 备份与恢复扩展 API ---
 
     /**
-     * 仅导出当前原生的样式配置字节数组，排除壁纸路径。
+     * 导出当前原生的样式配置字节数组。
      */
     suspend fun exportRawStyleBytes(): ByteArray {
         val currentProto = dataStore.data.first()
-        val exportProto = currentProto.copy(background_image_path = "")
-        return ScheduleGridStyleProto.ADAPTER.encode(exportProto)
+        return ScheduleGridStyleProto.ADAPTER.encode(currentProto)
     }
 
     /**
-     * 将还原的字节数组与本地壁纸路径合并后写入 DataStore。
+     * 将还原的字节数组写入 DataStore。
      */
     suspend fun restoreRawStyleBytes(bytes: ByteArray): Result<Unit> = runCatching {
-        val currentLocalProto = dataStore.data.first()
-        val localWallpaperPath = currentLocalProto.background_image_path
-
         val backupProto = ScheduleGridStyleProto.ADAPTER.decode(bytes)
-        val finalProto = backupProto.copy(background_image_path = localWallpaperPath)
-
-        dataStore.updateData { finalProto }
+        dataStore.updateData { backupProto }
         _styleUpdatedChannel.trySend(Unit)
     }
 
@@ -257,17 +248,66 @@ class StyleSettingsRepository(
         it.copy(course_text_color_long = color?.toArgb()?.toLong())
     }
 
-    /** 设置背景壁纸路径 */
-    suspend fun setBackgroundImagePath(path: String) = updateStyle {
-        it.copy(background_image_path = path)
-    }
-
-    /** 重置样式设置但保留壁纸 */
+    /** 重置主界面样式设置（保留小组件样式） */
     suspend fun resetAllStyleSettingsExceptWallpaper() {
         dataStore.updateData { currentProto ->
-            val currentPath = currentProto.background_image_path
-            ScheduleGridStyleProto().copy(background_image_path = currentPath)
+            val currentWidgetStyle = currentProto.widget_style
+            ScheduleGridStyleProto().copy(
+                widget_style = currentWidgetStyle
+            )
         }
         _styleUpdatedChannel.trySend(Unit)
+    }
+
+    // --- 小组件独立样式 Setters 与 重置 API ---
+
+    /** 辅助函数：增量更新小组件样式配置 */
+    private suspend fun updateWidgetStyle(
+        transform: (WidgetStyleProto) -> WidgetStyleProto
+    ) = updateStyle { current ->
+        val currentWidgetStyle = current.widget_style ?: WidgetStyleProto()
+        current.copy(widget_style = transform(currentWidgetStyle))
+    }
+
+    /** 设置小组件字体缩放比例 */
+    suspend fun setWidgetFontScale(scale: Float) = updateWidgetStyle {
+        it.copy(font_scale = scale)
+    }
+
+    /** 设置小组件背景透明度 */
+    suspend fun setWidgetBackgroundAlpha(alpha: Float) = updateWidgetStyle {
+        it.copy(background_alpha = alpha)
+    }
+
+    /** 设置小组件是否隐藏授课老师 */
+    suspend fun setWidgetHideTeacher(hide: Boolean) = updateWidgetStyle {
+        it.copy(hide_teacher = hide)
+    }
+
+    /** 设置小组件是否隐藏上课地点 */
+    suspend fun setWidgetHideLocation(hide: Boolean) = updateWidgetStyle {
+        it.copy(hide_location = hide)
+    }
+
+    /** 设置小组件是否隐藏日期 */
+    suspend fun setWidgetHideDate(hide: Boolean) = updateWidgetStyle {
+        it.copy(hide_date = hide)
+    }
+
+    /** 设置小组件主题模式 */
+    suspend fun setWidgetThemeMode(mode: WidgetThemeModeProto) = updateWidgetStyle {
+        it.copy(theme_mode = mode)
+    }
+
+    /** 设置小组件自定义主题种子色 */
+    suspend fun setWidgetSeedColor(seedColor: Long?) = updateWidgetStyle {
+        it.copy(seed_color = seedColor)
+    }
+
+    /**
+     * 重置小组件样式为默认设置（不影响主界面课表样式）
+     */
+    suspend fun resetWidgetStyleSettings() = updateStyle { current ->
+        current.copy(widget_style = WidgetStyleProto())
     }
 }

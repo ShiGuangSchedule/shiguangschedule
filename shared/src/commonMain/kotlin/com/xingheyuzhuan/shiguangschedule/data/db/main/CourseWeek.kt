@@ -3,11 +3,13 @@ package com.xingheyuzhuan.shiguangschedule.data.db.main
 import androidx.room3.Entity
 import androidx.room3.ForeignKey
 import androidx.room3.Index
+import kotlinx.serialization.Serializable
 
 /**
  * Room 实体类，代表课程和周数的关联数据表。
  * 它解决了课程和周数之间的多对多关系。
  */
+@Serializable
 @Entity(
     tableName = "course_weeks",
     // 联合主键，确保每对关联是唯一的

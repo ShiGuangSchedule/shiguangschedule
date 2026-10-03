@@ -4,10 +4,12 @@ import androidx.room3.Entity
 import androidx.room3.ForeignKey
 import androidx.room3.Index
 import androidx.room3.PrimaryKey
+import kotlinx.serialization.Serializable
 
 /**
  * 组合作息方案元数据
  */
+@Serializable
 @Entity(
     tableName = "time_table_combos",
     foreignKeys = [
@@ -31,6 +33,7 @@ data class TimeTableCombo(
 /**
  * 组合方案内部的具体调度规则（仅基于日期范围）
  */
+@Serializable
 @Entity(
     tableName = "time_table_combo_rules",
     foreignKeys = [

@@ -3,11 +3,13 @@ package com.xingheyuzhuan.shiguangschedule.data.db.main
 import androidx.room3.Entity
 import androidx.room3.ForeignKey
 import androidx.room3.Index
+import kotlinx.serialization.Serializable
 
 /**
  * Room 实体类，代表“节次时间段”数据表。
  * 纯粹存储时间节点，与具体的 TimeTable 绑定。
  */
+@Serializable
 @Entity(
     tableName = "time_slots",
     foreignKeys = [

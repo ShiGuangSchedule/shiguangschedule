@@ -25,4 +25,7 @@ message WidgetSnapshot {
   int32 current_week = 2;
 
   .com.xingheyuzhuan.shiguangschedule.data.model.ScheduleGridStyleProto style = 3;
+
+  int32 days_until_term_start = 4;
+  int32 first_day_of_week = 5;
 }

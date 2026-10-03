@@ -309,7 +309,7 @@ async function demoSaveCourses() {
     }
 }
 
-// 5. 导入预设时间段
+// 5. 导入预设时间段（基础时间）
 async function importPresetTimeSlots() {
     console.log("正在准备预设时间段数据...");
     const presetTimeSlots = [
@@ -347,7 +347,88 @@ async function importPresetTimeSlots() {
     }
 }
 
-// 6. 导入课表配置
+// 6. 导入作息方案（组合作息）
+async function demoSaveComboSchedule() {
+    console.log("正在准备作息方案数据...");
+
+    /**
+     * 辅助函数：获取相对于基准日期偏移 `offsetDays` 天后的 YYYY-MM-DD 格式日期
+     */
+    function getOffsetDateString(baseDate, offsetDays) {
+        const targetDate = new Date(baseDate);
+        targetDate.setDate(targetDate.getDate() + offsetDays);
+
+        const year = targetDate.getFullYear();
+        const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+        const day = String(targetDate.getDate()).padStart(2, '0');
+
+        return `${year}-${month}-${day}`;
+    }
+
+    const today = new Date();
+
+    // 方案一生效时间：今日 ~ 6天后（共 7 天）
+    const p1StartDate = getOffsetDateString(today, 0);
+    const p1EndDate = getOffsetDateString(today, 6);
+
+    // 方案二生效时间：间隔 7 天后，即 14天后 ~ 20天后（共 7 天）
+    const p2StartDate = getOffsetDateString(today, 14);
+    const p2EndDate = getOffsetDateString(today, 20);
+
+    const comboScheduleData = {
+        "publicSchedules": [
+            {
+                "name": "上午缩短作息方案",
+                "startDate": p1StartDate,
+                "endDate": p1EndDate,
+                // 上午节次（1-8节）每节课缩短 5 分钟（40m -> 35m）
+                "timeSlots": [
+                    { "number": 1, "startTime": "07:00", "endTime": "07:35" },
+                    { "number": 2, "startTime": "07:45", "endTime": "08:20" },
+                    { "number": 3, "startTime": "08:30", "endTime": "09:05" },
+                    { "number": 4, "startTime": "09:15", "endTime": "09:50" },
+                    { "number": 5, "startTime": "10:15", "endTime": "10:50" },
+                    { "number": 6, "startTime": "11:00", "endTime": "11:35" },
+                    { "number": 7, "startTime": "11:45", "endTime": "12:20" },
+                    { "number": 8, "startTime": "12:30", "endTime": "13:05" }
+                ]
+            },
+            {
+                "name": "下午缩短作息方案",
+                "startDate": p2StartDate,
+                "endDate": p2EndDate,
+                // 下午节次（9-16节）每节课缩短 5 分钟（40m -> 35m）
+                "timeSlots": [
+                    { "number": 9, "startTime": "13:30", "endTime": "14:05" },
+                    { "number": 10, "startTime": "14:15", "endTime": "14:50" },
+                    { "number": 11, "startTime": "15:00", "endTime": "15:35" },
+                    { "number": 12, "startTime": "15:45", "endTime": "16:20" },
+                    { "number": 13, "startTime": "16:45", "endTime": "17:20" },
+                    { "number": 14, "startTime": "17:30", "endTime": "18:05" },
+                    { "number": 15, "startTime": "18:15", "endTime": "18:50" },
+                    { "number": 16, "startTime": "19:00", "endTime": "19:35" }
+                ]
+            }
+        ]
+    };
+
+    try {
+        console.log("正在尝试导入作息方案...");
+        const result = await window.shiguangBridgePromise.saveComboSchedule(JSON.stringify(comboScheduleData));
+        if (result === true) {
+            console.log("作息方案导入成功！");
+            window.shiguangBridge.showToast("测试作息方案导入成功！");
+        } else {
+            console.log("作息方案导入未成功，结果：" + result);
+            window.shiguangBridge.showToast("测试作息方案导入失败，请查看日志。");
+        }
+    } catch (error) {
+        console.error("导入作息方案时发生错误:", error);
+        window.shiguangBridge.showToast("导入作息方案失败: " + error.message);
+    }
+}
+
+// 7. 导入课表配置
 async function demoSaveConfig() {
     console.log("正在准备配置数据...");
     // 注意：只传入要修改的字段，其他字段（如 semesterTotalWeeks）会使用 Kotlin 模型中的默认值
@@ -411,9 +492,13 @@ async function runAllDemosSequentially() {
     console.log("所有弹窗演示已完成。");
     shiguangBridge.showToast("所有弹窗演示已完成！");
 
-    // 以下是数据导入，与用户交互无关，可以继续
+    // 以下是数据导入流程
     await demoSaveCourses();
+
+    // 注意：作息方案强制依赖基础时间段，因此必须在 saveComboSchedule 前先调用 importPresetTimeSlots
     await importPresetTimeSlots();
+    await demoSaveComboSchedule();
+
     await demoSaveConfig();
 
     // 发送最终的生命周期完成信号

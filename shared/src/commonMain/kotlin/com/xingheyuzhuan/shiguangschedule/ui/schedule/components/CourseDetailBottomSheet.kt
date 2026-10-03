@@ -51,7 +51,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
-import com.xingheyuzhuan.shiguangschedule.ui.schedule.MergedCourseBlock
+import com.xingheyuzhuan.shiguangschedule.ui.schedule.model.MergedCourseBlock
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
@@ -60,6 +60,7 @@ import shiguangschedule.shared.generated.resources.Res
 import shiguangschedule.shared.generated.resources.a11y_edit
 import shiguangschedule.shared.generated.resources.action_double_week
 import shiguangschedule.shared.generated.resources.action_single_week
+import shiguangschedule.shared.generated.resources.award_star_24px
 import shiguangschedule.shared.generated.resources.calendar_today_24px
 import shiguangschedule.shared.generated.resources.class_24px
 import shiguangschedule.shared.generated.resources.edit_24px
@@ -84,6 +85,7 @@ private data class CourseDetailUIModel(
     val weeksDisplayStr: String,
     val dayStr: String,
     val timeStr: String,
+    val credit: Float?,
     val remark: String?
 )
 
@@ -124,6 +126,7 @@ fun CourseDetailBottomSheet(
                 weeksDisplayStr = formatWeeks(wrapper.weeks.map { it.weekNumber }, singleLabel, doubleLabel),
                 dayStr = dayStr,
                 timeStr = timeStr,
+                credit = course.credit,
                 remark = course.remark
             )
         }
@@ -179,6 +182,7 @@ fun CourseDetailBottomSheet(
     val locationIcon = vectorResource(Res.drawable.location_on_24px)
     val calendarIcon = vectorResource(Res.drawable.calendar_today_24px)
     val scheduleIcon = vectorResource(Res.drawable.schedule_24px)
+    val creditIcon = vectorResource(Res.drawable.award_star_24px)
     val noteIcon = vectorResource(Res.drawable.sticky_note_2_24px)
     val editIcon = vectorResource(Res.drawable.edit_24px)
     val editA11yText = stringResource(Res.string.a11y_edit)
@@ -218,6 +222,7 @@ fun CourseDetailBottomSheet(
                             locationIcon = locationIcon,
                             calendarIcon = calendarIcon,
                             scheduleIcon = scheduleIcon,
+                            creditIcon = creditIcon,
                             noteIcon = noteIcon,
                             editIcon = editIcon,
                             editA11yText = editA11yText,
@@ -344,6 +349,7 @@ private fun CourseDetailItemContent(
     locationIcon: ImageVector,
     calendarIcon: ImageVector,
     scheduleIcon: ImageVector,
+    creditIcon: ImageVector,
     noteIcon: ImageVector,
     editIcon: ImageVector,
     editA11yText: String,
@@ -383,6 +389,15 @@ private fun CourseDetailItemContent(
                     Text(model.dayStr, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(model.timeStr, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
                 }
+            }
+
+            if (model.credit != null && model.credit > 0f) {
+                val creditText = if (model.credit % 1f == 0f) {
+                    "${model.credit.toInt()}"
+                } else {
+                    "${model.credit}"
+                }
+                DetailItem(creditIcon, creditText)
             }
 
             if (!model.remark.isNullOrBlank()) {

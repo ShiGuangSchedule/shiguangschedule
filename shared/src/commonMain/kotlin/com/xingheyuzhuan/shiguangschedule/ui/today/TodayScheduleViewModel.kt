@@ -48,7 +48,6 @@ class TodayScheduleViewModel(
         .flatMapLatest { settings ->
             val tableId = settings.currentCourseTableId
             val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-            val todayStr = today.toString()
             val dayOfWeek = today.dayOfWeek.isoDayNumber
 
             combine(
@@ -64,8 +63,10 @@ class TodayScheduleViewModel(
                 val totalWeeks = config?.semesterTotalWeeks ?: DEFAULT_SEMESTER_TOTAL_WEEKS
                 val firstDayOfWeek = config?.firstDayOfWeek ?: DayOfWeek.MONDAY.isoDayNumber
 
-                // 判定今天是否在跳过日期集合中
-                val isSkippedDay = settings.skippedDates.contains(todayStr)
+                // 判定今天是否处于生效的假期中
+                val isSkippedDay = settings.holidays.any { holiday ->
+                    holiday.isHoliday && holiday.dates.contains(today)
+                }
 
                 val status = when {
                     config?.semesterStartDate == null -> TodayStatus.NoSemesterConfig

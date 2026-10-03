@@ -3,7 +3,9 @@ package com.xingheyuzhuan.shiguangschedule.ui.schoolselection.web
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.net.http.SslError
+import android.view.ViewGroup
 import android.webkit.CookieManager
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
@@ -12,6 +14,8 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.webkit.WebViewCompat
+import androidx.webkit.WebViewFeature
 
 /**
  * WebView 代理配置与客户端包装类
@@ -21,28 +25,31 @@ class WebCompatDelegate(private val webView: WebView) {
     private val defaultUserAgent: String = webView.settings.userAgentString
     private val requestInterceptor = WebViewRequestInterceptor()
 
+    init {
+        webView.addJavascriptInterface(WebPostBridge(), "WebPostService")
+
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+            WebViewCompat.addDocumentStartJavaScript(webView, JS_INTERCEPT_POST, setOf("*"))
+        }
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     fun enhanceSettings(isDesktopMode: Boolean): WebCompatDelegate {
         webView.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
-            databaseEnabled = true
-            @Suppress("DEPRECATION")
-            allowUniversalAccessFromFileURLs = true
-            @Suppress("DEPRECATION")
-            allowFileAccessFromFileURLs = true
-            allowFileAccess = true
-            allowContentAccess = true
             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-            useWideViewPort = true
-            loadWithOverviewMode = true
 
             if (isDesktopMode) {
                 userAgentString = DESKTOP_USER_AGENT
-                layoutAlgorithm = WebSettings.LayoutAlgorithm.TEXT_AUTOSIZING
+                layoutAlgorithm = WebSettings.LayoutAlgorithm.NORMAL
+                useWideViewPort = false
+                loadWithOverviewMode = false
             } else {
                 userAgentString = defaultUserAgent
                 layoutAlgorithm = WebSettings.LayoutAlgorithm.NORMAL
+                useWideViewPort = true
+                loadWithOverviewMode = true
             }
 
             setSupportZoom(true)
@@ -75,23 +82,27 @@ class WebCompatDelegate(private val webView: WebView) {
 
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 original.onPageStarted(view, url, favicon)
-                view?.let { wv ->
-                    // 早期注入 JS_INTERCEPT_POST 拦截网络请求
-                    wv.evaluateJavascript(JS_INTERCEPT_POST, null)
-                }
             }
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 original.onPageFinished(view, url)
 
-                view?.let { wv ->
-                    wv.evaluateJavascript(JS_INTERCEPT_POST, null)
-
-                    if (isDesktopModeProvider()) {
-                        injectDesktopViewportFix(wv)
-                    }
-                    wv.injectAllJavaScript()
+                if (!WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+                    view?.evaluateJavascript(JS_INTERCEPT_POST, null)
                 }
+                // 初始化 Bridge 业务代码
+                view?.evaluateJavascript(JS_BRIDGE_INIT, null)
+            }
+
+            override fun onRenderProcessGone(view: WebView?, detail: RenderProcessGoneDetail?): Boolean {
+                val handledByOriginal = runCatching { original.onRenderProcessGone(view, detail) }.getOrDefault(false)
+                if (!handledByOriginal) {
+                    view?.let { wv ->
+                        (wv.parent as? ViewGroup)?.removeView(wv)
+                        wv.destroy()
+                    }
+                }
+                return true
             }
 
             override fun onReceivedSslError(v: WebView?, h: SslErrorHandler?, e: SslError?) {
@@ -103,34 +114,6 @@ class WebCompatDelegate(private val webView: WebView) {
         }
     }
 
-    /**
-     * 仅在桌面模式下补全 Viewport Meta 标签与触发 resize，避免 PC 网页排版挤压
-     */
-    private fun injectDesktopViewportFix(view: WebView) {
-        val desktopWidth = 1280
-        view.evaluateJavascript("""
-            (function() {
-                try {
-                    var metas = document.getElementsByTagName('meta');
-                    for (var i = metas.length - 1; i >= 0; i--) {
-                        if (metas[i].getAttribute('name') === 'viewport') {
-                            metas[i].parentNode.removeChild(metas[i]);
-                        }
-                    }
-                    var meta = document.createElement('meta');
-                    meta.name = "viewport";
-                    meta.content = "width=$desktopWidth, initial-scale=1.0, minimum-scale=0.1, maximum-scale=5.0, user-scalable=yes";
-                    document.head.appendChild(meta);
-
-                    // 触发 resize 事件促使根据 window 宽高度重绘的 JS 组件重新计算高度
-                    window.dispatchEvent(new Event('resize'));
-                } catch(e) {
-                    console.error("injectDesktopViewportFix Error: ", e);
-                }
-            })();
-        """.trimIndent(), null)
-    }
-
     fun wrapWebChromeClient(original: WebChromeClient, onProgress: (Int) -> Unit): WebChromeClient {
         return object : WebChromeClient() {
             override fun onProgressChanged(view: WebView?, newProgress: Int) {
@@ -140,10 +123,4 @@ class WebCompatDelegate(private val webView: WebView) {
             override fun onReceivedTitle(v: WebView?, t: String?) = original.onReceivedTitle(v, t)
         }
     }
-}
-
-/** 统一注入 Bridge 初始化与 POST 拦截 JS */
-internal fun WebView.injectAllJavaScript() {
-    evaluateJavascript(JS_BRIDGE_INIT, null)
-    evaluateJavascript(JS_INTERCEPT_POST, null)
 }

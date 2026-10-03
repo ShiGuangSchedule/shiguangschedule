@@ -6,20 +6,23 @@ import androidx.lifecycle.viewModelScope
 import com.xingheyuzhuan.shiguangschedule.data.db.main.Course
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWithWeeks
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
+import com.xingheyuzhuan.shiguangschedule.data.model.AppSettingsModel
 import com.xingheyuzhuan.shiguangschedule.data.model.DualColor
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.BorderTypeProto
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleModeProto
 import com.xingheyuzhuan.shiguangschedule.data.repository.AppSettingsRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.StyleSettingsRepository
-import com.xingheyuzhuan.shiguangschedule.ui.schedule.MergedCourseBlock
-import com.xingheyuzhuan.shiguangschedule.ui.schedule.WeeklyScheduleUiState
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGridStyleComposed
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGridStyleComposed.Companion.toComposedStyle
+import com.xingheyuzhuan.shiguangschedule.ui.schedule.model.MergedCourseBlock
+import com.xingheyuzhuan.shiguangschedule.ui.schedule.model.WeeklyScheduleUiState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
@@ -45,6 +48,30 @@ class StyleSettingsViewModel(
     @Named("FilesDir") private val filesDir: Path
 ) : ViewModel() {
 
+    // 控制当前预览区域的深浅色模式
+    private val _isPreviewDark = MutableStateFlow(false)
+    val isPreviewDark: StateFlow<Boolean> = _isPreviewDark.asStateFlow()
+
+    private var isPreviewInitialized = false
+
+    /**
+     * 初始化预览的深浅色模式（仅在首次进入页面时跟随软件全局主题）
+     */
+    fun initPreviewDark(isDark: Boolean) {
+        if (!isPreviewInitialized) {
+            isPreviewInitialized = true
+            _isPreviewDark.value = isDark
+        }
+    }
+
+    // 订阅应用设置状态
+    val appSettingsState: StateFlow<AppSettingsModel?> = appSettingsRepository.getAppSettings()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = null
+        )
+
     // 订阅样式设置
     val styleState: StateFlow<ScheduleGridStyleComposed?> = styleRepository.styleFlow
         .map { it.toComposedStyle() }
@@ -53,6 +80,22 @@ class StyleSettingsViewModel(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = null
         )
+
+    /**
+     * 根据当前的 _isPreviewDark 状态，精确获取对应的深色或浅色壁纸路径字符串
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val wallpaperPathState: StateFlow<String?> = combine(
+        appSettingsRepository.getAppSettings(),
+        _isPreviewDark
+    ) { settings, isDark ->
+        val path = if (isDark) settings.backgroundImagePath.dark else settings.backgroundImagePath.light
+        path.ifBlank { null }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = null
+    )
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val demoUiState: StateFlow<WeeklyScheduleUiState> = appSettingsRepository.getAppSettings()
@@ -84,16 +127,23 @@ class StyleSettingsViewModel(
             initialValue = WeeklyScheduleUiState(showWeekends = true)
         )
 
-    // --- 背景壁纸管理 API (完善的垃圾处理) ---
+    /**
+     * 切换预览界面的深浅色模式
+     */
+    fun setPreviewDark(isDark: Boolean) {
+        _isPreviewDark.value = isDark
+    }
+
 
     /**
-     * 更新或设置壁纸
-     * 优化：直接接收裁切/压缩后的图片字节数组 (ByteArray)，避免在 ViewModel 中处理 UI 层的 ImageBitmap
+     * 保存裁切后的壁纸
+     * @param imageBytes 图片字节数组
+     * @param isDark true 代表写入深色模式壁纸，false 代表写入浅色模式壁纸
      */
-    fun saveCroppedWallpaper(imageBytes: ByteArray) = viewModelScope.launch(Dispatchers.IO) {
+    fun saveCroppedWallpaper(imageBytes: ByteArray, isDark: Boolean) = viewModelScope.launch(Dispatchers.IO) {
         try {
-            val currentStyle = styleRepository.getStyleOnce()
-            val currentPath = currentStyle.backgroundImagePath ?: ""
+            val appSettings = appSettingsRepository.getAppSettingsOnce()
+            val currentPath = if (isDark) appSettings.backgroundImagePath.dark else appSettings.backgroundImagePath.light
 
             if (currentPath.isNotEmpty()) {
                 val oldPath = currentPath.toPath()
@@ -102,56 +152,79 @@ class StyleSettingsViewModel(
                 }
             }
 
-            val newFileName = "wallpaper_${Uuid.random()}.jpg"
+            val prefix = if (isDark) "wallpaper_dark_" else "wallpaper_light_"
+            val newFileName = "$prefix${Uuid.random()}.jpg"
             val newFile = filesDir / newFileName
 
-            // 直接将字节写入文件
             fileSystem.write(newFile) {
                 write(imageBytes)
             }
 
-            styleRepository.setBackgroundImagePath(newFile.toString())
+            // 精准更新对应的背景路径字段
+            val newBgPath = if (isDark) {
+                appSettings.backgroundImagePath.copy(dark = newFile.toString())
+            } else {
+                appSettings.backgroundImagePath.copy(light = newFile.toString())
+            }
+            appSettingsRepository.insertOrUpdateAppSettings(appSettings.copy(backgroundImagePath = newBgPath))
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
     /**
-     * 彻底移除壁纸
-     * 逻辑：根据数据库记录的路径删除物理文件，然后清空记录。
+     * 移除指定模式下的壁纸（深色或浅色独立清除）
      */
-    fun removeWallpaper() = viewModelScope.launch(Dispatchers.IO) {
+    fun removeWallpaper(isDark: Boolean) = viewModelScope.launch(Dispatchers.IO) {
         try {
-            val currentStyle = styleRepository.getStyleOnce()
-            val pathStr = currentStyle.backgroundImagePath ?: ""
+            val appSettings = appSettingsRepository.getAppSettingsOnce()
 
-            if (pathStr.isNotEmpty()) {
-                val path = pathStr.toPath()
-                if (fileSystem.exists(path)) {
-                    fileSystem.delete(path)
+            val targetPathStr = if (isDark) appSettings.backgroundImagePath.dark else appSettings.backgroundImagePath.light
+            val otherPathStr = if (isDark) appSettings.backgroundImagePath.light else appSettings.backgroundImagePath.dark
+
+            if (targetPathStr.isNotEmpty()) {
+                val isSharedWithOther = targetPathStr == otherPathStr
+
+                if (!isSharedWithOther) {
+                    val path = targetPathStr.toPath()
+                    if (fileSystem.exists(path)) {
+                        fileSystem.delete(path)
+                    }
                 }
             }
-            styleRepository.setBackgroundImagePath("")
+
+            // 精准清空对应模式的路径
+            val newBgPath = if (isDark) {
+                appSettings.backgroundImagePath.copy(dark = "")
+            } else {
+                appSettings.backgroundImagePath.copy(light = "")
+            }
+            appSettingsRepository.insertOrUpdateAppSettings(appSettings.copy(backgroundImagePath = newBgPath))
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
     /**
-     * 恢复默认设置 (但保护/保留壁纸)
-     * 调用 Repository 中特殊处理过的重置函数，保留当前的背景图路径。
+     * 同时移除浅色和深色所有壁纸
+     */
+    fun removeAllWallpapers() = viewModelScope.launch(Dispatchers.IO) {
+        removeWallpaper(isDark = false)
+        removeWallpaper(isDark = true)
+    }
+
+    /**
+     * 恢复默认设置 (但保留壁纸)
      */
     fun resetStyleSettings() = viewModelScope.launch {
         styleRepository.resetAllStyleSettingsExceptWallpaper()
     }
 
     /**
-     * 彻底重置所有 (包括壁纸)
+     * 彻底重置所有 (包括深浅色所有壁纸)
      */
     fun resetEverything() = viewModelScope.launch(Dispatchers.IO) {
-        // 先调用移除壁纸逻辑清理物理文件
-        removeWallpaper()
-        // 再重置数据库所有项
+        removeAllWallpapers()
         styleRepository.resetAllStyleSettings()
     }
 

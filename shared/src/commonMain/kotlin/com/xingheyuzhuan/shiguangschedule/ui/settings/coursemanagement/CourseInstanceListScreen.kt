@@ -29,6 +29,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.xingheyuzhuan.shiguangschedule.Destination
@@ -50,11 +51,11 @@ import shiguangschedule.shared.generated.resources.action_deselect_all
 import shiguangschedule.shared.generated.resources.action_select_all
 import shiguangschedule.shared.generated.resources.add_24px
 import shiguangschedule.shared.generated.resources.arrow_back_24px
-import shiguangschedule.shared.generated.resources.check_24px
 import shiguangschedule.shared.generated.resources.close_24px
 import shiguangschedule.shared.generated.resources.course_time_day_section_details_tweak
 import shiguangschedule.shared.generated.resources.course_time_day_time_details_tweak
 import shiguangschedule.shared.generated.resources.delete_24px
+import shiguangschedule.shared.generated.resources.done_all_24px
 import shiguangschedule.shared.generated.resources.label_weeks_format
 import shiguangschedule.shared.generated.resources.menu_open_24px
 import shiguangschedule.shared.generated.resources.title_selected_items_count
@@ -129,7 +130,7 @@ fun CourseInstanceListScreen(
 
                         IconButton(onClick = viewModel::toggleSelectAll, enabled = totalCount > 0) {
                             val selectAllStringRes = if (isAllSelected) Res.string.action_deselect_all else Res.string.action_select_all
-                            Icon(vectorResource(Res.drawable.check_24px), contentDescription = stringResource(selectAllStringRes))
+                            Icon(vectorResource(Res.drawable.done_all_24px), contentDescription = stringResource(selectAllStringRes))
                         }
 
                         IconButton(onClick = {
@@ -221,19 +222,23 @@ fun CourseInstanceCard(
         contentColor = MaterialTheme.colorScheme.onSurface
     )
 
+    val cardShape = MaterialTheme.shapes.medium
+
     Card(
+        shape = cardShape,
+        colors = cardColors,
         modifier = Modifier
             .height(IntrinsicSize.Max)
+            .clip(cardShape)
             .combinedClickable(
                 onClick = { onCourseClick(courseId) },
                 onLongClick = { onCourseLongClick(courseId) }
             )
             .then(
                 if (isSelected) {
-                    Modifier.border(2.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.medium)
+                    Modifier.border(2.dp, MaterialTheme.colorScheme.primary, cardShape)
                 } else Modifier
-            ),
-        colors = cardColors
+            )
     ) {
         Column(
             modifier = Modifier.padding(12.dp)

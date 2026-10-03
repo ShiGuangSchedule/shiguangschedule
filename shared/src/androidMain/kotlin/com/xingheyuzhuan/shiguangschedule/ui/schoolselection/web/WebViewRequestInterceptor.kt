@@ -6,7 +6,6 @@ import android.webkit.JavascriptInterface
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.headers
 import io.ktor.client.request.request
@@ -30,7 +29,7 @@ import java.util.Collections
  */
 class WebViewRequestInterceptor {
     companion object {
-        private val ktorClientNoRedirects = HttpClient(CIO) {
+        private val ktorClientNoRedirects = HttpClient {
             followRedirects = false
             install(HttpTimeout) {
                 connectTimeoutMillis = 30_000
@@ -39,7 +38,7 @@ class WebViewRequestInterceptor {
             }
         }
 
-        private val ktorClientWithRedirects = HttpClient(CIO) {
+        private val ktorClientWithRedirects = HttpClient {
             followRedirects = true
             install(HttpTimeout) {
                 connectTimeoutMillis = 30_000

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -30,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
 import com.xingheyuzhuan.shiguangschedule.data.model.DualColor
@@ -37,7 +39,11 @@ import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import shiguangschedule.shared.generated.resources.Res
+import shiguangschedule.shared.generated.resources.award_star_24px
+import shiguangschedule.shared.generated.resources.credit_error_invalid
+import shiguangschedule.shared.generated.resources.credit_support_format
 import shiguangschedule.shared.generated.resources.delete_24px
+import shiguangschedule.shared.generated.resources.label_credit
 import shiguangschedule.shared.generated.resources.label_custom_time
 import shiguangschedule.shared.generated.resources.label_day_of_week
 import shiguangschedule.shared.generated.resources.label_position
@@ -61,6 +67,7 @@ fun CourseSchemeCard(
     timeSlots: List<TimeSlot>,
     onTeacherChange: (String) -> Unit,
     onPositionChange: (String) -> Unit,
+    onCreditChange: (String) -> Unit,
     onRemarkChange: (String) -> Unit,
     onColorClick: () -> Unit,
     onTimeClick: () -> Unit,
@@ -134,6 +141,34 @@ fun CourseSchemeCard(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
+                // 学分输入框
+                OutlinedTextField(
+                    value = scheme.credit,
+                    onValueChange = { newValue ->
+                        if (newValue.isEmpty() || (newValue.all { it.isDigit() || it == '.' } && newValue.count { it == '.' } <= 1)) {
+                            onCreditChange(newValue)
+                        }
+                    },
+                    placeholder = { Text(stringResource(Res.string.label_credit)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    leadingIcon = { Icon(vectorResource(Res.drawable.award_star_24px), null, Modifier.size(18.dp)) },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Decimal
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true,
+                    isError = scheme.credit.endsWith("."),
+                    supportingText = {
+                        if (scheme.credit.endsWith(".")) {
+                            Text(stringResource(Res.string.credit_error_invalid))
+                        } else {
+                            Text(stringResource(Res.string.credit_support_format))
+                        }
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
                 // 备注输入
                 OutlinedTextField(
                     value = scheme.remark,
@@ -160,7 +195,7 @@ fun CourseSchemeCard(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 底部区域：时间与周次（此时周次内容多会撑开 Row 的高度，进而拉伸左侧颜色条）
+                // 底部区域：时间与周次
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)

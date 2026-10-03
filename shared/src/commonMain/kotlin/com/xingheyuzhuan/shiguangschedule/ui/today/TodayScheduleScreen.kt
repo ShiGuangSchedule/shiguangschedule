@@ -55,6 +55,7 @@ import shiguangschedule.shared.generated.resources.Res
 import shiguangschedule.shared.generated.resources.course_position_prefix
 import shiguangschedule.shared.generated.resources.course_teacher_prefix
 import shiguangschedule.shared.generated.resources.date_format_year_month_day
+import shiguangschedule.shared.generated.resources.label_credit
 import shiguangschedule.shared.generated.resources.label_remark
 import shiguangschedule.shared.generated.resources.status_semester_ended
 import shiguangschedule.shared.generated.resources.text_no_courses_today
@@ -293,6 +294,21 @@ fun CourseTimelineItem(
                     if (model.course.teacher.isNotBlank()) {
                         Text(
                             text = stringResource(Res.string.course_teacher_prefix, model.course.teacher),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    val credit = model.course.credit
+                    if (credit != null && credit > 0f) {
+                        val creditValStr = if (credit % 1f == 0f) {
+                            credit.toInt().toString()
+                        } else {
+                            credit.toString()
+                        }
+                        val creditLabel = stringResource(Res.string.label_credit)
+                        Text(
+                            text = "$creditLabel: $creditValStr",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.view.ViewGroup
 import android.webkit.JavascriptInterface
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -87,6 +88,7 @@ actual fun rememberWebViewController(): WebViewController {
 
 class NativeBridge(private val handler: WebBridgeHandler) {
     @JavascriptInterface
+    @Suppress("Unused")
     fun postMessage(jsonMessage: String) {
         handler.onMessageReceived(jsonMessage)
     }
@@ -109,11 +111,9 @@ actual fun PlatformWebView(
 
     val currentOnProgressChange by rememberUpdatedState(onProgressChange)
     val currentOnTitleChange by rememberUpdatedState(onTitleChange)
-
     val currentIsDesktopMode by rememberUpdatedState(isDesktopMode)
 
     var loadedBaseUrl by remember { mutableStateOf("") }
-
     var isFirstLaunch by remember { mutableStateOf(true) }
 
     // 监听外部强制 URL 变更
@@ -138,6 +138,11 @@ actual fun PlatformWebView(
         androidController?.webViewInstance?.let { wv ->
             val delegate = WebCompatDelegate(wv)
             delegate.enhanceSettings(isDesktopMode)
+            if (isDesktopMode) {
+                wv.setInitialScale(100)
+            } else {
+                wv.setInitialScale(0)
+            }
 
             val currentRealUrl = wv.url?.takeIf { it.isNotBlank() && it != "about:blank" } ?: url
             if (currentRealUrl.isNotBlank() && currentRealUrl != "about:blank") {
@@ -146,7 +151,7 @@ actual fun PlatformWebView(
         }
     }
 
-    // 3. 监听 开发者工具 开关
+    // 监听开发者工具开关
     LaunchedEffect(isDevToolsEnabled) {
         WebView.setWebContentsDebuggingEnabled(isDevToolsEnabled)
     }
@@ -161,14 +166,10 @@ actual fun PlatformWebView(
                         ViewGroup.LayoutParams.MATCH_PARENT
                     )
 
-                    settings.apply {
-                        javaScriptEnabled = true
-                        domStorageEnabled = true
-                        useWideViewPort = true
-                        loadWithOverviewMode = true
-                        setSupportZoom(true)
-                        builtInZoomControls = true
-                        displayZoomControls = false
+                    if (isDesktopMode) {
+                        setInitialScale(100)
+                    } else {
+                        setInitialScale(0)
                     }
 
                     androidController?.webViewInstance = this
@@ -176,7 +177,6 @@ actual fun PlatformWebView(
                     val delegate = WebCompatDelegate(this)
                     delegate.enhanceSettings(isDesktopMode)
 
-                    addJavascriptInterface(WebPostBridge(), "WebPostService")
                     addJavascriptInterface(NativeBridge(bridgeHandler), "_shiguangNativeBridge")
 
                     val baseChromeClient = object : WebChromeClient() {
@@ -230,7 +230,15 @@ actual fun PlatformWebView(
             androidController?.webViewInstance?.let { wv ->
                 wv.stopLoading()
                 wv.webChromeClient = null
-                wv.webViewClient = WebViewClient()
+                wv.webViewClient = object : WebViewClient() {
+                    override fun onRenderProcessGone(
+                        view: WebView?,
+                        detail: RenderProcessGoneDetail?
+                    ): Boolean {
+                        return true
+                    }
+                }
+
                 (wv.parent as? ViewGroup)?.removeView(wv)
 
                 wv.clearHistory()
