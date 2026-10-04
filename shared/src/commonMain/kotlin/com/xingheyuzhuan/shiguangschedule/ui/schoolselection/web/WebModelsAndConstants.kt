@@ -25,6 +25,15 @@ data class SingleSelectionDialogData(
     val defaultSelectedIndex: Int = -1
 )
 
+/**
+ * SSL 证书错误传递数据模型
+ */
+data class SslErrorData(
+    val primaryErrorUrl: String,
+    val onProceed: () -> Unit,
+    val onCancel: () -> Unit
+)
+
 sealed interface WebUiEvent {
     data class ShowAlert(
         val data: AlertDialogData,
@@ -41,5 +50,12 @@ sealed interface WebUiEvent {
     data class ShowSingleSelection(
         val data: SingleSelectionDialogData,
         val callback: (selectedIndex: Int?) -> Unit
+    ) : WebUiEvent
+
+    /**
+     * 显示 SSL 证书安全警告弹窗事件
+     */
+    data class ShowSslWarning(
+        val data: SslErrorData
     ) : WebUiEvent
 }

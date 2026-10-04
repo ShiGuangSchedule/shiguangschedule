@@ -1,7 +1,7 @@
 <resources>
     <!-- Basic App Information -->
     <string name="app_name">Shiguang Schedule</string>
-    
+
     <!-- Common Buttons and Messages -->
     <string name="action_confirm">Confirm</string>
     <string name="action_cancel">Cancel</string>
@@ -24,7 +24,7 @@
     <string name="common_action_exit_without_save">Exit</string>
     <string name="common_action_continue_editing">Keep editing</string>
     <string name="label_recent_visit">Recent Visit</string>
-    
+
     <!-- Main Interface and Today's Schedule -->
     <string name="action_reset">Reset</string>
     <string name="floating_course_hint">Suspended. Swipe weeks and tap a blank space to drop.</string>
@@ -84,7 +84,7 @@
     <string name="title_vacation">On vacation</string>
     <string name="status_semester_ended">Semester ended %1$d days ago</string>
     <string name="status_week_calc_error">Week calculation error</string>
-    
+
     <!-- Time and Day Formats -->
     <string-array name="week_days_short_names">
         <item>MON</item>
@@ -104,7 +104,7 @@
         <item>Saturday</item>
         <item>Sunday</item>
     </string-array>
-    
+
     <!-- Notifications and Alarms -->
     <string name="format_week_display">Wk %1$d</string>
     <string name="notification_channel_desc_course_alert">Course reminder notifications</string>
@@ -131,7 +131,7 @@
     <string name="widget_remaining_courses_format_tomorrow">%1$d courses tomorrow</string>
     <string name="widget_title_today">Today</string>
     <string name="widget_title_tomorrow">Tomorrow</string>
-    
+
     <!-- Notification Settings -->
     <string name="widget_course_total_count">%1$d total</string>
     <string name="title_course_notification_settings">Course reminder settings</string>
@@ -184,7 +184,7 @@
     <string name="toast_notification_permission_denied">Notification permission denied, cannot receive course reminders.</string>
     <string name="item_compat_wearable_sync">Wearable Sync Compatibility</string>
     <string name="desc_compat_wearable_sync">Android 16's dynamic notification updates conflict with some wearable sync apps. Enabling this will improve compatibility but disable real-time "Ongoing" update effects.</string>
-    
+
     <!-- Settings Options -->
     <string name="title_schedule_settings">Schedule settings</string>
     <string name="section_title_general_settings">General settings</string>
@@ -223,7 +223,7 @@
     <string name="course_table_id_prefix">ID: %1$s</string>
     <string name="course_table_created_at_prefix">Created: %1$s</string>
     <string name="label_current">Current</string>
-    
+
     <!-- Manage Course Tables -->
     <string name="title_manage_course_tables">Manage schedules</string>
     <string name="dialog_title_add_table">Add new schedule</string>
@@ -311,7 +311,7 @@
     <string name="error_import_failed">Import failed: %1$s</string>
     <string name="error_ics_export_data_failed">Calendar export failed: Failed to get data</string>
     <string name="error_ics_export_failed">Calendar export failed: %1$s</string>
-    
+
     <!-- More Settings -->
     <string name="item_developer_options">Developer Options</string>
     <string name="section_sync">Sync</string>
@@ -350,7 +350,7 @@
     <string name="a11y_selected">Selected</string>
     <string name="item_start_screen_settings">Startup Page Settings</string>
     <string name="dialog_select_start_screen">Select default startup page</string>
-    
+
     <!-- Schedule Adjustment -->
     <string name="title_tweak_schedule">Schedule adjustment</string>
     <string name="a11y_save_tweak">Save schedule adjustment</string>
@@ -415,12 +415,8 @@
     <string name="toast_load_import_script_failed">Failed to load import script: %1$s</string>
     <string name="toast_no_import_script">This adapter has no import script</string>
     <string name="toast_import_script_finished">Import script completed, returning to schedule page.</string>
-    <string name="dialog_ssl_error_title">SSL Certificate Error</string>
-    <string name="dialog_ssl_error_message">SSL certificate verification failed, which may indicate an insecure connection. Continue browsing?</string>
-    <string name="action_continue_browsing">Continue</string>
-    <string name="toast_ssl_error_cancelled">SSL certificate verification failed, connection canceled.</string>
     <string name="toast_web_load_error_format">Web page load error: %1$s</string>
-    
+
     <!-- Contributors List -->
     <string name="title_contribution_list">Contributors</string>
     <string name="tab_adapter_development">Academic adapters</string>
@@ -431,7 +427,7 @@
     <string name="label_github">GitHub</string>
     <string name="a11y_back_to_previous">Back to previous</string>
     <string name="a11y_contributor_avatar">Contributor avatar: %1$s</string>
-    
+
     <!-- Academic Adapter Repository -->
     <string name="title_update_repo_screen">Update academic adapter repository</string>
     <string name="label_select_repo">Select repository</string>
@@ -630,4 +626,7 @@
     <string name="action_clear_selected">Clear selection</string>
     <string name="dialog_title_select_workday">Select Workday</string>
     <string name="action_custom_date">Custom Date</string>
+    <string name="dialog_ssl_warning_title">Security Warning</string>
+    <string name="dialog_ssl_warning_message">The certificate for the website you are visiting (%1$s) is untrusted or expired. Continuing may expose your data to security risks. Do you wish to proceed?</string>
+    <string name="action_continue_visit">Continue</string>
 </resources>

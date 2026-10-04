@@ -356,7 +356,18 @@ fun WebViewScreen(
                 bridgeHandler = bridgeHandler,
                 onProgressChange = { loadingProgress = it },
                 onTitleChange = { pageTitle = it },
-                onNavigateToSchedule = { onNavigate(Destination.CourseSchedule) }
+                onNavigateToSchedule = { onNavigate(Destination.CourseSchedule) },
+                onSslError = { failingUrl, onProceed, onCancel ->
+                    uiEventChannel.trySend(
+                        WebUiEvent.ShowSslWarning(
+                            SslErrorData(
+                                primaryErrorUrl = failingUrl,
+                                onProceed = onProceed,
+                                onCancel = onCancel
+                            )
+                        )
+                    )
+                }
             )
 
             if (loadingProgress < 1.0f) {

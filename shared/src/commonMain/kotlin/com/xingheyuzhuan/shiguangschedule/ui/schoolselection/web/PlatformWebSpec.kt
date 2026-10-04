@@ -56,5 +56,6 @@ expect fun PlatformWebView(
     bridgeHandler: WebBridgeHandler,
     onProgressChange: (Float) -> Unit,
     onTitleChange: (String) -> Unit,
-    onNavigateToSchedule: () -> Unit
+    onNavigateToSchedule: () -> Unit,
+    onSslError: (failingUrl: String, onProceed: () -> Unit, onCancel: () -> Unit) -> Unit = { _, _, onCancel -> onCancel() }
 )

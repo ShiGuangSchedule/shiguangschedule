@@ -460,10 +460,9 @@
     <string name="toast_load_import_script_failed">加载导入脚本失败: %1$s</string>
     <string name="toast_no_import_script">该适配器没有导入脚本</string>
     <string name="toast_import_script_finished">导入脚本执行完毕，返回课表页面。</string>
-    <string name="dialog_ssl_error_title">SSL 证书错误</string>
-    <string name="dialog_ssl_error_message">SSL证书验证失败，这可能意味着连接不安全。是否继续浏览？</string>
-    <string name="action_continue_browsing">继续浏览</string>
-    <string name="toast_ssl_error_cancelled">SSL证书验证失败，已取消连接。</string>
+    <string name="dialog_ssl_warning_title">安全警告</string>
+    <string name="dialog_ssl_warning_message">您正在访问的网站证书不安全或已过期（%1$s），继续访问可能存在数据泄漏风险。是否继续访问？</string>
+    <string name="action_continue_visit">继续访问</string>
     <string name="toast_web_load_error_format">网页加载错误: %1$s</string>
 
     <!-- 贡献者列表 -->
