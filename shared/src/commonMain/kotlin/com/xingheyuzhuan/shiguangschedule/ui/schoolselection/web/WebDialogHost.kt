@@ -27,7 +27,7 @@ import shiguangschedule.shared.generated.resources.Res
 import shiguangschedule.shared.generated.resources.*
 
 /**
- * 宿主：监听 Bridge 事件，负责显示 JS 触发的 Compose 弹窗。
+ * 宿主：监听 Bridge / 原生 WebView 事件，负责显示 JS 触发及平台抛出的 Compose 弹窗。
  */
 @Composable
 fun WebDialogHost(
@@ -72,8 +72,49 @@ fun WebDialogHost(
                 currentEvent = null
             })
         }
+        is WebUiEvent.ShowSslWarning -> {
+            SslWarningHost(
+                data = event.data,
+                onProceed = {
+                    event.data.onProceed()
+                    currentEvent = null
+                },
+                onCancel = {
+                    event.data.onCancel()
+                    currentEvent = null
+                }
+            )
+        }
         null -> Unit
     }
+}
+
+/** 显示 SSL 证书错误警告弹窗。 */
+@Composable
+private fun SslWarningHost(
+    data: SslErrorData,
+    onProceed: () -> Unit,
+    onCancel: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = {
+            Text(stringResource(Res.string.dialog_ssl_warning_title))
+        },
+        text = {
+            Text(stringResource(Res.string.dialog_ssl_warning_message, data.primaryErrorUrl))
+        },
+        confirmButton = {
+            Button(onClick = onProceed) {
+                Text(stringResource(Res.string.action_continue_visit))
+            }
+        },
+        dismissButton = {
+            Button(onClick = onCancel) {
+                Text(stringResource(Res.string.action_cancel))
+            }
+        }
+    )
 }
 
 /** 显示 Alert/Confirm 弹窗。 */

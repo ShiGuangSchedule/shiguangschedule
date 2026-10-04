@@ -2,9 +2,11 @@ package com.xingheyuzhuan.shiguangschedule.ui.schoolselection.web
 
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
+import android.net.http.SslError
 import android.view.ViewGroup
 import android.webkit.JavascriptInterface
 import android.webkit.RenderProcessGoneDetail
+import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -105,13 +107,15 @@ actual fun PlatformWebView(
     bridgeHandler: WebBridgeHandler,
     onProgressChange: (Float) -> Unit,
     onTitleChange: (String) -> Unit,
-    onNavigateToSchedule: () -> Unit
+    onNavigateToSchedule: () -> Unit,
+    onSslError: (failingUrl: String, onProceed: () -> Unit, onCancel: () -> Unit) -> Unit
 ) {
     val androidController = controller as? AndroidWebViewController
 
     val currentOnProgressChange by rememberUpdatedState(onProgressChange)
     val currentOnTitleChange by rememberUpdatedState(onTitleChange)
     val currentIsDesktopMode by rememberUpdatedState(isDesktopMode)
+    val currentOnSslError by rememberUpdatedState(onSslError)
 
     var loadedBaseUrl by remember { mutableStateOf("") }
     var isFirstLaunch by remember { mutableStateOf(true) }
@@ -204,6 +208,19 @@ actual fun PlatformWebView(
                                     currentOnTitleChange(unquoted)
                                 }
                             }
+                        }
+
+                        override fun onReceivedSslError(
+                            view: WebView?,
+                            handler: SslErrorHandler?,
+                            error: SslError?
+                        ) {
+                            val failingUrl = error?.url ?: view?.url ?: ""
+                            currentOnSslError(
+                                failingUrl,
+                                { handler?.proceed() },
+                                { handler?.cancel() }
+                            )
                         }
                     }
 

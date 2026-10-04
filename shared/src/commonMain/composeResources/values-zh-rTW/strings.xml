@@ -411,10 +411,6 @@
     <string name="toast_load_import_script_failed">載入匯入指令碼失敗: %1$s</string>
     <string name="toast_no_import_script">該適配器沒有匯入指令碼</string>
     <string name="toast_import_script_finished">匯入指令碼執行完畢，返回課表頁面。</string>
-    <string name="dialog_ssl_error_title">SSL 憑證錯誤</string>
-    <string name="dialog_ssl_error_message">SSL憑證驗證失敗，這可能意味著連線不安全。是否繼續瀏覽？</string>
-    <string name="action_continue_browsing">繼續瀏覽</string>
-    <string name="toast_ssl_error_cancelled">SSL憑證驗證失敗，已取消連線。</string>
     <string name="toast_web_load_error_format">網頁載入錯誤: %1$s</string>
 
     <!-- 貢獻者清單 -->
@@ -631,4 +627,7 @@
     <string name="action_clear_selected">清空已選</string>
     <string name="dialog_title_select_workday">選擇調至補班日</string>
     <string name="action_custom_date">自訂日期</string>
+    <string name="dialog_ssl_warning_title">安全警告</string>
+    <string name="dialog_ssl_warning_message">您正在訪問的網站證書不安全或已過期（%1$s），繼續訪問可能存在資料洩漏風險。是否繼續訪問？</string>
+    <string name="action_continue_visit">繼續訪問</string>
 </resources>
