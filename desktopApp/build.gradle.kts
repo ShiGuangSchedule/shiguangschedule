@@ -1,5 +1,4 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
@@ -9,9 +8,7 @@ plugins {
 }
 
 kotlin {
-    compilerOptions {
-        jvmTarget = JvmTarget.JVM_21
-    }
+    jvmToolchain(21)
 }
 
 dependencies {
@@ -19,12 +16,12 @@ dependencies {
     implementation(project.dependencies.platform(libs.koin.bom))
     implementation(libs.koin.core)
     implementation(libs.koin.compose)
+    implementation(libs.koin.annotations)
 
     implementation(compose.desktop.currentOs)
     implementation(libs.kotlinx.coroutines.swing)
     implementation(libs.compose.ui.tooling.preview)
 }
-
 
 compose.desktop {
     application {
@@ -37,7 +34,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Exe, TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "com.xingheyuzhuan.shiguangschedule"
-            packageVersion = "1.0.0"
+            packageVersion = "2.1.0"
         }
     }
 }
