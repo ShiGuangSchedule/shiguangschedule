@@ -24,7 +24,7 @@ jobs:
       - name: 克隆索引文件 (Clone Index PB File)
         run: |
           INDEX_PATH="shared/assets/offline_repo/index"
-          REPO_URL="https://${{ secrets.GITHUB_TOKEN }}@github.com/XingHeYuZhuan/shiguang_warehouse.git"
+          REPO_URL="https://${{ secrets.GITHUB_TOKEN }}@github.com/ShiGuangSchedule/shiguang_warehouse.git"
           
           echo "--- 正在克隆 index-pb-release 分支并获取 school_index.pb ---"
           
@@ -49,7 +49,7 @@ jobs:
       - name: 克隆资源文件并清理 adapters.yaml (Clone Resources & Filter YAML)
         run: |
           SCHOOLS_PATH="shared/assets/offline_repo/schools"
-          REPO_URL="https://${{ secrets.GITHUB_TOKEN }}@github.com/XingHeYuZhuan/shiguang_warehouse.git"
+          REPO_URL="https://${{ secrets.GITHUB_TOKEN }}@github.com/ShiGuangSchedule/shiguang_warehouse.git"
           
           ABS_SCHOOLS_PATH=$(realpath $SCHOOLS_PATH)
           
@@ -90,13 +90,15 @@ jobs:
 
       - name: 运行贡献者数据生成脚本 (Generate Contributors Data)
         run: |
+          echo "--- 正在安装依赖 (curl, jq, webp) ---"
+          sudo apt-get update
+          sudo apt-get install -y curl jq webp
+
           echo "--- 正在赋予脚本执行权限 ---"
-          # 确保脚本路径正确，并赋予执行权限
           chmod +x .github/scripts/build_contributors.sh
 
           echo "--- 正在执行贡献者数据生成 ---"
-          # 运行脚本
-          .github/scripts/build_contributors.sh    
+          .github/scripts/build_contributors.sh 
 
       - name: 设置 JDK 21 (Setup JDK)
         uses: actions/setup-java@v4
