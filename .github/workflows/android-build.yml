@@ -1,126 +1,133 @@
-name: Android CI Build
+name: CI Build
 
 on:
   workflow_dispatch:
 
 jobs:
-  build:
-    environment: Release-Signing
-
+  prepare-resources:
     runs-on: ubuntu-latest
-
     steps:
       - name: 检出代码 (Checkout)
         uses: actions/checkout@v4
 
-      - name: 清理索引和资源目标目录 (Clean Specific Resource Dirs)
+      - name: 清理索引和资源目标目录
         run: |
-          # 强制删除 shared/assets/offline_repo/index 和 schools 的内容
           rm -rf shared/assets/offline_repo/index
           rm -rf shared/assets/offline_repo/schools
           mkdir -p shared/assets/offline_repo/index
           mkdir -p shared/assets/offline_repo/schools
 
-      - name: 克隆索引文件 (Clone Index PB File)
+      - name: 克隆索引文件 (school_index.pb)
         run: |
           INDEX_PATH="shared/assets/offline_repo/index"
           REPO_URL="https://${{ secrets.GITHUB_TOKEN }}@github.com/ShiGuangSchedule/shiguang_warehouse.git"
-          
-          echo "--- 正在克隆 index-pb-release 分支并获取 school_index.pb ---"
-          
-          # 临时目录用于克隆
+
           TEMP_CLONE_DIR=$(mktemp -d)
-          
-          # 浅克隆 index-pb-release 分支
           git clone --depth 1 --branch index-pb-release $REPO_URL $TEMP_CLONE_DIR
-          
-          # 移动文件到目标目录
+
           if [ -f $TEMP_CLONE_DIR/school_index.pb ]; then
             mv $TEMP_CLONE_DIR/school_index.pb $INDEX_PATH/
             echo "school_index.pb 成功下载到 $INDEX_PATH/"
           else
-            echo "错误：未在 index-pb-release 分支中找到 school_index.pb，请检查仓库配置。"
+            echo "错误：未在 index-pb-release 分支中找到 school_index.pb"
             exit 1
           fi
-          
-          # 清理临时目录
+
           rm -rf $TEMP_CLONE_DIR
 
-      - name: 克隆资源文件并清理 adapters.yaml (Clone Resources & Filter YAML)
+      - name: 克隆 resources 并清理 adapters.yaml
         run: |
           SCHOOLS_PATH="shared/assets/offline_repo/schools"
           REPO_URL="https://${{ secrets.GITHUB_TOKEN }}@github.com/ShiGuangSchedule/shiguang_warehouse.git"
-          
           ABS_SCHOOLS_PATH=$(realpath $SCHOOLS_PATH)
-          
-          echo "--- 正在使用 sparse-checkout 克隆 main 分支下的 resources 目录 ---"
 
-          # 临时目录用于稀疏克隆
           TEMP_CLONE_DIR=$(mktemp -d)
-          
-          # 步骤 1: 浅克隆仓库
           git clone --depth 1 --branch main $REPO_URL $TEMP_CLONE_DIR
           cd $TEMP_CLONE_DIR
-          
-          # 步骤 2: 切换到稀疏模式并设置只拉取 resources 目录
           git sparse-checkout init
           git sparse-checkout set resources
-          
-          
-          # 步骤 3: 移动 resources 目录到目标位置 (使用绝对路径)
+
           if [ -d "resources" ]; then
-            # 使用绝对路径 ABS_SCHOOLS_PATH 来确保 mv 目标正确
             mv resources $ABS_SCHOOLS_PATH/
             echo "resources 目录成功下载到 $SCHOOLS_PATH/"
           else
-            echo "错误：稀疏检出失败。在 'main' 分支的根目录未找到或未检出 'resources' 目录。"
+            echo "错误：稀疏检出失败，未找到 resources 目录"
             exit 1
           fi
-          
-          echo "--- 正在清理所有 adapters.yaml 文件 (包括子目录) ---"
-          
-          # 步骤 4: 清理目标目录下的所有 adapters.yaml 文件 
+
           find $ABS_SCHOOLS_PATH/resources -name "adapters.yaml" -exec rm -f {} \;
-          
           echo "资源克隆和清理完成。"
-          
-          # 返回工作目录并清理临时目录
+
           cd ${{ github.workspace }}
           rm -rf $TEMP_CLONE_DIR
 
-      - name: 运行贡献者数据生成脚本 (Generate Contributors Data)
+      - name: 生成贡献者数据 (Contributors)
         run: |
-          echo "--- 正在安装依赖 (curl, jq, webp) ---"
           sudo apt-get update
           sudo apt-get install -y curl jq webp
-
-          echo "--- 正在赋予脚本执行权限 ---"
           chmod +x .github/scripts/build_contributors.sh
+          .github/scripts/build_contributors.sh
 
-          echo "--- 正在执行贡献者数据生成 ---"
-          .github/scripts/build_contributors.sh 
+      - name: 打包资源 (tar)
+        run: |
+          tar -czf shared-assets.tar.gz \
+            shared/assets \
+            shared/src/commonMain/composeResources
+          echo "打包完成，大小："
+          ls -lh shared-assets.tar.gz
 
-      - name: 设置 JDK 21 (Setup JDK)
+      - name: 上传资源 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: shared-assets
+          path: shared-assets.tar.gz
+          retention-days: 1
+
+  build-android:
+    needs: prepare-resources
+    runs-on: ubuntu-latest
+    environment: Release-Signing
+    steps:
+      - name: 检出代码 (Checkout)
+        uses: actions/checkout@v4
+
+      - name: 下载共享资源
+        uses: actions/download-artifact@v4
+        with:
+          name: shared-assets
+          path: .
+
+      - name: 解压共享资源
+        shell: bash
+        run: |
+          tar -xzf shared-assets.tar.gz
+          rm -f shared-assets.tar.gz
+          echo "===== 解压后 shared/assets ====="
+          find shared/assets -maxdepth 3 -type d
+          echo "===== 解压后 contributors_data ====="
+          find shared/src/commonMain/composeResources/files/contributors_data -maxdepth 2 -type d
+
+      - name: 设置 JDK 21
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '21'
 
-      - name: 设置 Gradle 缓存 (Cache Gradle Dependencies)
+      - name: 设置 Gradle 缓存
         uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle', '**/*.gradle.kts', '**/gradle-wrapper.properties', '**/libs.versions.toml') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: 解码并准备签名密钥文件 (Decode and Prepare Signing Key)
+      - name: 解码签名密钥
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > androidApp/release.jks
 
-      - name: 运行 Release 构建任务 (Build Release APK)
+      - name: 构建 Release APK
         run: |
           chmod +x ./gradlew
           ./gradlew assembleRelease \
@@ -130,9 +137,87 @@ jobs:
             -Pandroid.injected.signing.key.password="${{ secrets.KEY_PASSWORD }}" \
             --stacktrace
 
-      - name: 上传构建产物到仓库 (Upload Artifact)
+      - name: 上传 APK
         uses: actions/upload-artifact@v4
         with:
           name: app-release-apk
           path: androidApp/build/outputs/apk/release/*.apk
+          retention-days: 7
+
+  build-desktop:
+    needs: prepare-resources
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: desktop-linux
+            output_glob: |
+              desktopApp/build/compose/binaries/main-release/deb/*.deb
+              desktopApp/build/compose/binaries/main-release/rpm/*.rpm
+          - os: windows-latest
+            artifact_name: desktop-windows
+            output_glob: |
+              desktopApp/build/compose/binaries/main-release/exe/*.exe
+              desktopApp/build/compose/binaries/main-release/msi/*.msi
+          - os: macos-latest
+            artifact_name: desktop-macos
+            output_glob: |
+              desktopApp/build/compose/binaries/main-release/dmg/*.dmg
+              desktopApp/build/compose/binaries/main-release/pkg/*.pkg
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: 检出代码 (Checkout)
+        uses: actions/checkout@v4
+
+      - name: 下载共享资源
+        uses: actions/download-artifact@v4
+        with:
+          name: shared-assets
+          path: .
+
+      - name: 解压共享资源
+        shell: bash
+        run: |
+          tar -xzf shared-assets.tar.gz
+          rm -f shared-assets.tar.gz
+          echo "===== 解压后 shared/assets ====="
+          find shared/assets -maxdepth 3 -type d
+          echo "===== 解压后 contributors_data ====="
+          find shared/src/commonMain/composeResources/files/contributors_data -maxdepth 2 -type d
+
+      - name: 设置 JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: 设置 Gradle 缓存
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle', '**/*.gradle.kts', '**/gradle-wrapper.properties', '**/libs.versions.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: 构建桌面安装包
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            ./gradlew.bat renameDesktopPackage --no-configuration-cache --stacktrace
+          else
+            chmod +x ./gradlew
+            ./gradlew renameDesktopPackage --no-configuration-cache --stacktrace
+          fi
+
+      - name: 上传桌面产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.output_glob }}
+          if-no-files-found: error
           retention-days: 7
