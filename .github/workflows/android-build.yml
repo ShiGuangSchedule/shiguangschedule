@@ -186,6 +186,25 @@ jobs:
             ./gradlew renameDesktopPackage --stacktrace
           fi
 
+      - name: Debug 查看 compose/binaries 结构
+        if: always()
+        shell: bash
+        run: |
+          echo "========== RUNNER_OS =========="
+          echo "$RUNNER_OS"
+
+          echo "========== desktop/build/compose/binaries 目录树（最多 5 层） =========="
+          find desktop/build/compose/binaries -maxdepth 5 2>/dev/null || echo "(binaries 目录不存在)"
+
+          echo "========== 所有文件（前 100 个） =========="
+          find desktop/build/compose/binaries -type f 2>/dev/null | head -100 || echo "(无文件)"
+
+          echo "========== main-release 下内容 =========="
+          ls -la desktop/build/compose/binaries/main-release/ 2>/dev/null || echo "(main-release 不存在)"
+
+          echo "========== main 下内容 =========="
+          ls -la desktop/build/compose/binaries/main/ 2>/dev/null || echo "(main 不存在)"
+
       - name: 上传桌面产物
         uses: actions/upload-artifact@v4
         with:
