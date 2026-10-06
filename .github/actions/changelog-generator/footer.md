@@ -1,10 +1,12 @@
 ---
 
-## 📦 安装包选择指引
+## 安装包选择指引
 
 请根据你的操作系统与设备类型选择对应的安装包。
 
-### 🖥️ 桌面端
+### 桌面端
+
+> **实验性支持**:桌面端仍在开发完善中,可能存在不稳定或功能缺失,暂不建议作为日常主力使用。如遇问题,欢迎反馈。
 
 | 系统 | 推荐文件 | 说明 |
 |------|---------|------|
@@ -15,7 +17,7 @@
 | Linux (Debian/Ubuntu) | `shiguangschedule-v*-linux-x64-release.deb` | apt 系 |
 | Linux (Fedora/RHEL) | `shiguangschedule-v*-linux-x64-release.rpm` | rpm 系 |
 
-### 📱 Android
+### Android
 
 | 文件 | 适用设备 |
 |------|---------|
