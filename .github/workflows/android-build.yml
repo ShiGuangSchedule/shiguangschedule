@@ -98,13 +98,14 @@ jobs:
           path: .
 
       - name: 解压共享资源
+        shell: bash
         run: |
           tar -xzf shared-assets.tar.gz
           rm -f shared-assets.tar.gz
           echo "===== 解压后 shared/assets ====="
-          find shared/assets -maxdepth 3 -type d | head
+          find shared/assets -maxdepth 3 -type d
           echo "===== 解压后 contributors_data ====="
-          find shared/src/commonMain/composeResources/files/contributors_data -maxdepth 2 | head
+          find shared/src/commonMain/composeResources/files/contributors_data -maxdepth 2 -type d
 
       - name: 设置 JDK 21
         uses: actions/setup-java@v4
@@ -183,9 +184,9 @@ jobs:
           tar -xzf shared-assets.tar.gz
           rm -f shared-assets.tar.gz
           echo "===== 解压后 shared/assets ====="
-          find shared/assets -maxdepth 3 -type d | head
+          find shared/assets -maxdepth 3 -type d
           echo "===== 解压后 contributors_data ====="
-          find shared/src/commonMain/composeResources/files/contributors_data -maxdepth 2 | head
+          find shared/src/commonMain/composeResources/files/contributors_data -maxdepth 2 -type d
 
       - name: 设置 JDK 21
         uses: actions/setup-java@v4
