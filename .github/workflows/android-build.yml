@@ -180,10 +180,10 @@ jobs:
         shell: bash
         run: |
           if [ "$RUNNER_OS" = "Windows" ]; then
-            ./gradlew.bat renameDesktopPackage --stacktrace
+            ./gradlew.bat renameDesktopPackage --no-configuration-cache --stacktrace
           else
             chmod +x ./gradlew
-            ./gradlew renameDesktopPackage --stacktrace
+            ./gradlew renameDesktopPackage --no-configuration-cache --stacktrace
           fi
 
       - name: 上传桌面产物
