@@ -72,9 +72,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: shared-assets
-          path: |
-            shared/assets/
-            shared/src/commonMain/composeResources/
+          path: shared/**
           retention-days: 1
 
   build-android:
