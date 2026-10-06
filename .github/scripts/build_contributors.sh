@@ -28,7 +28,7 @@ EXCLUDE_JSON=$(printf "%s\n" "${EXCLUDE_USERS_ARRAY[@]}" | jq -R . | jq -s .)
 # 依赖检查
 command -v curl  >/dev/null || { echo "错误: 需要 'curl' 工具" >&2; exit 1; }
 command -v jq    >/dev/null || { echo "错误: 需要 'jq' 工具来解析 JSON" >&2; exit 1; }
-command -v cwebp >/dev/null || { echo "错误: 需要 'cwebp' 工具来压缩头像" >&2; exit 1}
+command -v cwebp >/dev/null || { echo "错误: 需要 'cwebp' 工具来压缩头像" >&2; exit 1; }
 
 # 初始化目录
 echo "--- 正在初始化目录和文件... ---" >&2
@@ -100,7 +100,7 @@ fetch_and_process_repo() {
     echo "--- 成功获取数据，正在下载并压缩头像 (${AVATAR_SIZE}x${AVATAR_SIZE} WebP, q=${AVATAR_QUALITY})... ---" >&2
 
     # 下载并压缩头像
-    echo "$FINAL_LIST" | jq -c '.[]' | while read -r contributor; do
+    while read -r contributor; do
         local ID
         local LOGIN
         local AVATAR_URL_BASE
@@ -150,7 +150,7 @@ fetch_and_process_repo() {
             SIZE_BYTES=$(stat -c%s "${FINAL_FILE}" 2>/dev/null || echo "?")
             echo "      -> ${SIZE_BYTES} bytes" >&2
         fi
-    done
+    done < <(echo "$FINAL_LIST" | jq -c '.[]')
 
     # 输出最终 JSON
     echo "$FINAL_LIST" | jq -c '

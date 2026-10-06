@@ -1,0 +1,272 @@
+name: 需要审核的发布操作
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: '请填写 Build CI 成功的 Run ID (例如：123456789)'
+        required: true
+        type: string
+      version_name:
+        description: '请输入要发布的软件版本号 (例如: 1.0.0 或 2.0.0-rc1)'
+        required: true
+        type: string
+      is_prerelease:
+        description: '发布类型 (是否为 GitHub 预发布版本)'
+        required: true
+        default: false
+        type: boolean
+
+jobs:
+  prepare_review:
+    name: 准备、预检并显示发布参数
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      actions: read
+
+    outputs:
+      build_run_id_out: ${{ github.event.inputs.build_run_id }}
+      version_name_out: ${{ github.event.inputs.version_name }}
+      is_prerelease_out: ${{ github.event.inputs.is_prerelease }}
+      artifact_list_out: ${{ steps.validate_artifacts.outputs.artifact_list_out }}
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 关键参数展示 (请审核者核对)
+        run: |
+          echo "--- 待审核发布参数 ---"
+          echo "版本号 (Version): ${{ github.event.inputs.version_name }}"
+          echo "GitHub Pre-release 标记: ${{ github.event.inputs.is_prerelease }}"
+          echo "基于构建 Run ID: ${{ github.event.inputs.build_run_id }}"
+          echo "------------------------"
+
+      - name: 预检：检查目标标签是否已存在
+        run: |
+          VERSION_NAME="${{ github.event.inputs.version_name }}"
+
+          if [[ "$VERSION_NAME" == v* ]]; then
+            RELEASE_TAG="$VERSION_NAME"
+          else
+            RELEASE_TAG="v${VERSION_NAME}"
+          fi
+
+          echo "目标 Release 标签名: $RELEASE_TAG"
+
+          if git rev-parse --verify "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+             echo "严重错误：目标 Release 标签 [$RELEASE_TAG] 已存在于 Git 仓库中。"
+             echo "请修改版本号或手动删除旧标签后重试。"
+             exit 1
+          fi
+          echo "目标标签 [$RELEASE_TAG] 检查通过，可以创建。"
+
+      - name: 预检：验证源 Run 状态及发布类 Artifact
+        id: validate_artifacts
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const build_run_id = context.payload.inputs.build_run_id;
+
+            // 发布产物白名单,名称须与 ci-build.yml 中 upload-artifact 的 name 一致。
+            // 不在此列表中的 artifact(如 shared-assets 资源包)不会被下载或发布。
+            const expectedArtifacts = [
+              'app-release-apk',
+              'desktop-linux',
+              'desktop-windows',
+              'desktop-macos',
+            ];
+
+            // true  = 任一平台缺失即失败(全平台一致发布)
+            // false = 缺失的平台跳过,存在的照发
+            const REQUIRE_ALL = true;
+
+            core.info(`执行预检：验证 Run ID ${build_run_id} 是否成功且包含发布类 Artifacts`);
+
+            const sourceRun = await github.rest.actions.getWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: build_run_id,
+            });
+
+            if (sourceRun.data.conclusion !== 'success') {
+              core.setFailed(`源构建 Run ID ${build_run_id} 状态为 ${sourceRun.data.conclusion}，必须是 'success' 才能发布！`);
+              return;
+            }
+            core.info(`源构建 Run 状态检查通过: ${sourceRun.data.conclusion}`);
+
+            const artifactsResp = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: build_run_id,
+            });
+
+            const allArtifacts = artifactsResp.data.artifacts;
+            core.info(`该 Run 中共有 ${allArtifacts.length} 个 Artifacts:`);
+            allArtifacts.forEach(a => core.info(`  - ${a.name} (id=${a.id}, expired=${a.expired})`));
+
+            const matched = allArtifacts.filter(a =>
+              expectedArtifacts.includes(a.name) && !a.expired
+            );
+
+            const matchedNames = matched.map(a => a.name);
+            const missing = expectedArtifacts.filter(n => !matchedNames.includes(n));
+
+            if (missing.length > 0) {
+              const msg = `在 Run ID ${build_run_id} 中缺少以下发布类 Artifacts: ${missing.join(', ')}`;
+              if (REQUIRE_ALL) {
+                core.setFailed(msg + '。若允许部分平台发布，请将 REQUIRE_ALL 设为 false。');
+                return;
+              } else {
+                core.warning(msg + '，将跳过缺失平台继续发布。');
+              }
+            }
+
+            if (matched.length === 0) {
+              core.setFailed(`未找到任何可发布的 Artifact，请检查 Run ID 是否正确。`);
+              return;
+            }
+
+            core.info(`Artifact 检查通过，共 ${matched.length} 个待发布:`);
+            matched.forEach(a => core.info(`  - ${a.name}: ${a.id}`));
+
+            core.setOutput(
+              'artifact_list_out',
+              JSON.stringify(matched.map(a => ({ name: a.name, id: a.id })))
+            );
+
+  release:
+    name: 批准后执行发布到 GitHub Releases
+    runs-on: ubuntu-latest
+
+    needs: prepare_review
+    environment: Production-Release
+
+    permissions:
+      contents: write
+      actions: read
+
+    steps:
+      - name: 检出仓库代码 (获取完整历史)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 计算最终标签名和 Title
+        id: compute_names
+        run: |
+          VERSION_NAME="${{ needs.prepare_review.outputs.version_name_out }}"
+
+          if [[ "$VERSION_NAME" == v* ]]; then
+            RELEASE_TAG="$VERSION_NAME"
+          else
+            RELEASE_TAG="v${VERSION_NAME}"
+          fi
+
+          echo "Release Tag: $RELEASE_TAG"
+          echo "Release Name: $RELEASE_TAG"
+
+          echo "release_tag=$RELEASE_TAG" >> $GITHUB_OUTPUT
+          echo "release_name=$RELEASE_TAG" >> $GITHUB_OUTPUT
+
+      - name: 生成并获取更新日志内容
+        id: generate_changelog
+        uses: ./.github/actions/changelog-generator
+        with:
+          version_title: ${{ steps.compute_names.outputs.release_name }}
+          is_prerelease: ${{ needs.prepare_review.outputs.is_prerelease_out }}
+
+      - name: 下载所有发布类 Artifact ZIP
+        id: download_artifacts
+        uses: actions/github-script@v7
+        env:
+          ARTIFACT_LIST: ${{ needs.prepare_review.outputs.artifact_list_out }}
+        with:
+          script: |
+            const fs = require('fs');
+            const artifacts = JSON.parse(process.env.ARTIFACT_LIST);
+
+            const downloaded = [];
+
+            for (const artifact of artifacts) {
+              core.info(`下载 Artifact: ${artifact.name} (ID: ${artifact.id})`);
+
+              const download = await github.rest.actions.downloadArtifact({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                artifact_id: artifact.id,
+                archive_format: 'zip',
+              });
+
+              const zipFileName = `${artifact.name}.zip`;
+              fs.writeFileSync(zipFileName, Buffer.from(download.data));
+              downloaded.push(zipFileName);
+
+              core.info(`  → 已保存 ${zipFileName}`);
+            }
+
+            core.setOutput('zip_files', downloaded.join(','));
+
+      - name: 解压 Artifact 并收集安装包路径
+        id: unzip_and_collect
+        run: |
+          set -euo pipefail
+
+          ZIP_FILES="${{ steps.download_artifacts.outputs.zip_files }}"
+
+          mkdir -p artifacts/
+
+          # 每个 artifact 解压到独立子目录,避免同名文件冲突
+          IFS=',' read -ra FILES <<< "$ZIP_FILES"
+          for zip in "${FILES[@]}"; do
+            [ -z "$zip" ] && continue
+            BASE_NAME=$(basename "$zip" .zip)
+
+            echo "解压 $zip → artifacts/${BASE_NAME}/"
+            mkdir -p "artifacts/${BASE_NAME}"
+            unzip -o "$zip" -d "artifacts/${BASE_NAME}/"
+          done
+
+          echo "===== 解压后目录结构 ====="
+          find artifacts -type f | sort
+
+          # 按扩展名收集各平台安装包
+          FILE_LIST=$(find artifacts -type f \( \
+              -name "*.apk" -o \
+              -name "*.deb" -o \
+              -name "*.rpm" -o \
+              -name "*.exe" -o \
+              -name "*.msi" -o \
+              -name "*.dmg" -o \
+              -name "*.pkg" \
+            \) | sort)
+
+          if [ -z "$FILE_LIST" ]; then
+            echo "错误：未找到任何可发布的安装包文件！"
+            exit 1
+          fi
+
+          echo "===== 待发布文件列表 ====="
+          echo "$FILE_LIST"
+
+          {
+            echo "artifact_paths<<EOF"
+            echo "$FILE_LIST"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: 创建 GitHub Release (默认 Draft)
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.compute_names.outputs.release_tag }}
+          name: ${{ steps.compute_names.outputs.release_name }}
+          body: ${{ steps.generate_changelog.outputs.changelog_content }}
+          draft: true
+          prerelease: ${{ needs.prepare_review.outputs.is_prerelease_out == 'true' }}
+          files: ${{ steps.unzip_and_collect.outputs.artifact_paths }}
