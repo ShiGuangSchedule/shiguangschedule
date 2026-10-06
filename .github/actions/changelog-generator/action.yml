@@ -13,6 +13,10 @@ inputs:
     description: '是否为预发布版本 (true/false)'
     required: false
     default: 'false'
+  footer_path:
+    description: '附加说明文件路径 (相对 action 目录, 例: footer.md)。留空则不追加。'
+    required: false
+    default: 'footer.md'
 
 outputs:
   changelog_content:
@@ -33,9 +37,14 @@ runs:
         VERSION_TITLE="${{ inputs.version_title }}"
         PREVIOUS_TAG="${{ inputs.previous_tag }}"
         IS_PRERELEASE="${{ inputs.is_prerelease }}"
-        
-        python "$GITHUB_ACTION_PATH/generate_changelog.py" "$VERSION_TITLE" "$PREVIOUS_TAG" "$IS_PRERELEASE"
-        
+        FOOTER_PATH="${{ inputs.footer_path }}"
+
+        python "$GITHUB_ACTION_PATH/generate_changelog.py" \
+          "$VERSION_TITLE" \
+          "$PREVIOUS_TAG" \
+          "$IS_PRERELEASE" \
+          "$FOOTER_PATH"
+
         # 读取生成的 CHANGELOG.md 内容
         if [ -f CHANGELOG.md ]; then
           CHANGELOG_CONTENT=$(cat CHANGELOG.md)
@@ -43,7 +52,7 @@ runs:
           echo "警告：CHANGELOG.md 未生成，可能该范围内没有有效提交。"
           CHANGELOG_CONTENT=""
         fi
-        
+
         # 输出给 GitHub Actions 上下文
         echo "changelog_content<<EOF" >> $GITHUB_OUTPUT
         echo "$CHANGELOG_CONTENT" >> $GITHUB_OUTPUT
