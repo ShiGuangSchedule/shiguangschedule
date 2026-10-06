@@ -1,4 +1,6 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
@@ -54,11 +56,6 @@ tasks.register("renameDesktopPackage") {
     val version = appVersion
     val baseName = appBaseName
 
-    val binariesRoot = listOf("main-release", "main")
-        .map { layout.buildDirectory.dir("compose/binaries/$it").get().asFile }
-        .firstOrNull { it.isDirectory }
-        ?: layout.buildDirectory.dir("compose/binaries/main").get().asFile
-
     when {
         osName.contains("win") -> {
             dependsOn("packageReleaseExe", "packageReleaseMsi")
@@ -72,6 +69,16 @@ tasks.register("renameDesktopPackage") {
     }
 
     doLast {
+        val binariesRoot = listOf("main-release", "main")
+            .map { layout.buildDirectory.dir("compose/binaries/$it").get().asFile }
+            .firstOrNull { it.isDirectory }
+            ?: layout.buildDirectory.dir("compose/binaries/main").get().asFile
+
+        if (!binariesRoot.isDirectory) {
+            logger.warn("renameDesktopPackage: 未找到 binaries 目录，跳过重命名。")
+            return@doLast
+        }
+
         val osTag = when {
             osName.contains("win")   -> "windows"
             osName.contains("mac")   -> "macos"
@@ -89,7 +96,7 @@ tasks.register("renameDesktopPackage") {
         val subDirs = listOf("exe", "msi", "dmg", "pkg", "deb", "rpm")
         val knownExts = setOf("exe", "msi", "dmg", "pkg", "deb", "rpm")
 
-        if (!binariesRoot.isDirectory) return@doLast
+        var renamedCount = 0
 
         subDirs.forEach { sub ->
             val dir = binariesRoot.resolve(sub)
@@ -97,6 +104,7 @@ tasks.register("renameDesktopPackage") {
 
             dir.listFiles()?.forEach { original ->
                 if (!original.isFile) return@forEach
+
                 val ext = original.extension.lowercase()
                 if (ext !in knownExts) return@forEach
 
@@ -106,9 +114,20 @@ tasks.register("renameDesktopPackage") {
                 val targetName = "${baseName}-v${version}-${osTag}-${arch}-${buildType}.${ext}"
                 val targetFile = dir.resolve(targetName)
 
-                if (targetFile.exists()) targetFile.delete()
-                original.renameTo(targetFile)
+                try {
+                    Files.move(
+                        original.toPath(),
+                        targetFile.toPath(),
+                        StandardCopyOption.REPLACE_EXISTING
+                    )
+                    renamedCount++
+                    logger.lifecycle("重命名: ${original.name} -> $targetName")
+                } catch (e: Exception) {
+                    logger.warn("重命名失败: ${original.absolutePath} -> ${targetFile.absolutePath} (${e.message})")
+                }
             }
         }
+
+        logger.lifecycle("renameDesktopPackage 完成：共重命名 $renamedCount 个文件，根目录 = $binariesRoot")
     }
 }
