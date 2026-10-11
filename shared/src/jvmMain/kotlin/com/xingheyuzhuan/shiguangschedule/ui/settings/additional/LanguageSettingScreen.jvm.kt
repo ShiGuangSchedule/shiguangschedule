@@ -11,10 +11,37 @@ actual object PlatformLocaleManager : JvmBasePreferences("locale_settings.proper
 
     private const val PREF_KEY_LANGUAGE = "app_language_tag"
 
+    init {
+        applyStoredOrSystemLanguage()
+    }
+
+    private fun applyStoredOrSystemLanguage() {
+        val savedTag = getString(PREF_KEY_LANGUAGE, "")
+        if (savedTag.isEmpty()) {
+            Locale.setDefault(getTrueSystemLocale())
+        } else {
+            Locale.setDefault(Locale.forLanguageTag(savedTag))
+        }
+    }
+
+    private fun getTrueSystemLocale(): Locale {
+        val language = System.getProperty("user.language") ?: "en"
+        val script = System.getProperty("user.script") ?: ""
+        val country = System.getProperty("user.country") ?: ""
+        val variant = System.getProperty("user.variant") ?: ""
+
+        return Locale.Builder().apply {
+            if (language.isNotEmpty()) setLanguage(language)
+            if (script.isNotEmpty()) setScript(script)
+            if (country.isNotEmpty()) setRegion(country)
+            if (variant.isNotEmpty()) setVariant(variant)
+        }.build()
+    }
+
     actual fun setLanguageTag(tag: String) {
         if (tag.isEmpty()) {
             putString(PREF_KEY_LANGUAGE, null)
-            Locale.setDefault(Locale.getDefault())
+            Locale.setDefault(getTrueSystemLocale())
         } else {
             putString(PREF_KEY_LANGUAGE, tag)
             Locale.setDefault(Locale.forLanguageTag(tag))
