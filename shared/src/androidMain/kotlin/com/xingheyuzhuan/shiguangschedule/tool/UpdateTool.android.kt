@@ -23,13 +23,13 @@ actual object PlatformUpdateStrategy : KoinComponent {
         val abiUrlMap = mutableMapOf<String, String>()
 
         // 1. 精准匹配
-        for (asset in response.assets) {
-            val fileName = asset.name.lowercase()
+        for ((name, downloadUrl) in response.assets) {
+            val fileName = name.lowercase()
             if (!fileName.endsWith(".apk")) continue
 
             for (abi in SUPPORTED_ABIS) {
                 if (fileName.contains("-$abi-") || fileName.endsWith("-$abi.apk")) {
-                    abiUrlMap[abi] = asset.downloadUrl
+                    abiUrlMap[abi] = downloadUrl
                     break
                 }
             }
@@ -37,13 +37,13 @@ actual object PlatformUpdateStrategy : KoinComponent {
 
         // 2. 宽松匹配
         if (abiUrlMap.isEmpty()) {
-            for (asset in response.assets) {
-                val fileName = asset.name.lowercase()
+            for ((name, downloadUrl) in response.assets) {
+                val fileName = name.lowercase()
                 if (!fileName.endsWith(".apk")) continue
 
                 for (abi in SUPPORTED_ABIS) {
                     if (fileName.contains(abi)) {
-                        abiUrlMap[abi] = asset.downloadUrl
+                        abiUrlMap[abi] = downloadUrl
                         break
                     }
                 }

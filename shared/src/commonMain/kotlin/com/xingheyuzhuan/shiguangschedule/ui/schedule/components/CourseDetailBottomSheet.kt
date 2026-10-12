@@ -1,6 +1,5 @@
 package com.xingheyuzhuan.shiguangschedule.ui.schedule.components
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -24,8 +23,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
@@ -92,7 +92,7 @@ private data class CourseDetailUIModel(
 /**
  * 课程详情底部弹窗组件
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CourseDetailBottomSheet(
     block: MergedCourseBlock,
@@ -189,7 +189,10 @@ fun CourseDetailBottomSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        sheetState = rememberBottomSheetState(
+            initialValue = SheetValue.Hidden,
+            enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)
+        ),
         sheetGesturesEnabled = false
     ) {
         Column(
@@ -248,7 +251,6 @@ fun CourseDetailBottomSheet(
  * 胶囊拉伸分页指示器组件
  * 支持手指滑动选择和点击跳转
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun WormPagerIndicator(
     pagerState: PagerState,

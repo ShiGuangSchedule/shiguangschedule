@@ -33,11 +33,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailDefaults
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
@@ -90,7 +89,6 @@ fun AdaptiveNavigationScaffold(
     modifier: Modifier = Modifier,
     showNavigation: Boolean = true,
     navHideFractionProvider: () -> Float = { 0f },
-    isTransparent: Boolean = false,
     navigationModifier: Modifier = Modifier,
     content: @Composable (PaddingValues) -> Unit
 ) {
@@ -133,7 +131,7 @@ fun AdaptiveNavigationScaffold(
         )
     }
 
-    val layoutType = NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfo())
+    val layoutType = NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfoV2())
 
     Box(modifier = modifier.fillMaxSize()) {
         when (layoutType) {
@@ -145,7 +143,7 @@ fun AdaptiveNavigationScaffold(
                         exit = slideOutHorizontally(targetOffsetX = { -it }) + fadeOut(tween(300))
                     ) {
                         NavigationRail(
-                            containerColor = if (isTransparent) Color.Transparent else NavigationRailDefaults.ContainerColor,
+                            containerColor = NavigationBarDefaults.containerColor,
                             modifier = Modifier.fillMaxHeight()
                         ) {
                             navItems.forEach { item ->
@@ -204,7 +202,7 @@ fun AdaptiveNavigationScaffold(
                         ) {
                             Surface(
                                 shape = CircleShape,
-                                color = if (isTransparent) Color.Transparent else NavigationBarDefaults.containerColor,
+                                color = NavigationBarDefaults.containerColor,
                                 shadowElevation = 0.dp,
                                 tonalElevation = 3.dp
                             ) {

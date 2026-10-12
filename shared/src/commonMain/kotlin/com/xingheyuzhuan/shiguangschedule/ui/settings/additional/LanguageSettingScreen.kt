@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -52,7 +51,6 @@ private data class LanguageItem(
 /**
  * 独立语言设置页面组件
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LanguageSettingScreen(
     onBack: () -> Unit

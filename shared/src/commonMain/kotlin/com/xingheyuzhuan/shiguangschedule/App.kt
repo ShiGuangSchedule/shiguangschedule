@@ -1,5 +1,6 @@
 package com.xingheyuzhuan.shiguangschedule
 
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -8,6 +9,9 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -121,12 +125,19 @@ fun AppNavigation(startDestination: Destination) {
         }
     }
 
-    val animSpec = tween<IntOffset>(300)
+    // 判断当前是否为移动端窄屏（NavigationBar 模式）
+    val layoutType = NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfoV2())
+    val isCompact = layoutType == NavigationSuiteType.NavigationBar
+
+    val showNavigation = !isCompact || currentDestination.isMainScreen
+
+    // 动画规格定义
+    val slideAnimSpec = tween<IntOffset>(300)
 
     AdaptiveNavigationScaffold(
         currentDestination = currentDestination,
         onTabSelected = onNavigate,
-        showNavigation = currentDestination.isMainScreen,
+        showNavigation = showNavigation,
         navHideFractionProvider = { navHideFraction }
     ) { _ ->
         NavDisplay(
@@ -134,16 +145,28 @@ fun AppNavigation(startDestination: Destination) {
             onBack = onBack,
             modifier = Modifier.fillMaxSize(),
             transitionSpec = {
-                slideInHorizontally(initialOffsetX = { it }, animationSpec = animSpec) togetherWith
-                        slideOutHorizontally(targetOffsetX = { -it / 3 }, animationSpec = animSpec) + fadeOut()
+                if (isCompact) {
+                    slideInHorizontally(initialOffsetX = { it }, animationSpec = slideAnimSpec) togetherWith
+                            slideOutHorizontally(targetOffsetX = { -it / 3 }, animationSpec = slideAnimSpec) + fadeOut()
+                } else {
+                    fadeIn(animationSpec = tween(150)) togetherWith ExitTransition.None
+                }
             },
             popTransitionSpec = {
-                slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = animSpec) + fadeIn() togetherWith
-                        slideOutHorizontally(targetOffsetX = { it }, animationSpec = animSpec)
+                if (isCompact) {
+                    slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = slideAnimSpec) + fadeIn() togetherWith
+                            slideOutHorizontally(targetOffsetX = { it }, animationSpec = slideAnimSpec)
+                } else {
+                    fadeIn(animationSpec = tween(150)) togetherWith ExitTransition.None
+                }
             },
             predictivePopTransitionSpec = {
-                slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = animSpec) + fadeIn() togetherWith
-                        slideOutHorizontally(targetOffsetX = { it }, animationSpec = animSpec)
+                if (isCompact) {
+                    slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = slideAnimSpec) + fadeIn() togetherWith
+                            slideOutHorizontally(targetOffsetX = { it }, animationSpec = slideAnimSpec)
+                } else {
+                    fadeIn(animationSpec = tween(150)) togetherWith ExitTransition.None
+                }
             },
             entryDecorators = listOf(
                 rememberSaveableStateHolderNavEntryDecorator(),
