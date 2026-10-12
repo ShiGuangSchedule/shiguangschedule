@@ -2,6 +2,7 @@ package com.xingheyuzhuan.shiguangschedule.data.di
 
 import okio.Path
 import okio.Path.Companion.toPath
+import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
 import java.io.File
 
@@ -54,4 +55,16 @@ class JvmAppStorage : AppStorage {
         if (!dbDir.exists()) dbDir.mkdirs()
         return File(dbDir, dbName).absolutePath
     }
+}
+
+@Single
+@Named("AppVersionCode")
+fun provideAppVersionCode(): Int {
+    return System.getProperty("app.version.code")?.toIntOrNull() ?: 1
+}
+
+@Single
+@Named("AppVersionName")
+fun provideAppVersionName(): String {
+    return System.getProperty("app.version") ?: "1.0.0"
 }

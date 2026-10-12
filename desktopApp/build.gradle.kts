@@ -13,8 +13,7 @@ kotlin {
 }
 
 val appVersion = "2.1.0"
-
-val appBaseName = "shiguangschedule"
+val appVersionCode = 36
 
 dependencies {
 
@@ -23,6 +22,7 @@ dependencies {
     implementation(project.dependencies.platform(libs.koin.bom))
     implementation(libs.koin.core)
     implementation(libs.koin.compose)
+    implementation(libs.koin.compose.viewmodel)
     implementation(libs.koin.annotations)
 
     implementation(compose.desktop.currentOs)
@@ -59,5 +59,15 @@ nucleus.application {
             "jdk.unsupported",
             "jdk.localedata"
         )
+
+        jvmArgs += listOf(
+            "-Dapp.version=$appVersion",
+            "-Dapp.version.code=$appVersionCode"
+        )
     }
+}
+
+tasks.withType<JavaExec>().configureEach {
+    systemProperty("app.version", appVersion)
+    systemProperty("app.version.code", appVersionCode.toString())
 }
