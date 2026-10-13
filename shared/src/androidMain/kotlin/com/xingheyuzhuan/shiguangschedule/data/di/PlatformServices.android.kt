@@ -7,6 +7,10 @@ import okio.Path.Companion.toOkioPath
 import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
 
+actual object PlatformEnvironment {
+    actual val currentPlatform: TargetPlatform = TargetPlatform.ANDROID
+}
+
 @Single
 class AndroidAppStorage(private val context: Context) : AppStorage {
     override val filesDir: Path
@@ -19,8 +23,6 @@ class AndroidAppStorage(private val context: Context) : AppStorage {
         return context.getDatabasePath(dbName).absolutePath
     }
 }
-
-// --- 通过 Android 原生 Context 获取版本信息 ---
 
 @Single
 @Named("AppVersionCode")

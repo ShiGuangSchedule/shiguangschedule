@@ -110,6 +110,7 @@ kotlin {
             implementation(libs.androidx.sqlite.bundled)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.nucleus.darkmode.detector)
+            implementation(libs.commons.lang3)
         }
 
         iosMain.dependencies {

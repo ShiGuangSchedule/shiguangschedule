@@ -61,6 +61,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.xingheyuzhuan.shiguangschedule.Destination
+import com.xingheyuzhuan.shiguangschedule.data.di.TargetPlatform
+import com.xingheyuzhuan.shiguangschedule.data.di.isPlatformSupported
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.BorderTypeProto
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleModeProto
 import com.xingheyuzhuan.shiguangschedule.ui.components.AdvancedColorPicker
@@ -187,30 +189,33 @@ fun SettingsListContent(
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
-        // 其他样式分类
-        Text(
-            text = stringResource(Res.string.style_category_other),
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.primary
-        )
-
-        // 小组件样式设置跳转入口
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .clickable { onNavigate(Destination.WidgetStyleSettings) }
-                .padding(vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
+        // 仅在移动平台显示小组件样式设置入口
+        if (isPlatformSupported(TargetPlatform.mobile)) {
+            // 其他样式分类
             Text(
-                text = stringResource(Res.string.title_widget_style),
-                style = MaterialTheme.typography.bodyMedium
+                text = stringResource(Res.string.style_category_other),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary
             )
-        }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            // 小组件样式设置跳转入口
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable { onNavigate(Destination.WidgetStyleSettings) }
+                    .padding(vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = stringResource(Res.string.title_widget_style),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+        }
 
         Text(stringResource(Res.string.style_category_interface), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
         WallpaperItem(

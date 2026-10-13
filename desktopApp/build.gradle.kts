@@ -70,4 +70,7 @@ nucleus.application {
 tasks.withType<JavaExec>().configureEach {
     systemProperty("app.version", appVersion)
     systemProperty("app.version.code", appVersionCode.toString())
+    systemProperty("file.encoding", "UTF-8")
+    systemProperty("sun.stdout.encoding", "UTF-8")
+    systemProperty("sun.stderr.encoding", "UTF-8")
 }

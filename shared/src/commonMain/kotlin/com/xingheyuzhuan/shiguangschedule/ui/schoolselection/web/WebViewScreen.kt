@@ -16,7 +16,6 @@ import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -43,6 +42,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.xingheyuzhuan.shiguangschedule.Destination
+import com.xingheyuzhuan.shiguangschedule.data.di.TargetPlatform
+import com.xingheyuzhuan.shiguangschedule.data.di.isPlatformSupported
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseConversionRepository
 import com.xingheyuzhuan.shiguangschedule.ui.components.CourseTablePickerDialog
 import com.xingheyuzhuan.shiguangschedule.ui.components.ToastManager
@@ -88,7 +89,6 @@ import shiguangschedule.shared.generated.resources.toast_no_script_manual_import
 import shiguangschedule.shared.generated.resources.toast_switched_to_desktop
 import shiguangschedule.shared.generated.resources.toast_switched_to_phone
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WebViewScreen(
     onNavigate: (Destination) -> Unit,
@@ -261,7 +261,7 @@ fun WebViewScreen(
                                 leadingIcon = { Icon(vectorResource(Res.drawable.refresh_24px), contentDescription = stringResource(Res.string.a11y_refresh)) }
                             )
 
-                            if (!isDesktopPlatform) {
+                            if (!isPlatformSupported(TargetPlatform.desktop)) {
                                 val switchTextId = if (isDesktopMode) Res.string.action_switch_to_phone_mode else Res.string.action_switch_to_desktop_mode
                                 val switchIcon = if (isDesktopMode) vectorResource(Res.drawable.phone_android_24px) else vectorResource(Res.drawable.desktop_windows_24px)
 

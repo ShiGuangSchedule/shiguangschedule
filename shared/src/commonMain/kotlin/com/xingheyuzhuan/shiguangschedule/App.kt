@@ -134,6 +134,33 @@ fun AppNavigation(startDestination: Destination) {
     // 动画规格定义
     val slideAnimSpec = tween<IntOffset>(300)
 
+    val transitionSpec = remember(isCompact) {
+        if (isCompact) {
+            slideInHorizontally(initialOffsetX = { it }, animationSpec = slideAnimSpec) togetherWith
+                    slideOutHorizontally(targetOffsetX = { -it / 3 }, animationSpec = slideAnimSpec) + fadeOut()
+        } else {
+            fadeIn(animationSpec = tween(150)) togetherWith ExitTransition.None
+        }
+    }
+
+    val popTransitionSpec = remember(isCompact) {
+        if (isCompact) {
+            slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = slideAnimSpec) + fadeIn() togetherWith
+                    slideOutHorizontally(targetOffsetX = { it }, animationSpec = slideAnimSpec)
+        } else {
+            fadeIn(animationSpec = tween(150)) togetherWith ExitTransition.None
+        }
+    }
+
+    val predictivePopTransitionSpec = remember(isCompact) {
+        if (isCompact) {
+            slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = slideAnimSpec) + fadeIn() togetherWith
+                    slideOutHorizontally(targetOffsetX = { it }, animationSpec = slideAnimSpec)
+        } else {
+            fadeIn(animationSpec = tween(150)) togetherWith ExitTransition.None
+        }
+    }
+
     AdaptiveNavigationScaffold(
         currentDestination = currentDestination,
         onTabSelected = onNavigate,
@@ -144,30 +171,9 @@ fun AppNavigation(startDestination: Destination) {
             backStack = backStack,
             onBack = onBack,
             modifier = Modifier.fillMaxSize(),
-            transitionSpec = {
-                if (isCompact) {
-                    slideInHorizontally(initialOffsetX = { it }, animationSpec = slideAnimSpec) togetherWith
-                            slideOutHorizontally(targetOffsetX = { -it / 3 }, animationSpec = slideAnimSpec) + fadeOut()
-                } else {
-                    fadeIn(animationSpec = tween(150)) togetherWith ExitTransition.None
-                }
-            },
-            popTransitionSpec = {
-                if (isCompact) {
-                    slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = slideAnimSpec) + fadeIn() togetherWith
-                            slideOutHorizontally(targetOffsetX = { it }, animationSpec = slideAnimSpec)
-                } else {
-                    fadeIn(animationSpec = tween(150)) togetherWith ExitTransition.None
-                }
-            },
-            predictivePopTransitionSpec = {
-                if (isCompact) {
-                    slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = slideAnimSpec) + fadeIn() togetherWith
-                            slideOutHorizontally(targetOffsetX = { it }, animationSpec = slideAnimSpec)
-                } else {
-                    fadeIn(animationSpec = tween(150)) togetherWith ExitTransition.None
-                }
-            },
+            transitionSpec = { transitionSpec },
+            popTransitionSpec = { popTransitionSpec },
+            predictivePopTransitionSpec = { predictivePopTransitionSpec },
             entryDecorators = listOf(
                 rememberSaveableStateHolderNavEntryDecorator(),
                 rememberViewModelStoreNavEntryDecorator()
