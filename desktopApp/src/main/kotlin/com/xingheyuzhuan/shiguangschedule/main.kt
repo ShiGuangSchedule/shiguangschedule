@@ -28,7 +28,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
@@ -51,14 +50,14 @@ import dev.nucleusframework.window.WindowScaffold
 import dev.nucleusframework.window.windowDragArea
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.ComponentScan
 import org.koin.core.annotation.KoinApplication
 import org.koin.core.annotation.Module
-import org.koin.compose.viewmodel.koinViewModel
 import org.koin.plugin.module.dsl.startKoin
 import shiguangschedule.shared.generated.resources.Res
 import shiguangschedule.shared.generated.resources.app_name
-import shiguangschedule.shared.generated.resources.ic_launcher_foreground
+import shiguangschedule.shared.generated.resources.ic_menu_logo
 import java.io.PrintWriter
 import java.io.StringWriter
 
@@ -147,11 +146,11 @@ fun main() {
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Image(
-                                        painter = painterResource(Res.drawable.ic_launcher_foreground),
+                                        painter = painterResource(Res.drawable.ic_menu_logo),
                                         contentDescription = null,
                                         modifier = Modifier
-                                            .size(24.dp)
-                                            .scale(1.4f),
+                                            .fillMaxSize()
+                                            .padding(3.dp),
                                         contentScale = ContentScale.Fit
                                     )
                                 }
