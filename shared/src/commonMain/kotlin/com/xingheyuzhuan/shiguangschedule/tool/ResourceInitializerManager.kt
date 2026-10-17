@@ -31,9 +31,20 @@ class ResourceInitializerManager(
     private val targetRepoDir: Path = filesDir / "repo"
     private val shareTempDir: Path = cacheDir / "share_temp"
 
+    /**
+     * App 内置适配资源：Compose 资源路径 → 相对 `<filesDir>/repo` 的落盘路径。
+     *
+     * 内置适配脚本不走 offline_schools.zip：zip 只在首次启动解压一次，App 升级后新增的
+     * 内置脚本无法补进已有安装。放在这里每次启动按内容补齐，升级即可生效。
+     */
+    private val builtinResourceMap: Map<String, String> = mapOf(
+        "files/builtin_NWAFU_wdkbby.js" to "schools/resources/NWAFU/wdkbby.js"
+    )
+
     init {
         CoroutineScope(Dispatchers.IO).launch {
             initializeOfflineRepo()
+            ensureBuiltinAdapters()
             clearTempCaches()
         }
     }
@@ -68,6 +79,30 @@ class ResourceInitializerManager(
                 unzipDirectory(zipFileSystem, "/".toPath(), targetRepoDir)
             } finally {
                 fileSystem.delete(tempZipFile)
+            }
+        }
+    }
+
+    /**
+     * 校验并补齐 App 内置适配脚本等资源（幂等：内容一致时不写盘）。
+     *
+     * 对应学校索引由 [SchoolRepository] 在读取索引时叠加内置片段提供，这里只负责把脚本文件
+     * 放到 WebView 导入时约定的位置 `<filesDir>/repo/schools/resources/<学校>/<脚本>`。
+     */
+    @OptIn(ExperimentalResourceApi::class)
+    suspend fun ensureBuiltinAdapters(): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            builtinResourceMap.forEach { (resourcePath, relativeTargetPath) ->
+                val targetPath = targetRepoDir / relativeTargetPath
+                val bytes = Res.readBytes(resourcePath)
+
+                val isUpToDate = fileSystem.exists(targetPath) &&
+                        fileSystem.read(targetPath) { readByteArray() }.contentEquals(bytes)
+
+                if (!isUpToDate) {
+                    targetPath.parent?.let { fileSystem.createDirectories(it) }
+                    fileSystem.write(targetPath) { write(bytes) }
+                }
             }
         }
     }

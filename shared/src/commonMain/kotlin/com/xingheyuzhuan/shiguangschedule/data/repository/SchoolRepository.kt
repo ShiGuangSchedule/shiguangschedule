@@ -12,16 +12,17 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.withContext
+import okio.Buffer
 import okio.FileSystem
 import okio.Path
-import okio.buffer
-import okio.use
+import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
 import school_index.Adapter
 import school_index.AdapterCategory
 import school_index.School
 import school_index.SchoolIndex
+import shiguangschedule.shared.generated.resources.Res
 
 /**
  * 学校数据仓库。
@@ -51,26 +52,53 @@ class SchoolRepository(
     }
 
     /**
-     * 核心加载函数：从内部存储文件读取 Protobuf 索引。
+     * 核心加载函数：读取本地 Protobuf 索引，并始终叠加 App 内置学校索引片段。
+     *
+     * 叠加方式：`files/builtin_schools.pb` 只包含 `SchoolIndex.schools`（字段 3）的编码，
+     * 直接追加到本地索引字节之后即可 —— 按 Protobuf 规范，repeated 字段重复出现视为追加，
+     * 因此两份数据会被解码成同一份学校列表，而本地索引的 protocol_version / version_id
+     * （字段 1/2）保持为本地值，不会影响 GitUpdater 的版本比较。
+     *
+     * 这样即使适配仓库的索引把本地索引整份覆盖，内置学校（如西北农林科技大学）也不会丢失。
      */
     private suspend fun loadIndex(): SchoolIndex? {
         return withContext(Dispatchers.IO) {
             val internalPath = filesDir / "repo/index/school_index.pb"
 
-            if (!fileSystem.exists(internalPath)) {
+            val localBytes = if (fileSystem.exists(internalPath)) {
+                runCatching { fileSystem.read(internalPath) { readByteArray() } }.getOrNull()
+            } else {
+                null
+            }
+
+            val builtinBytes = readBuiltinSchoolFragment()
+
+            if (localBytes == null && builtinBytes == null) {
                 println("错误：Protobuf 索引文件未找到: $internalPath")
                 return@withContext null
             }
 
             try {
-                fileSystem.source(internalPath).use { source ->
-                    return@withContext SchoolIndex.ADAPTER.decode(source.buffer())
-                }
+                val mergedSource = Buffer()
+                localBytes?.let { mergedSource.write(it) }
+                builtinBytes?.let { mergedSource.write(it) }
+                return@withContext SchoolIndex.ADAPTER.decode(mergedSource)
             } catch (e: Exception) {
                 e.printStackTrace()
                 null
             }
         }
+    }
+
+    /**
+     * 读取 App 内置的学校索引片段（由 tools/gen_builtin_schools.py 生成）。
+     * 读取失败不影响适配仓库索引的正常使用。
+     */
+    @OptIn(ExperimentalResourceApi::class)
+    private suspend fun readBuiltinSchoolFragment(): ByteArray? {
+        return runCatching { Res.readBytes("files/builtin_schools.pb") }
+            .onFailure { println("内置学校索引片段读取失败: ${it.message}") }
+            .getOrNull()
     }
 
     /**
@@ -92,11 +120,14 @@ class SchoolRepository(
     suspend fun getSchools(): List<School> {
         val index = loadIndex() ?: return emptyList()
 
-        val filteredSchools = index.schools.filter { school ->
-            school.adapters.any { adapter ->
-                adapter.category in RELEVANT_MENU_CATEGORIES
+        // 内置片段追加在本地索引之后，若适配仓库里已有同 id 学校则以仓库那份为准（去重保留先出现的）
+        val filteredSchools = index.schools
+            .distinctBy { it.id }
+            .filter { school ->
+                school.adapters.any { adapter ->
+                    adapter.category in RELEVANT_MENU_CATEGORIES
+                }
             }
-        }
 
         return filteredSchools.sortedBy { it.initial.uppercase() + it.name }
     }

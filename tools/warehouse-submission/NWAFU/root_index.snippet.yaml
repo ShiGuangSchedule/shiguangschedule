@@ -1,0 +1,5 @@
+# 需要追加到适配仓库 index/root_index.yaml 的 schools 列表里（按 id 排序插入即可）
+  - id: "NWAFU"
+    name: "西北农林科技大学"
+    initial: "X"
+    resource_folder: "NWAFU"
