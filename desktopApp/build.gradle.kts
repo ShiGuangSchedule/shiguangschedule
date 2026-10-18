@@ -1,3 +1,4 @@
+import dev.nucleusframework.desktop.application.dsl.NativeImageOptimization
 import dev.nucleusframework.desktop.application.dsl.TargetFormat
 
 plugins {
@@ -38,6 +39,22 @@ dependencies {
 nucleus.application {
     mainClass = "com.xingheyuzhuan.shiguangschedule.MainKt"
 
+    graalvm {
+        isEnabled = true
+        imageName = "ShiguangSchedule"
+
+        toolchain {
+            autoDownload = true
+            version = "25"
+        }
+
+        optimization = NativeImageOptimization.SIZE
+
+        windows {
+            bundleCRuntime = true
+        }
+    }
+
     buildTypes.release.proguard {
         isEnabled.set(false)
     }
@@ -52,24 +69,17 @@ nucleus.application {
         packageName = "ShiguangSchedule"
         packageVersion = appVersion
 
-        homepage = "https://github.com/xingheyuzhuan/shiguangschedule"
+        homepage = "https://github.com/ShiGuangSchedule/shiguangschedule"
         artifactName = "\${name}-v\${version}-\${os}-\${arch}.\${ext}"
 
         modules(
             "jdk.unsupported",
             "jdk.localedata"
         )
-
-        jvmArgs += listOf(
-            "-Dapp.version=$appVersion",
-            "-Dapp.version.code=$appVersionCode"
-        )
     }
 }
 
 tasks.withType<JavaExec>().configureEach {
-    systemProperty("app.version", appVersion)
-    systemProperty("app.version.code", appVersionCode.toString())
     systemProperty("file.encoding", "UTF-8")
     systemProperty("sun.stdout.encoding", "UTF-8")
     systemProperty("sun.stderr.encoding", "UTF-8")

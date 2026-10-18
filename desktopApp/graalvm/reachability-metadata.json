@@ -1,0 +1,132 @@
+{
+    "reflection": [
+        {
+            "type": "androidx.compose.ui.platform.GlobalSnapshotManager$Registration"
+        },
+        {
+            "type": "androidx.datastore.preferences.PreferencesProto$PreferenceMap",
+            "fields": [
+                {
+                    "name": "preferences_"
+                }
+            ]
+        },
+        {
+            "type": "androidx.datastore.preferences.PreferencesProto$Value",
+            "fields": [
+                {
+                    "name": "valueCase_"
+                },
+                {
+                    "name": "value_"
+                }
+            ]
+        },
+        {
+            "type": "com.sun.crypto.provider.HKDFKeyDerivation$HKDFSHA384",
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        "javax.crypto.KDFParameters"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "com.sun.crypto.provider.HmacCore$HmacSHA384",
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "dev.nucleusframework.window.tao.event.TaoSyntheticMouseWheelEvent$source$1"
+        },
+        {
+            "type": "java.awt.FileDialog",
+            "jniAccessible": true,
+            "fields": [
+                {
+                    "name": "dir"
+                },
+                {
+                    "name": "file"
+                },
+                {
+                    "name": "filter"
+                },
+                {
+                    "name": "mode"
+                }
+            ]
+        },
+        {
+            "type": "java.nio.Buffer",
+            "fields": [
+                {
+                    "name": "address"
+                }
+            ]
+        },
+        {
+            "type": "libcore.io.Memory"
+        },
+        {
+            "type": "okhttp3.internal.connection.RealCall"
+        },
+        {
+            "type": "sun.security.rsa.RSASignature$SHA384withRSA",
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "dev.nucleusframework.window.tao.event.TaoSyntheticKeyKt$SyntheticAwtKeyEventSource$1"
+        },
+        {
+            "type": "sun.text.resources.FormatData_en"
+        },
+        {
+            "type": "sun.text.resources.FormatData_zh"
+        },
+        {
+            "type": "sun.text.resources.FormatData_zh_CN"
+        },
+        {
+            "type": "sun.text.resources.cldr.FormatData_en"
+        },
+        {
+            "type": "sun.text.resources.cldr.FormatData_zh"
+        },
+        {
+            "type": "sun.text.resources.cldr.FormatData_zh_Hans"
+        },
+        {
+            "type": "sun.text.resources.cldr.FormatData_zh_Hans_CN"
+        }
+    ],
+    "resources": [
+        {
+            "bundle": "sun.text.resources.FormatData"
+        },
+        {
+            "bundle": "sun.text.resources.cldr.FormatData"
+        },
+        {
+            "glob": "sun/text/resources/cldr/ext/FormatData_*.class"
+        },
+        {
+            "glob": "sun/text/resources/ext/FormatData_*.class"
+        }
+    ]
+}

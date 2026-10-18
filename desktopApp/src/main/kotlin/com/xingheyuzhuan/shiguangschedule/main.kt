@@ -67,6 +67,10 @@ import java.io.StringWriter
 class DesktopAppConfig
 
 fun main() {
+
+    System.setProperty("app.version", "2.1.0")
+    System.setProperty("app.version.code", "36")
+
     try {
         startKoin<DesktopAppConfig>()
     } catch (e: Throwable) {
@@ -94,7 +98,6 @@ fun main() {
             toastWindowState.position = mainWindowState.position
             toastWindowState.size = mainWindowState.size
             toastWindowState.isMinimized = mainWindowState.isMinimized
-            toastWindowState.placement = mainWindowState.placement
         }
 
         DecoratedWindow(
