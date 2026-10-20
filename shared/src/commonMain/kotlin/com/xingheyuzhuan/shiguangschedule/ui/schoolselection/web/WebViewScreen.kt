@@ -395,8 +395,8 @@ fun WebViewScreen(
                                 val jsCode = fileSystem.read(jsFilePath) { readUtf8() }
                                 bridgeHandler.setImportTableId(tableId)
 
-                                val fullJsScript = "window.currentTableId = '$tableId';\n$jsCode"
-                                webViewController.executeScript(fullJsScript)
+                                val wrappedJsScript = wrapAdapterScript(jsCode)
+                                webViewController.executeScript(wrappedJsScript)
 
                                 ToastManager.show(toastExecutingImport)
                             } else {
