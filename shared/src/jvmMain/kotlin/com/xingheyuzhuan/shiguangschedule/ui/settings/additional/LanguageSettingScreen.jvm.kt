@@ -1,7 +1,11 @@
 package com.xingheyuzhuan.shiguangschedule.ui.settings.additional
 
 import com.xingheyuzhuan.shiguangschedule.data.model.JvmBasePreferences
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.util.Locale
+import java.util.ResourceBundle
 
 /**
  * JVM / Desktop 平台的语言配置管理器 actual 实现
@@ -11,17 +15,25 @@ actual object PlatformLocaleManager : JvmBasePreferences("locale_settings.proper
 
     private const val PREF_KEY_LANGUAGE = "app_language_tag"
 
+    private val _languageVersion = MutableStateFlow(0L)
+    val languageVersion: StateFlow<Long> = _languageVersion.asStateFlow()
+
     init {
         applyStoredOrSystemLanguage()
     }
 
+    fun initialize() {
+    }
+
     private fun applyStoredOrSystemLanguage() {
         val savedTag = getString(PREF_KEY_LANGUAGE, "")
-        if (savedTag.isEmpty()) {
-            Locale.setDefault(getTrueSystemLocale())
+        val targetLocale = if (savedTag.isEmpty()) {
+            getTrueSystemLocale()
         } else {
-            Locale.setDefault(Locale.forLanguageTag(savedTag))
+            Locale.forLanguageTag(savedTag)
         }
+        Locale.setDefault(targetLocale)
+        ResourceBundle.clearCache()
     }
 
     private fun getTrueSystemLocale(): Locale {
@@ -46,6 +58,8 @@ actual object PlatformLocaleManager : JvmBasePreferences("locale_settings.proper
             putString(PREF_KEY_LANGUAGE, tag)
             Locale.setDefault(Locale.forLanguageTag(tag))
         }
+        ResourceBundle.clearCache()
+        _languageVersion.value++
     }
 
     actual fun getCurrentLanguageTag(): String {

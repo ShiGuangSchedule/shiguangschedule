@@ -630,4 +630,6 @@
     <string name="dialog_ssl_warning_title">安全警告</string>
     <string name="dialog_ssl_warning_message">您正在訪問的網站證書不安全或已過期（%1$s），繼續訪問可能存在資料洩漏風險。是否繼續訪問？</string>
     <string name="action_continue_visit">繼續訪問</string>
+    <string name="tray_open_main_window">開啟主頁面</string>
+    <string name="tray_close_app">關閉應用程式</string>
 </resources>

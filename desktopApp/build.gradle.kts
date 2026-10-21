@@ -34,6 +34,7 @@ dependencies {
     implementation(libs.nucleus.application)
     implementation(libs.nucleus.decorated.window.core)
     implementation(libs.nucleus.decorated.window.tao)
+    implementation(libs.nucleus.composenativetray)
 }
 
 nucleus.application {
@@ -45,7 +46,7 @@ nucleus.application {
 
         toolchain {
             autoDownload = true
-            version = "25"
+            version = "25.0.1"  //macos x64 最后支持版本
         }
 
         optimization = NativeImageOptimization.SIZE

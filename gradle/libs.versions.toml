@@ -46,6 +46,7 @@ kgit = "1.0.3"
 
 # desktop平台专属
 nucleus = "2.5.18"
+nucleus-tray = "2.1.7"
 commons-lang3 = "3.21.0"
 
 [libraries]
@@ -133,6 +134,7 @@ nucleus-application = { module = "dev.nucleusframework:nucleus.nucleus-applicati
 nucleus-darkmode-detector = { module = "dev.nucleusframework:nucleus.darkmode-detector", version.ref = "nucleus" }
 nucleus-decorated-window-core = { module = "dev.nucleusframework:nucleus.decorated-window-core", version.ref = "nucleus" }
 nucleus-decorated-window-tao = { module = "dev.nucleusframework:nucleus.decorated-window-tao", version.ref = "nucleus" }
+nucleus-composenativetray = { module = "dev.nucleusframework:composenativetray", version.ref = "nucleus-tray" }
 
 commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3" }
 
