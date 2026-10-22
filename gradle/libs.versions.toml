@@ -21,6 +21,7 @@ multiplatform-nav3-ui = "1.1.2"
 room3 = "3.0.3"
 sqlite = "2.7.1"
 datastore = "1.2.1"
+filekit = "0.16.0"
 
 # Android 平台专属依赖
 coreKtx = "1.19.1"
@@ -137,6 +138,8 @@ nucleus-decorated-window-tao = { module = "dev.nucleusframework:nucleus.decorate
 nucleus-composenativetray = { module = "dev.nucleusframework:composenativetray", version.ref = "nucleus-tray" }
 
 commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3" }
+
+filekit-dialogs-compose = { module = "io.github.vinceglb:filekit-dialogs-compose", version.ref = "filekit" }
 
 [plugins]
 android-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }

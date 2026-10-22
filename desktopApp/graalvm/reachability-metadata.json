@@ -1,6 +1,14 @@
 {
     "reflection": [
         {
+            "type": "androidx.compose.material3.TooltipStateImpl$show$cancellableShow$1",
+            "fields": [
+                {
+                    "name": "label"
+                }
+            ]
+        },
+        {
             "type": "androidx.compose.ui.platform.GlobalSnapshotManager$Registration"
         },
         {
@@ -23,53 +31,33 @@
             ]
         },
         {
-            "type": "com.sun.crypto.provider.HKDFKeyDerivation$HKDFSHA384",
-            "methods": [
-                {
-                    "name": "<init>",
-                    "parameterTypes": [
-                        "javax.crypto.KDFParameters"
-                    ]
-                }
-            ]
-        },
-        {
-            "type": "com.sun.crypto.provider.HmacCore$HmacSHA384",
-            "methods": [
-                {
-                    "name": "<init>",
-                    "parameterTypes": [
-
-                    ]
-                }
-            ]
-        },
-        {
             "type": "dev.nucleusframework.window.tao.event.TaoSyntheticMouseWheelEvent$source$1"
         },
         {
-            "type": "java.awt.FileDialog",
-            "jniAccessible": true,
-            "fields": [
+            "type": "java.lang.Module",
+            "methods": [
                 {
-                    "name": "dir"
-                },
-                {
-                    "name": "file"
-                },
-                {
-                    "name": "filter"
-                },
-                {
-                    "name": "mode"
+                    "name": "getDescriptor",
+                    "parameterTypes": [
+                        
+                    ]
                 }
             ]
         },
         {
             "type": "java.nio.Buffer",
+            "jniAccessible": true,
             "fields": [
                 {
                     "name": "address"
+                }
+            ],
+            "methods": [
+                {
+                    "name": "position",
+                    "parameterTypes": [
+                        
+                    ]
                 }
             ]
         },
@@ -77,42 +65,71 @@
             "type": "libcore.io.Memory"
         },
         {
-            "type": "okhttp3.internal.connection.RealCall"
-        },
-        {
-            "type": "sun.security.rsa.RSASignature$SHA384withRSA",
-            "methods": [
-                {
-                    "name": "<init>",
-                    "parameterTypes": [
-
-                    ]
-                }
-            ]
-        },
-        {
-            "type": "dev.nucleusframework.window.tao.event.TaoSyntheticKeyKt$SyntheticAwtKeyEventSource$1"
+            "type": "org.robolectric.Robolectric"
         },
         {
             "type": "sun.text.resources.FormatData_en"
         },
         {
-            "type": "sun.text.resources.FormatData_zh"
-        },
-        {
-            "type": "sun.text.resources.FormatData_zh_CN"
-        },
-        {
             "type": "sun.text.resources.cldr.FormatData_en"
         },
         {
-            "type": "sun.text.resources.cldr.FormatData_zh"
+            "type": "com.sun.crypto.provider.AESKeyGenerator",
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        
+                    ]
+                }
+            ]
         },
         {
-            "type": "sun.text.resources.cldr.FormatData_zh_Hans"
+            "type": "com.sun.crypto.provider.HmacPKCS12PBECore$HmacPKCS12PBE_SHA256",
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        
+                    ]
+                }
+            ]
         },
         {
-            "type": "sun.text.resources.cldr.FormatData_zh_Hans_CN"
+            "type": "com.sun.crypto.provider.PBEKeyFactory$PBEWithMD5AndDES",
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "com.sun.crypto.provider.PBES2Core$HmacSHA256AndAES_256",
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "com.sun.crypto.provider.PBES2Parameters$HmacSHA256AndAES_256",
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "dev.nucleusframework.window.tao.dnd.TaoSyntheticDropContext$shadowComponent$1"
         }
     ],
     "resources": [

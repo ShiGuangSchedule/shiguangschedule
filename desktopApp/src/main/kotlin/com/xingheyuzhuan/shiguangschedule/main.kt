@@ -4,6 +4,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.draganddrop.dragAndDropTarget
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -27,6 +28,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -38,6 +40,7 @@ import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.window.rememberWindowState
 import com.xingheyuzhuan.shiguangschedule.component.DesktopToastHost
 import com.xingheyuzhuan.shiguangschedule.component.DesktopTray
+import com.xingheyuzhuan.shiguangschedule.component.rememberDesktopFileDropState
 import com.xingheyuzhuan.shiguangschedule.data.di.SharedModule
 import com.xingheyuzhuan.shiguangschedule.ui.settings.SettingsViewModel
 import com.xingheyuzhuan.shiguangschedule.ui.settings.additional.PlatformLocaleManager
@@ -92,6 +95,8 @@ fun main() {
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             fatalError = getStackTraceText("UI 线程崩溃 [${thread.name}]", throwable)
         }
+
+        val fileDropState = rememberDesktopFileDropState()
 
         DesktopTray(
             onOpenMainWindow = {
@@ -184,6 +189,10 @@ fun main() {
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(contentPadding)
+                                .dragAndDropTarget(
+                                    shouldStartDragAndDrop = { true },
+                                    target = fileDropState.target
+                                )
                         ) {
                             if (fatalError != null) {
                                 SelectionContainer(

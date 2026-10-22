@@ -111,6 +111,7 @@ kotlin {
             implementation(libs.ktor.client.okhttp)
             implementation(libs.nucleus.darkmode.detector)
             implementation(libs.commons.lang3)
+            implementation(libs.filekit.dialogs.compose)
         }
 
         iosMain.dependencies {
