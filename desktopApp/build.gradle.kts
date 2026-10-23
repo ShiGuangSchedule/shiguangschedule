@@ -35,6 +35,7 @@ dependencies {
     implementation(libs.nucleus.decorated.window.core)
     implementation(libs.nucleus.decorated.window.tao)
     implementation(libs.nucleus.composenativetray)
+    implementation(libs.nucleus.notification.common)
 }
 
 nucleus.application {
@@ -62,10 +63,18 @@ nucleus.application {
 
     nativeDistributions {
         targetFormats(
+            // Windows
+            TargetFormat.Nsis,
             TargetFormat.Portable,
-            TargetFormat.Exe, TargetFormat.Msi,
-            TargetFormat.Dmg, TargetFormat.Pkg,
-            TargetFormat.Deb, TargetFormat.Rpm
+
+            // macOS
+            TargetFormat.Dmg,
+            TargetFormat.Pkg,
+
+            // Linux
+            TargetFormat.Deb,
+            TargetFormat.Rpm,
+            TargetFormat.AppImage,
         )
         packageName = "ShiguangSchedule"
         packageVersion = appVersion
@@ -77,6 +86,29 @@ nucleus.application {
             "jdk.unsupported",
             "jdk.localedata"
         )
+
+        macOS {
+            iconFile.set(project.file("icons/ic_launcher.icns"))
+        }
+
+        windows {
+            iconFile.set(project.file("icons/ic_launcher.ico"))
+            nsis {
+                oneClick = false
+                allowElevation = true
+                perMachine = false
+                allowToChangeInstallationDirectory = true
+                createDesktopShortcut = true
+                runAfterFinish = true
+                multiLanguageInstaller = true
+                installerLanguages = listOf("en_US", "zh_CN","zh_TW")
+                shortcutName = "拾光课程表"
+            }
+        }
+
+        linux {
+            iconFile.set(project.file("icons/ic_launcher.png"))
+        }
     }
 }
 

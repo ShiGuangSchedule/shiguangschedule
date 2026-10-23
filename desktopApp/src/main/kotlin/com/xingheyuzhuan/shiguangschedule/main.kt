@@ -28,7 +28,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -41,6 +40,7 @@ import androidx.compose.ui.window.rememberWindowState
 import com.xingheyuzhuan.shiguangschedule.component.DesktopToastHost
 import com.xingheyuzhuan.shiguangschedule.component.DesktopTray
 import com.xingheyuzhuan.shiguangschedule.component.rememberDesktopFileDropState
+import com.xingheyuzhuan.shiguangschedule.data.di.AppStorage
 import com.xingheyuzhuan.shiguangschedule.data.di.SharedModule
 import com.xingheyuzhuan.shiguangschedule.ui.settings.SettingsViewModel
 import com.xingheyuzhuan.shiguangschedule.ui.settings.additional.PlatformLocaleManager
@@ -63,17 +63,25 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.ComponentScan
 import org.koin.core.annotation.KoinApplication
 import org.koin.core.annotation.Module
+import org.koin.core.context.GlobalContext
 import org.koin.plugin.module.dsl.startKoin
 import shiguangschedule.shared.generated.resources.Res
 import shiguangschedule.shared.generated.resources.app_name
+import shiguangschedule.shared.generated.resources.ic_launcher
 import shiguangschedule.shared.generated.resources.ic_menu_logo
 import java.io.PrintWriter
 import java.io.StringWriter
+import java.util.logging.FileHandler
+import java.util.logging.Level
+import java.util.logging.Logger
+import java.util.logging.SimpleFormatter
 
-@Module(includes = [SharedModule::class])
+@Module
 @ComponentScan("com.xingheyuzhuan.shiguangschedule")
-@KoinApplication(modules = [SharedModule::class])
 class DesktopAppConfig
+
+@KoinApplication(modules = [SharedModule::class, DesktopAppConfig::class])
+class DesktopKoinApp
 
 fun main() {
 
@@ -81,16 +89,28 @@ fun main() {
     System.setProperty("app.version.code", "36")
 
     try {
-        startKoin<DesktopAppConfig>()
+        startKoin<DesktopKoinApp>()
     } catch (e: Throwable) {
         e.printStackTrace()
     }
+
+    setupLogging()
 
     PlatformLocaleManager.initialize()
 
     nucleusApplication(backend = NucleusBackend.Tao) {
         var fatalError by remember { mutableStateOf<String?>(null) }
         var showMainWindow by remember { mutableStateOf(true) }
+
+        val mainWindowState = rememberWindowState(
+            width = 1000.dp,
+            height = 700.dp
+        )
+
+        val openAndFocusWindow = {
+            showMainWindow = true
+            mainWindowState.isMinimized = false
+        }
 
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             fatalError = getStackTraceText("UI 线程崩溃 [${thread.name}]", throwable)
@@ -99,17 +119,10 @@ fun main() {
         val fileDropState = rememberDesktopFileDropState()
 
         DesktopTray(
-            onOpenMainWindow = {
-                showMainWindow = true
-            }
+            onOpenMainWindow = openAndFocusWindow
         )
 
         if (showMainWindow) {
-            val mainWindowState = rememberWindowState(
-                width = 1000.dp,
-                height = 700.dp
-            )
-
             // 主窗口
             DecoratedWindow(
                 onCloseRequest = {
@@ -117,6 +130,7 @@ fun main() {
                 },
                 state = mainWindowState,
                 title = stringResource(Res.string.app_name),
+                icon = painterResource(Res.drawable.ic_launcher)
             ) {
                 DesktopWindowThemeWrapper {
                     val isDark = rememberSystemDark()
@@ -248,6 +262,32 @@ fun DesktopWindowThemeWrapper(content: @Composable () -> Unit) {
                 content()
             }
         }
+    }
+}
+
+
+private fun setupLogging() {
+    try {
+        val appStorage = GlobalContext.get().get<AppStorage>()
+
+        val logDir = java.io.File(appStorage.cacheDir.toString()).apply { mkdirs() }
+        val logFile = java.io.File(logDir, "shiguangschedule-runtime.log").absolutePath
+
+        val fileHandler = FileHandler(
+            logFile,
+            5 * 1024 * 1024,
+            10,
+            true
+        ).apply {
+            formatter = SimpleFormatter()
+            level = Level.INFO
+        }
+
+        val rootLogger = Logger.getLogger("")
+        rootLogger.addHandler(fileHandler)
+        rootLogger.level = Level.INFO
+    } catch (e: Exception) {
+        e.printStackTrace()
     }
 }
 

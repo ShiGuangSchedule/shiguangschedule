@@ -10,7 +10,7 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import shiguangschedule.shared.generated.resources.Res
 import shiguangschedule.shared.generated.resources.app_name
-import shiguangschedule.shared.generated.resources.ic_menu_logo
+import shiguangschedule.shared.generated.resources.ic_launcher
 import shiguangschedule.shared.generated.resources.tray_close_app
 import shiguangschedule.shared.generated.resources.tray_open_main_window
 import kotlin.system.exitProcess
@@ -23,7 +23,7 @@ fun DesktopTray(
 
     key(langVersion) {
         Tray(
-            icon = painterResource(Res.drawable.ic_menu_logo),
+            icon = painterResource(Res.drawable.ic_launcher),
             tooltip = stringResource(Res.string.app_name),
             primaryAction = {
                 onOpenMainWindow()

@@ -130,6 +130,16 @@
         },
         {
             "type": "dev.nucleusframework.window.tao.dnd.TaoSyntheticDropContext$shadowComponent$1"
+        },
+        {
+            "type": "java.util.logging.FileHandler",
+            "methods": [
+                { "name": "<init>", "parameterTypes": [] },
+                { "name": "<init>", "parameterTypes": ["java.lang.String"] },
+                { "name": "<init>", "parameterTypes": ["java.lang.String", "boolean"] },
+                { "name": "<init>", "parameterTypes": ["java.lang.String", "int", "int"] },
+                { "name": "<init>", "parameterTypes": ["java.lang.String", "int", "int", "boolean"] }
+            ]
         }
     ],
     "resources": [

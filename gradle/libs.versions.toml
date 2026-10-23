@@ -136,6 +136,7 @@ nucleus-darkmode-detector = { module = "dev.nucleusframework:nucleus.darkmode-de
 nucleus-decorated-window-core = { module = "dev.nucleusframework:nucleus.decorated-window-core", version.ref = "nucleus" }
 nucleus-decorated-window-tao = { module = "dev.nucleusframework:nucleus.decorated-window-tao", version.ref = "nucleus" }
 nucleus-composenativetray = { module = "dev.nucleusframework:composenativetray", version.ref = "nucleus-tray" }
+nucleus-notification-common = { module = "dev.nucleusframework:nucleus.notification-common", version.ref = "nucleus" }
 
 commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3" }
 
