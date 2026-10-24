@@ -6,10 +6,15 @@ import com.xingheyuzhuan.shiguangschedule.data.sync.WidgetDataSynchronizer
 import dev.nucleusframework.notification.common.NotificationManager
 import dev.nucleusframework.notification.common.NotificationResult
 import dev.nucleusframework.notification.common.notification
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 import org.koin.core.annotation.Single
 import shiguangschedule.shared.generated.resources.Res
@@ -28,7 +33,8 @@ import kotlin.time.Duration.Companion.milliseconds
 class DesktopNotificationManager(
     private val widgetDataSynchronizer: WidgetDataSynchronizer,
     private val appSettingsRepository: AppSettingsRepository,
-    private val widgetRepository: WidgetRepository
+    private val widgetRepository: WidgetRepository,
+    private val appController: DesktopAppController
 ) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val scheduledJobs = ConcurrentHashMap<String, Job>()
@@ -103,6 +109,9 @@ class DesktopNotificationManager(
             val n = notification(
                 title = name,
                 message = messageText,
+                onActivated = {
+                    appController.requestShowWindow()
+                },
                 onFailed = {
                     logger.severe("课程通知显示失败: $name")
                 }

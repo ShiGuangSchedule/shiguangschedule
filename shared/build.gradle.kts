@@ -109,6 +109,7 @@ kotlin {
         jvmMain.dependencies {
             implementation(libs.androidx.sqlite.bundled)
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.nucleus.core.runtime)
             implementation(libs.nucleus.darkmode.detector)
             implementation(libs.commons.lang3)
             implementation(libs.filekit.dialogs.compose)

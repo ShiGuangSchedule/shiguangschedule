@@ -39,17 +39,7 @@ class IosAppStorage : AppStorage {
 }
 
 /**
- * 通过 iOS NSBundle 提供应用版本号 (CFBundleVersion)
- */
-@Single
-@Named("AppVersionCode")
-fun provideAppVersionCode(): Int {
-    val buildStr = NSBundle.mainBundle.objectForInfoDictionaryKey("CFBundleVersion") as? String
-    return buildStr?.toIntOrNull() ?: 1
-}
-
-/**
- * 通过 iOS NSBundle 提供应用版本名称 (CFBundleShortVersionString)
+ * 通过 iOS NSBundle 提供应用版本名称
  */
 @Single
 @Named("AppVersionName")

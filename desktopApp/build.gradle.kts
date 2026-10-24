@@ -14,7 +14,6 @@ kotlin {
 }
 
 val appVersion = "2.1.0"
-val appVersionCode = 36
 
 dependencies {
 
@@ -43,7 +42,7 @@ nucleus.application {
 
     graalvm {
         isEnabled = true
-        imageName = "ShiguangSchedule"
+        imageName = "shiguangschedule"
 
         toolchain {
             autoDownload = true
@@ -76,7 +75,8 @@ nucleus.application {
             TargetFormat.Rpm,
             TargetFormat.AppImage,
         )
-        packageName = "ShiguangSchedule"
+        appName = "拾光课程表"
+        packageName = "xingheyuzhuan.shiguangschedule"
         packageVersion = appVersion
 
         homepage = "https://github.com/ShiGuangSchedule/shiguangschedule"
@@ -89,6 +89,7 @@ nucleus.application {
 
         macOS {
             iconFile.set(project.file("icons/ic_launcher.icns"))
+            dockName = "拾光课程表"
         }
 
         windows {
@@ -102,7 +103,6 @@ nucleus.application {
                 runAfterFinish = true
                 multiLanguageInstaller = true
                 installerLanguages = listOf("en_US", "zh_CN","zh_TW")
-                shortcutName = "拾光课程表"
             }
         }
 

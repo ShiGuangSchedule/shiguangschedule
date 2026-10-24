@@ -1,5 +1,6 @@
 package com.xingheyuzhuan.shiguangschedule.data.di
 
+import dev.nucleusframework.core.runtime.NucleusApp
 import okio.Path
 import okio.Path.Companion.toOkioPath
 import org.apache.commons.lang3.SystemUtils
@@ -43,14 +44,6 @@ class JvmAppStorage : AppStorage {
     }
 }
 
-/**
- * 桌面端应用版本号提供
- */
-@Single
-@Named("AppVersionCode")
-fun provideAppVersionCode(): Int {
-    return System.getProperty("app.version.code")?.toIntOrNull() ?: 1
-}
 
 /**
  * 桌面端应用版本名称提供
@@ -58,5 +51,5 @@ fun provideAppVersionCode(): Int {
 @Single
 @Named("AppVersionName")
 fun provideAppVersionName(): String {
-    return System.getProperty("app.version") ?: "1.0.0"
+    return NucleusApp.version ?: "1.0.0"
 }

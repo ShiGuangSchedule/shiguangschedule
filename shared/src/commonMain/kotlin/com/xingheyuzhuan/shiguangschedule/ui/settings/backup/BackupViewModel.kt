@@ -3,6 +3,7 @@ package com.xingheyuzhuan.shiguangschedule.ui.settings.backup
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.xingheyuzhuan.shiguangschedule.data.api.webdav.WebDavConfig
+import com.xingheyuzhuan.shiguangschedule.data.model.CourseImportExport
 import com.xingheyuzhuan.shiguangschedule.data.repository.ApiConfigRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.AppBackupPackage
 import com.xingheyuzhuan.shiguangschedule.data.repository.BackupMeta
@@ -229,7 +230,7 @@ class BackupViewModel(
 
                     // 读取并解析元数据
                     val metaText = FileSystem.SYSTEM.read(metaPath) { readUtf8() }
-                    val meta = Json.decodeFromString(BackupMeta.serializer(), metaText)
+                    val meta = CourseImportExport.json.decodeFromString(BackupMeta.serializer(), metaText)
 
                     // 批量下载并校验各模块数据文件
                     val payloadMap = mutableMapOf<String, ByteArray>()
@@ -343,7 +344,7 @@ class BackupViewModel(
                 when {
                     fileName == "meta.json" -> {
                         val content = zipFs.read(filePath) { readUtf8() }
-                        meta = Json.decodeFromString(BackupMeta.serializer(), content)
+                        meta = CourseImportExport.json.decodeFromString(BackupMeta.serializer(), content)
                     }
                     fileName.endsWith(".cbor") -> {
                         val key = fileName.removeSuffix(".cbor")

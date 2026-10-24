@@ -21,6 +21,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -42,6 +43,7 @@ import com.xingheyuzhuan.shiguangschedule.component.DesktopTray
 import com.xingheyuzhuan.shiguangschedule.component.rememberDesktopFileDropState
 import com.xingheyuzhuan.shiguangschedule.data.di.AppStorage
 import com.xingheyuzhuan.shiguangschedule.data.di.SharedModule
+import com.xingheyuzhuan.shiguangschedule.service.DesktopAppController
 import com.xingheyuzhuan.shiguangschedule.ui.settings.SettingsViewModel
 import com.xingheyuzhuan.shiguangschedule.ui.settings.additional.PlatformLocaleManager
 import com.xingheyuzhuan.shiguangschedule.ui.theme.DeveloperIconBgColor
@@ -57,6 +59,7 @@ import dev.nucleusframework.window.WindowBackground
 import dev.nucleusframework.window.WindowControls
 import dev.nucleusframework.window.WindowScaffold
 import dev.nucleusframework.window.windowDragArea
+import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -75,6 +78,7 @@ import java.util.logging.FileHandler
 import java.util.logging.Level
 import java.util.logging.Logger
 import java.util.logging.SimpleFormatter
+import kotlin.time.Duration.Companion.milliseconds
 
 @Module
 @ComponentScan("com.xingheyuzhuan.shiguangschedule")
@@ -84,9 +88,7 @@ class DesktopAppConfig
 class DesktopKoinApp
 
 fun main() {
-
-    System.setProperty("app.version", "2.1.0")
-    System.setProperty("app.version.code", "36")
+    val rootLogger = Logger.getLogger("")
 
     try {
         startKoin<DesktopKoinApp>()
@@ -95,6 +97,7 @@ fun main() {
     }
 
     setupLogging()
+    rootLogger.info("应用启动，日志系统已就绪")
 
     PlatformLocaleManager.initialize()
 
@@ -107,20 +110,29 @@ fun main() {
             height = 700.dp
         )
 
-        val openAndFocusWindow = {
-            showMainWindow = true
-            mainWindowState.isMinimized = false
+        val appController = GlobalContext.get().get<DesktopAppController>()
+
+        LaunchedEffect(Unit) {
+            appController.showWindowEvent.collect {
+                if (showMainWindow) {
+                    mainWindowState.isMinimized = false
+                } else {
+                    showMainWindow = true
+                    mainWindowState.isMinimized = false
+                    delay(100.milliseconds)
+                }
+            }
         }
 
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
-            fatalError = getStackTraceText("UI 线程崩溃 [${thread.name}]", throwable)
+            val errorText = getStackTraceText("UI 线程崩溃 [${thread.name}]", throwable)
+            rootLogger.severe(errorText)
+            fatalError = errorText
         }
 
         val fileDropState = rememberDesktopFileDropState()
 
-        DesktopTray(
-            onOpenMainWindow = openAndFocusWindow
-        )
+        DesktopTray()
 
         if (showMainWindow) {
             // 主窗口
@@ -265,7 +277,6 @@ fun DesktopWindowThemeWrapper(content: @Composable () -> Unit) {
     }
 }
 
-
 private fun setupLogging() {
     try {
         val appStorage = GlobalContext.get().get<AppStorage>()
@@ -286,6 +297,7 @@ private fun setupLogging() {
         val rootLogger = Logger.getLogger("")
         rootLogger.addHandler(fileHandler)
         rootLogger.level = Level.INFO
+
     } catch (e: Exception) {
         e.printStackTrace()
     }

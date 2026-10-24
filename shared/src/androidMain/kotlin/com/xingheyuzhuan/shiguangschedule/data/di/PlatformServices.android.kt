@@ -1,7 +1,6 @@
 package com.xingheyuzhuan.shiguangschedule.data.di
 
 import android.content.Context
-import android.os.Build
 import okio.Path
 import okio.Path.Companion.toOkioPath
 import org.koin.core.annotation.Named
@@ -24,18 +23,9 @@ class AndroidAppStorage(private val context: Context) : AppStorage {
     }
 }
 
-@Single
-@Named("AppVersionCode")
-fun provideAppVersionCode(context: Context): Int {
-    val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-        packageInfo.longVersionCode.toInt()
-    } else {
-        @Suppress("DEPRECATION")
-        packageInfo.versionCode
-    }
-}
-
+/**
+ * 安卓端应用版本名称提供
+ */
 @Single
 @Named("AppVersionName")
 fun provideAppVersionName(context: Context): String {
