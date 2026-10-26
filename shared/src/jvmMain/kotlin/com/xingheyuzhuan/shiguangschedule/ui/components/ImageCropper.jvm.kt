@@ -8,11 +8,6 @@ import org.jetbrains.skia.EncodedImageFormat
 import org.jetbrains.skia.Image
 
 /**
- * JVM / Desktop 端关闭裁切预览 UI 弹窗（直接使用原图）
- */
-actual val isCropWindowEnabled: Boolean = false
-
-/**
  * JVM / Desktop 平台实现：不进行 UI 裁切，直接将原图编码导出为 JPEG ByteArray 字节流
  */
 actual suspend fun cropImageBitmapNative(

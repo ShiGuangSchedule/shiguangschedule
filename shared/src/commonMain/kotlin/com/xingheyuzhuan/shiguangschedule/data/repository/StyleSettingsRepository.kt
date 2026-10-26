@@ -48,11 +48,16 @@ object ScheduleStyleSerializer : OkioSerializer<ScheduleGridStyleProto> {
 
 /**
  * 样式备份信封，包含版本号及序列化后的字节数据。
+ *
+ * schemaVersion 承载 STYLE_SCHEMA_VERSION，代表数据协议版本。
+ * 新备份落盘键名为 "schemaVersion"；旧备份中该字段名为 "appVersionCode"，
+ * 因 ignoreUnknownKeys = true 会被忽略，缺失的 schemaVersion 取默认值 1。
+ * 默认值勿随升级修改。
  */
 @Serializable
 data class StyleBackupEnvelope(
     val backupTimestamp: Long,
-    val appVersionCode: Int,
+    val schemaVersion: Int = 1,   // 默认值=旧 CBOR 信封历史版本，勿随升级修改
     val styleProtoBytes: ByteArray
 ) {
     override fun equals(other: Any?): Boolean {
@@ -60,7 +65,7 @@ data class StyleBackupEnvelope(
         if (other !is StyleBackupEnvelope) return false
 
         if (backupTimestamp != other.backupTimestamp) return false
-        if (appVersionCode != other.appVersionCode) return false
+        if (schemaVersion != other.schemaVersion) return false
         if (!styleProtoBytes.contentEquals(other.styleProtoBytes)) return false
 
         return true
@@ -68,7 +73,7 @@ data class StyleBackupEnvelope(
 
     override fun hashCode(): Int {
         var result = backupTimestamp.hashCode()
-        result = 31 * result + appVersionCode
+        result = 31 * result + schemaVersion
         result = 31 * result + styleProtoBytes.contentHashCode()
         return result
     }

@@ -44,7 +44,6 @@ data class AppBackupPackage(
 @Serializable
 data class BackupMeta(
     val backupTimestamp: Long,
-    val appVersionCode: Int,
     val appVersionName: String,
     val modules: List<ModuleInfo>
 )
@@ -57,11 +56,16 @@ data class ModuleInfo(
 
 /**
  * 应用设置专属 CBOR 信封载体
+ *
+ * schemaVersion 承载 APP_SETTINGS_SCHEMA_VERSION，代表数据协议版本。
+ * 新备份落盘键名为 "schemaVersion"；旧备份中该字段名为 "appVersionCode"，
+ * 因 ignoreUnknownKeys = true 会被忽略，缺失的 schemaVersion 取默认值 1。
+ * 默认值勿随升级修改。
  */
 @Serializable
 data class AppSettingsBackupEnvelope(
     val backupTimestamp: Long,
-    val appVersionCode: Int,
+    val schemaVersion: Int = 1,   // 默认值=旧 CBOR 信封历史版本，勿随升级修改
     val settingsMap: Map<String, String>
 )
 
@@ -70,7 +74,6 @@ data class AppSettingsBackupEnvelope(
  */
 @Single
 class BackupRepository(
-    @Named("AppVersionCode") private val appVersionCode: Int,
     @Named("AppVersionName") private val appVersionName: String,
     private val appSettingsRepository: AppSettingsRepository,
     private val styleSettingsRepository: StyleSettingsRepository,
@@ -141,7 +144,6 @@ class BackupRepository(
             AppBackupPackage(
                 meta = BackupMeta(
                     backupTimestamp = Clock.System.now().toEpochMilliseconds(),
-                    appVersionCode = appVersionCode,
                     appVersionName = appVersionName,
                     modules = moduleInfos
                 ),
@@ -205,7 +207,7 @@ class BackupRepository(
         try {
             val envelope = CourseImportExport.TotalAppBackupEnvelope(
                 backupTimestamp = Clock.System.now().toEpochMilliseconds(),
-                appVersionCode = COURSE_SCHEMA_VERSION,
+                schemaVersion = COURSE_SCHEMA_VERSION,
                 databasePayload = CourseImportExport.CourseDatabasePayload(
                     courseTables = courseTableDao.getAll(),
                     courseTableConfigs = courseTableConfigDao.getAll(),
@@ -241,11 +243,11 @@ class BackupRepository(
                 return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_corrupted)))
             }
 
-            if (envelope.appVersionCode > COURSE_SCHEMA_VERSION) {
+            if (envelope.schemaVersion > COURSE_SCHEMA_VERSION) {
                 return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_version_too_new)))
             }
 
-            if (envelope.appVersionCode < COURSE_SCHEMA_VERSION) {
+            if (envelope.schemaVersion < COURSE_SCHEMA_VERSION) {
                 return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_version_too_old)))
             }
 
@@ -312,7 +314,7 @@ class BackupRepository(
             val rawProtoBytes = styleSettingsRepository.exportRawStyleBytes()
             val envelope = StyleBackupEnvelope(
                 backupTimestamp = Clock.System.now().toEpochMilliseconds(),
-                appVersionCode = STYLE_SCHEMA_VERSION,
+                schemaVersion = STYLE_SCHEMA_VERSION,
                 styleProtoBytes = rawProtoBytes
             )
             CourseImportExport.cbor.encodeToByteArray(StyleBackupEnvelope.serializer(), envelope)
@@ -337,11 +339,11 @@ class BackupRepository(
                 return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_corrupted)))
             }
 
-            if (envelope.appVersionCode > STYLE_SCHEMA_VERSION) {
+            if (envelope.schemaVersion > STYLE_SCHEMA_VERSION) {
                 return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_version_too_new)))
             }
 
-            val migratedProtoBytes = if (envelope.appVersionCode < STYLE_SCHEMA_VERSION) {
+            val migratedProtoBytes = if (envelope.schemaVersion < STYLE_SCHEMA_VERSION) {
                 envelope.styleProtoBytes
             } else {
                 envelope.styleProtoBytes
@@ -363,7 +365,7 @@ class BackupRepository(
             val settingsMap = appSettingsRepository.getAppSettingsBackupMap()
             val envelope = AppSettingsBackupEnvelope(
                 backupTimestamp = Clock.System.now().toEpochMilliseconds(),
-                appVersionCode = APP_SETTINGS_SCHEMA_VERSION,
+                schemaVersion = APP_SETTINGS_SCHEMA_VERSION,
                 settingsMap = settingsMap
             )
             CourseImportExport.cbor.encodeToByteArray(AppSettingsBackupEnvelope.serializer(), envelope)
@@ -388,7 +390,7 @@ class BackupRepository(
                 return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_corrupted)))
             }
 
-            if (envelope.appVersionCode > APP_SETTINGS_SCHEMA_VERSION) {
+            if (envelope.schemaVersion > APP_SETTINGS_SCHEMA_VERSION) {
                 return@withContext Result.failure(IllegalStateException(getString(Res.string.backup_err_version_too_new)))
             }
 

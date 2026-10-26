@@ -1,8 +1,9 @@
 package com.xingheyuzhuan.shiguangschedule.ui.schedule
 
-import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -18,13 +19,13 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -60,6 +61,8 @@ import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGridVie
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.WeekSelectorBottomSheet
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.rememberScheduleGridState
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.model.MergedCourseBlock
+import com.xingheyuzhuan.shiguangschedule.ui.schedule.model.WeeklyScheduleUiState
+import com.xingheyuzhuan.shiguangschedule.ui.theme.LocalIsDarkTheme
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
@@ -69,6 +72,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -76,6 +80,7 @@ import shiguangschedule.shared.generated.resources.Res
 import shiguangschedule.shared.generated.resources.action_select_table
 import shiguangschedule.shared.generated.resources.arrow_drop_down_24px
 import shiguangschedule.shared.generated.resources.format_week_display
+import shiguangschedule.shared.generated.resources.ic_launcher_foreground
 import shiguangschedule.shared.generated.resources.snackbar_add_course_within_semester
 import shiguangschedule.shared.generated.resources.swap_horiz_24px
 import shiguangschedule.shared.generated.resources.title_current_week
@@ -86,7 +91,6 @@ import kotlin.time.Clock
 
 private const val INFINITE_PAGER_CENTER = Int.MAX_VALUE / 2
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun WeeklyScheduleScreen(
     onNavigate: (Destination) -> Unit,
@@ -96,11 +100,53 @@ fun WeeklyScheduleScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    val isDark = isSystemInDarkTheme()
+    val isDataReady = remember(uiState.timeSlots) {
+        uiState.timeSlots.isNotEmpty()
+    }
+
+    Crossfade(
+        targetState = isDataReady,
+        animationSpec = tween(durationMillis = 300),
+        modifier = Modifier.fillMaxSize()
+    ) { ready ->
+        if (!ready) {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.background
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(Res.drawable.ic_launcher_foreground),
+                        contentDescription = null,
+                        modifier = Modifier.size(96.dp)
+                    )
+                }
+            }
+        } else {
+            WeeklyScheduleContentLoaded(
+                uiState = uiState,
+                viewModel = viewModel,
+                onNavigate = onNavigate,
+                onNavHideFractionChanged = onNavHideFractionChanged
+            )
+        }
+    }
+}
+
+@Composable
+private fun WeeklyScheduleContentLoaded(
+    uiState: WeeklyScheduleUiState,
+    viewModel: WeeklyScheduleViewModel,
+    onNavigate: (Destination) -> Unit,
+    onNavHideFractionChanged: (Float) -> Unit
+) {
+    val isDark = LocalIsDarkTheme.current
     LaunchedEffect(isDark) {
         viewModel.updateDarkTheme(isDark)
     }
-
     val today = remember {
         Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
     }
@@ -175,7 +221,7 @@ fun WeeklyScheduleScreen(
         uiState.daysUntilStart > 0 -> {
             stringResource(Res.string.title_vacation_until_start, uiState.daysUntilStart.toString()) to customTextColor
         }
-        uiState.weekIndexInPager != null && uiState.weekIndexInPager!! in 1..uiState.totalWeeks -> {
+        uiState.weekIndexInPager != null && uiState.weekIndexInPager in 1..uiState.totalWeeks -> {
             stringResource(Res.string.title_current_week, uiState.weekIndexInPager.toString()) to customTextColor
         }
         else -> {

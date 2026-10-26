@@ -1,15 +1,15 @@
 package com.xingheyuzhuan.shiguangschedule.ui.components
 
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.receiveAsFlow
 
 object GlobalToastState {
-    private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 10)
-    val messages: SharedFlow<String> = _messages.asSharedFlow()
+    private val _messages = Channel<String>(Channel.BUFFERED)
+    val messages: Flow<String> = _messages.receiveAsFlow()
 
     fun emit(message: String) {
-        _messages.tryEmit(message)
+        _messages.trySend(message)
     }
 }
 

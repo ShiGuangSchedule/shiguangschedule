@@ -629,4 +629,6 @@
     <string name="dialog_ssl_warning_title">Security Warning</string>
     <string name="dialog_ssl_warning_message">The certificate for the website you are visiting (%1$s) is untrusted or expired. Continuing may expose your data to security risks. Do you wish to proceed?</string>
     <string name="action_continue_visit">Continue</string>
+    <string name="tray_open_main_window">Open Main Window</string>
+    <string name="tray_close_app">Quit</string>
 </resources>

@@ -8,11 +8,6 @@ import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 
 /**
- * Android 平台开启裁切预览 UI 弹窗
- */
-actual val isCropWindowEnabled: Boolean = true
-
-/**
  * Android 平台实现：利用系统底层驱动进行物理裁剪并直接压缩为 ByteArray 字节流
  */
 actual suspend fun cropImageBitmapNative(

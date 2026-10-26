@@ -1,12 +1,12 @@
-import org.jetbrains.compose.desktop.application.dsl.TargetFormat
-import java.nio.file.Files
-import java.nio.file.StandardCopyOption
+import dev.nucleusframework.desktop.application.dsl.NativeImageOptimization
+import dev.nucleusframework.desktop.application.dsl.TargetFormat
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.koin.compiler)
+    alias(libs.plugins.nucleus)
 }
 
 kotlin {
@@ -14,120 +14,106 @@ kotlin {
 }
 
 val appVersion = "2.1.0"
-val appBaseName = "shiguangschedule"
 
 dependencies {
+
     implementation(project(":shared"))
+    implementation(libs.compose.components.resources)
     implementation(project.dependencies.platform(libs.koin.bom))
     implementation(libs.koin.core)
     implementation(libs.koin.compose)
+    implementation(libs.koin.compose.viewmodel)
     implementation(libs.koin.annotations)
 
     implementation(compose.desktop.currentOs)
     implementation(libs.kotlinx.coroutines.swing)
+    implementation(libs.compose.material3)
     implementation(libs.compose.ui.tooling.preview)
+    implementation(libs.nucleus.core.runtime)
+    implementation(libs.nucleus.application)
+    implementation(libs.nucleus.decorated.window.core)
+    implementation(libs.nucleus.decorated.window.tao)
+    implementation(libs.nucleus.composenativetray)
+    implementation(libs.nucleus.notification.common)
 }
 
-compose.desktop {
-    application {
-        mainClass = "com.xingheyuzhuan.shiguangschedule.MainKt"
+nucleus.application {
+    mainClass = "com.xingheyuzhuan.shiguangschedule.MainKt"
 
-        buildTypes.release.proguard {
-            isEnabled.set(false)
+    graalvm {
+        isEnabled = true
+        imageName = "shiguangschedule"
+
+        toolchain {
+            autoDownload = true
+            version = "25.0.1"  //macos x64 最后支持版本
         }
 
-        nativeDistributions {
-            targetFormats(
-                TargetFormat.Exe, TargetFormat.Msi,
-                TargetFormat.Dmg, TargetFormat.Pkg,
-                TargetFormat.Deb, TargetFormat.Rpm
-            )
-            packageName = "ShiguangSchedule"
-            packageVersion = appVersion
+        optimization = NativeImageOptimization.SIZE
 
-            modules("jdk.unsupported")
-        }
-    }
-}
-
-tasks.register("renameDesktopPackage") {
-    val osName = System.getProperty("os.name").lowercase()
-    val osArch = System.getProperty("os.arch").lowercase()
-    val version = appVersion
-    val baseName = appBaseName
-
-    when {
-        osName.contains("win") -> {
-            dependsOn("packageReleaseExe", "packageReleaseMsi")
-        }
-        osName.contains("mac") -> {
-            dependsOn("packageReleaseDmg", "packageReleasePkg")
-        }
-        osName.contains("linux") -> {
-            dependsOn("packageReleaseDeb", "packageReleaseRpm")
+        windows {
+            bundleCRuntime = true
         }
     }
 
-    doLast {
-        val binariesRoot = listOf("main-release", "main")
-            .map { layout.buildDirectory.dir("compose/binaries/$it").get().asFile }
-            .firstOrNull { it.isDirectory }
-            ?: layout.buildDirectory.dir("compose/binaries/main").get().asFile
+    buildTypes.release.proguard {
+        isEnabled.set(false)
+    }
 
-        if (!binariesRoot.isDirectory) {
-            logger.warn("renameDesktopPackage: 未找到 binaries 目录，跳过重命名。")
-            return@doLast
+    nativeDistributions {
+        targetFormats(
+            // Windows
+            TargetFormat.Nsis,
+            TargetFormat.Portable,
+
+            // macOS
+            TargetFormat.Dmg,
+            TargetFormat.Pkg,
+
+            // Linux
+            TargetFormat.Deb,
+            TargetFormat.Rpm,
+            TargetFormat.AppImage,
+        )
+        appName = "拾光课程表"
+        packageName = "xingheyuzhuan.shiguangschedule"
+        packageVersion = appVersion
+
+        homepage = "https://github.com/ShiGuangSchedule/shiguangschedule"
+        artifactName = "\${name}-v\${version}-\${os}-\${arch}.\${ext}"
+
+        modules(
+            "jdk.unsupported",
+            "jdk.localedata"
+        )
+
+        macOS {
+            iconFile.set(project.file("icons/ic_launcher.icns"))
+            dockName = "拾光课程表"
         }
 
-        val osTag = when {
-            osName.contains("win")   -> "windows"
-            osName.contains("mac")   -> "macos"
-            osName.contains("linux") -> "linux"
-            else -> "unknown"
-        }
-
-        val arch = when (osArch) {
-            "amd64", "x86_64" -> "x64"
-            "aarch64", "arm64" -> "arm64"
-            else -> osArch
-        }
-
-        val buildType = "release"
-        val subDirs = listOf("exe", "msi", "dmg", "pkg", "deb", "rpm")
-        val knownExts = setOf("exe", "msi", "dmg", "pkg", "deb", "rpm")
-
-        var renamedCount = 0
-
-        subDirs.forEach { sub ->
-            val dir = binariesRoot.resolve(sub)
-            if (!dir.isDirectory) return@forEach
-
-            dir.listFiles()?.forEach { original ->
-                if (!original.isFile) return@forEach
-
-                val ext = original.extension.lowercase()
-                if (ext !in knownExts) return@forEach
-
-                val prefix = "${baseName}-v${version}-${osTag}-${arch}-${buildType}."
-                if (original.name.startsWith(prefix)) return@forEach
-
-                val targetName = "${baseName}-v${version}-${osTag}-${arch}-${buildType}.${ext}"
-                val targetFile = dir.resolve(targetName)
-
-                try {
-                    Files.move(
-                        original.toPath(),
-                        targetFile.toPath(),
-                        StandardCopyOption.REPLACE_EXISTING
-                    )
-                    renamedCount++
-                    logger.lifecycle("重命名: ${original.name} -> $targetName")
-                } catch (e: Exception) {
-                    logger.warn("重命名失败: ${original.absolutePath} -> ${targetFile.absolutePath} (${e.message})")
-                }
+        windows {
+            iconFile.set(project.file("icons/ic_launcher.ico"))
+            nsis {
+                oneClick = false
+                allowElevation = true
+                perMachine = false
+                allowToChangeInstallationDirectory = true
+                createDesktopShortcut = true
+                runAfterFinish = true
+                multiLanguageInstaller = true
+                installerLanguages = listOf("en_US", "zh_CN","zh_TW")
             }
         }
 
-        logger.lifecycle("renameDesktopPackage 完成：共重命名 $renamedCount 个文件，根目录 = $binariesRoot")
+        linux {
+            iconFile.set(project.file("icons/ic_launcher.png"))
+        }
     }
+}
+
+tasks.withType<JavaExec>().configureEach {
+    systemProperty("file.encoding", "UTF-8")
+    systemProperty("sun.stdout.encoding", "UTF-8")
+    systemProperty("sun.stderr.encoding", "UTF-8")
 }

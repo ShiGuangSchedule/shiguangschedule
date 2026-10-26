@@ -4,19 +4,14 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import com.xingheyuzhuan.shiguangschedule.data.di.TargetPlatform
+import com.xingheyuzhuan.shiguangschedule.data.di.isPlatformSupported
 import org.jetbrains.compose.resources.stringResource
 import shiguangschedule.shared.generated.resources.Res
 import shiguangschedule.shared.generated.resources.action_cancel
 import shiguangschedule.shared.generated.resources.action_share
 import shiguangschedule.shared.generated.resources.dialog_text_file_saved_share_prompt
 import shiguangschedule.shared.generated.resources.dialog_title_file_saved
-
-/**
- * 平台开关：
- * - Android / iOS: true（启用分享管理器与相关提示）
- * - Desktop (JVM): false（直接拦截，不调用分享管理器）
- */
-expect val isShareDialogSupported: Boolean
 
 /**
  * 平台底层文件分享执行逻辑
@@ -32,7 +27,7 @@ fun ShareDialog(
     mimeType: String,
     onDismiss: () -> Unit
 ) {
-    if (!isShareDialogSupported) return
+    if (!isPlatformSupported(TargetPlatform.mobile)) return
 
     AlertDialog(
         onDismissRequest = onDismiss,

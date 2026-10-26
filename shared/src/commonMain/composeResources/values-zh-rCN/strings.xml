@@ -637,4 +637,6 @@
     <string name="holiday_picker_hint_select_end">请选择结束日期(单天点击确认即可)</string>
     <string name="holiday_picker_hint_select_start">点击选择开始日期</string>
 
+    <string name="tray_open_main_window">打开主页面</string>
+    <string name="tray_close_app">关闭应用</string>
 </resources>

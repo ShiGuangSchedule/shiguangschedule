@@ -235,3 +235,19 @@ val JS_BRIDGE_INIT = """
     window.AndroidBridge = shiguangBridge;
 })();
 """.trimIndent()
+
+/**
+ * 包装适配脚本：IIFE 沙箱隔离与异常捕获
+ */
+fun wrapAdapterScript(rawJsCode: String): String {
+    return """
+        (function() {
+            try {
+                $rawJsCode
+            } catch (e) {
+                window.shiguangBridge.showToast("适配脚本执行出错: " + e.message);
+                console.error("[ShiguangBridge] 适配脚本执行异常: ", e);
+            }
+        })();
+    """.trimIndent()
+}

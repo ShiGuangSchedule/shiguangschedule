@@ -1,6 +1,5 @@
 package com.xingheyuzhuan.shiguangschedule.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -13,9 +12,16 @@ import com.xingheyuzhuan.shiguangschedule.data.model.AppSettingsModel
 import com.xingheyuzhuan.shiguangschedule.data.model.AppThemeMode
 
 /**
- * 定义一个用于全局同步深色模式状态的 Local 变量
+ * 定义一个用于全局同步深色模式状态的 Local 变量。
+ * 供 UI 层判断"当前整体是不是深色"，用于换图、Canvas 绘制等场景。
  */
 val LocalIsDarkTheme = staticCompositionLocalOf { false }
+
+/**
+ * 平台能力：获取当前系统深色状态（响应式）。
+ */
+@Composable
+expect fun rememberSystemDark(): Boolean
 
 /**
  * 外部调用的快捷主题函数
@@ -26,8 +32,10 @@ fun ShiguangScheduleTheme(
     settings: AppSettingsModel,
     content: @Composable () -> Unit
 ) {
+    val systemDark = rememberSystemDark()
+
     val darkTheme = when (settings.themeMode) {
-        AppThemeMode.FOLLOW_SYSTEM -> isSystemInDarkTheme()
+        AppThemeMode.FOLLOW_SYSTEM -> systemDark
         AppThemeMode.LIGHT -> false
         AppThemeMode.DARK -> true
     }
@@ -49,7 +57,7 @@ fun ShiguangScheduleTheme(
  */
 @Composable
 fun ShiguangScheduleTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = rememberSystemDark(),
     dynamicColor: Boolean = true,
     customLightPrimary: Color = DefaultThemeColor,
     customDarkPrimary: Color = DefaultThemeColor,
