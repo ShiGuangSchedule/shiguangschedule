@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.xingheyuzhuan.shiguangschedule.Destination
+import com.xingheyuzhuan.shiguangschedule.data.repository.BuiltInSchoolAdapters
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -144,14 +145,9 @@ fun AdapterSelectionScreen(
                                 adapter = adapter,
                                 onClick = { selectedAdapter ->
                                     val initialUrl = (selectedAdapter.import_url ?: "").ifBlank { "about:blank" }
-                                    val jsFileName = selectedAdapter.asset_js_path
-
-                                    // 构建正确的 JS 路径
-                                    val assetJsPath = if (jsFileName.isNotBlank()) {
-                                        "$resourceFolder/$jsFileName"
-                                    } else {
-                                        "$resourceFolder/${selectedAdapter.adapter_id}.js"
-                                    }
+                                    val assetJsPath = BuiltInSchoolAdapters.scriptPath(
+                                        selectedAdapter, resourceFolder
+                                    )
                                     onNavigate(
                                         Destination.WebView(
                                             initialUrl = initialUrl,

@@ -123,7 +123,7 @@ private fun AlertHost(data: AlertDialogData, onConfirm: () -> Unit, onDismiss: (
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(data.title) },
-        text = { Text(data.content) },
+        text = { Text(data.content, modifier = Modifier.verticalScroll(rememberScrollState())) },
         confirmButton = {
             Button(onClick = onConfirm) { Text(data.confirmText) }
         },
@@ -141,8 +141,8 @@ private fun PromptHost(
     errorFlow: Flow<String?>,
     onCancel: () -> Unit
 ) {
-    var inputText by rememberSaveable { mutableStateOf(data.defaultText) }
-    var errorText by rememberSaveable { mutableStateOf<String?>(null) }
+    var inputText by rememberSaveable(data.title, data.defaultText) { mutableStateOf(data.defaultText) }
+    var errorText by rememberSaveable(data.title, data.defaultText) { mutableStateOf<String?>(null) }
 
     LaunchedEffect(errorFlow) {
         errorFlow.collect { message ->

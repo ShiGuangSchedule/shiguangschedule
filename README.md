@@ -98,6 +98,12 @@
 
 ## 相关链接
 
+### 本 fork 的华电保定适配
+
+已内置“华北电力大学（保定）教务系统”统一导入入口，需校园网或 WebVPN 访问。打开学校统一身份认证登录页后，在教务系统中查询完整学期课表，再执行导入。使用步骤、五大节作息、开发验证与限制见 [华电保定适配说明](docs/ncepu-baoding-import.md)。
+
+Windows 本地测试和打包可执行 `powershell -File tool/build_android.ps1`。构建脚本使用项目专用缓存和临时目录，自动采用当前代理配置；依赖齐全后可添加 `-Offline` 使用缓存构建。
+
 - 项目主页：[https://github.com/XingHeYuZhuan/shiguangschedule](https://github.com/XingHeYuZhuan/shiguangschedule)
 - 适配脚本仓库：[https://github.com/XingHeYuZhuan/shiguang_warehouse](https://github.com/XingHeYuZhuan/shiguang_warehouse)
 - 查看如何适配,Wiki：[https://github.com/XingHeYuZhuan/shiguangschedule/wiki](https://github.com/XingHeYuZhuan/shiguangschedule/wiki)

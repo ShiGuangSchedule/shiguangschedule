@@ -90,9 +90,9 @@ class SchoolRepository(
      * 获取经过类别过滤与排序的学校列表（同步/单次获取）。
      */
     suspend fun getSchools(): List<School> {
-        val index = loadIndex() ?: return emptyList()
+        val schools = BuiltInSchoolAdapters.mergeSchools(loadIndex()?.schools.orEmpty())
 
-        val filteredSchools = index.schools.filter { school ->
+        val filteredSchools = schools.filter { school ->
             school.adapters.any { adapter ->
                 adapter.category in RELEVANT_MENU_CATEGORIES
             }
@@ -106,8 +106,7 @@ class SchoolRepository(
      */
     suspend fun getAdaptersForSchool(schoolId: String): List<Adapter> {
         return withContext(Dispatchers.IO) {
-            val index = loadIndex()
-            val school = index?.schools?.find { it.id == schoolId }
+            val school = getSchools().find { it.id == schoolId }
             return@withContext school?.adapters ?: emptyList()
         }
     }
@@ -117,8 +116,7 @@ class SchoolRepository(
      */
     suspend fun getSchoolById(id: String): School? {
         return withContext(Dispatchers.IO) {
-            val index = loadIndex()
-            return@withContext index?.schools?.find { it.id == id }
+            return@withContext getSchools().find { it.id == id }
         }
     }
 }

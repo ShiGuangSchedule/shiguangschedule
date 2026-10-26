@@ -1,4 +1,5 @@
 .gradle/
+.local-build/
 .kotlin/
 **/build/
 !src/**/build/

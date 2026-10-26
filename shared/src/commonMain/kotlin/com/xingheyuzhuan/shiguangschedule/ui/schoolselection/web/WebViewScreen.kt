@@ -43,11 +43,14 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.xingheyuzhuan.shiguangschedule.Destination
+import com.xingheyuzhuan.shiguangschedule.data.repository.BuiltInSchoolAdapters
 import com.xingheyuzhuan.shiguangschedule.data.repository.CourseConversionRepository
 import com.xingheyuzhuan.shiguangschedule.ui.components.CourseTablePickerDialog
 import com.xingheyuzhuan.shiguangschedule.ui.components.ToastManager
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.koinInject
@@ -387,23 +390,31 @@ fun WebViewScreen(
                         showCourseTablePicker = false
                         val tableId = selectedTable.id
 
-                        try {
-                            val fileSystem = viewModel.fileSystem
-                            val jsFilePath = viewModel.filesDir / "repo" / "schools" / "resources" / assetJsPath
+                        coroutineScope.launch {
+                            try {
+                                val fileSystem = viewModel.fileSystem
+                                val jsFilePath = viewModel.filesDir / "repo" / "schools" / "resources" / assetJsPath
 
-                            if (fileSystem.exists(jsFilePath)) {
-                                val jsCode = fileSystem.read(jsFilePath) { readUtf8() }
-                                bridgeHandler.setImportTableId(tableId)
+                                val jsCode = BuiltInSchoolAdapters.readScript(assetJsPath)
+                                    ?: if (fileSystem.exists(jsFilePath)) {
+                                        fileSystem.read(jsFilePath) { readUtf8() }
+                                    } else null
 
-                                val fullJsScript = "window.currentTableId = '$tableId';\n$jsCode"
-                                webViewController.executeScript(fullJsScript)
+                                if (jsCode != null) {
+                                    bridgeHandler.setImportTableId(tableId)
 
-                                ToastManager.show(toastExecutingImport)
-                            } else {
-                                ToastManager.show(toastImportNotFoundFmt.replace("%s", jsFilePath.toString()))
+                                    val fullJsScript = "window.currentTableId = '$tableId';\n$jsCode"
+                                    webViewController.executeScript(fullJsScript)
+
+                                    ToastManager.show(toastExecutingImport)
+                                } else {
+                                    ToastManager.show(toastImportNotFoundFmt.replace("%s", jsFilePath.toString()))
+                                }
+                            } catch (e: CancellationException) {
+                                throw e
+                            } catch (e: Exception) {
+                                ToastManager.show(toastLoadImportFailedFmt.replace("%s", e.message ?: ""))
                             }
-                        } catch (e: Exception) {
-                            ToastManager.show(toastLoadImportFailedFmt.replace("%s", e.message ?: ""))
                         }
                     }
                 )

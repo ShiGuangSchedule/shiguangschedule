@@ -1,0 +1,13 @@
+{
+  "name": "shiguangschedule-adapter-tests",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/ncepu_baoding/*.test.cjs",
+    "format": "prettier --write shared/src/commonMain/composeResources/files/adapters/ncepu_baoding.js tests/ncepu_baoding/*.cjs",
+    "format:check": "prettier --check shared/src/commonMain/composeResources/files/adapters/ncepu_baoding.js tests/ncepu_baoding/*.cjs"
+  },
+  "devDependencies": {
+    "jsdom": "26.1.0",
+    "prettier": "3.5.3"
+  }
+}
