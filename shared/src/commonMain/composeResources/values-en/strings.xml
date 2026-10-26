@@ -631,4 +631,6 @@
     <string name="action_continue_visit">Continue</string>
     <string name="tray_open_main_window">Open Main Window</string>
     <string name="tray_close_app">Quit</string>
+    <string name="tray_auto_launch">Launch at login</string>
+    <string name="tray_auto_launch_disabled">Launch at login disabled, tap to fix</string>
 </resources>

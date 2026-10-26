@@ -43,6 +43,8 @@ import com.xingheyuzhuan.shiguangschedule.component.DesktopTray
 import com.xingheyuzhuan.shiguangschedule.component.rememberDesktopFileDropState
 import com.xingheyuzhuan.shiguangschedule.data.di.AppStorage
 import com.xingheyuzhuan.shiguangschedule.data.di.SharedModule
+import com.xingheyuzhuan.shiguangschedule.data.di.TargetPlatform
+import com.xingheyuzhuan.shiguangschedule.data.di.isPlatformSupported
 import com.xingheyuzhuan.shiguangschedule.service.DesktopAppController
 import com.xingheyuzhuan.shiguangschedule.ui.settings.SettingsViewModel
 import com.xingheyuzhuan.shiguangschedule.ui.settings.additional.PlatformLocaleManager
@@ -53,6 +55,7 @@ import com.xingheyuzhuan.shiguangschedule.ui.theme.rememberSystemDark
 import dev.nucleusframework.application.DecoratedWindow
 import dev.nucleusframework.application.NucleusBackend
 import dev.nucleusframework.application.nucleusApplication
+import dev.nucleusframework.autolaunch.AutoLaunch
 import dev.nucleusframework.window.WindowAppearance
 import dev.nucleusframework.window.WindowAppearanceMode
 import dev.nucleusframework.window.WindowBackground
@@ -87,7 +90,7 @@ class DesktopAppConfig
 @KoinApplication(modules = [SharedModule::class, DesktopAppConfig::class])
 class DesktopKoinApp
 
-fun main() {
+fun main(args: Array<String>) {
     val rootLogger = Logger.getLogger("")
 
     try {
@@ -101,14 +104,31 @@ fun main() {
 
     PlatformLocaleManager.initialize()
 
+    val startedAtLogin = AutoLaunch.wasStartedAtLogin(args)
+
     nucleusApplication(backend = NucleusBackend.Tao) {
         var fatalError by remember { mutableStateOf<String?>(null) }
-        var showMainWindow by remember { mutableStateOf(true) }
+        var showMainWindow by remember { mutableStateOf(!startedAtLogin) }
 
         val mainWindowState = rememberWindowState(
             width = 1000.dp,
             height = 700.dp
         )
+
+        LaunchedEffect(Unit) {
+            if (showMainWindow && isPlatformSupported(TargetPlatform.MACOS)) {
+                var attempts = 0
+                while (attempts < 10) {
+                    if (AutoLaunch.wasStartedAtLogin(args)) {
+                        showMainWindow = false
+                        mainWindowState.isMinimized = true
+                        break
+                    }
+                    attempts++
+                    delay(100.milliseconds)
+                }
+            }
+        }
 
         val appController = GlobalContext.get().get<DesktopAppController>()
 

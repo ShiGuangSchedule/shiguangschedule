@@ -619,7 +619,6 @@
     <string name="backup_target_webdav">WebDAV 云同步</string>
     <string name="backup_target_local_zip">本地 ZIP 文件</string>
 
-
     <!-- 假期与调休管理 -->
     <string name="holiday_management_title">假期与调休管理</string>
     <string name="holiday_management_desc">节假日及调休安排</string>
@@ -637,6 +636,10 @@
     <string name="holiday_picker_hint_select_end">请选择结束日期(单天点击确认即可)</string>
     <string name="holiday_picker_hint_select_start">点击选择开始日期</string>
 
+    <!-- 桌面平台专属字符资源 -->
     <string name="tray_open_main_window">打开主页面</string>
     <string name="tray_close_app">关闭应用</string>
+    <string name="tray_auto_launch">开机自启动</string>
+    <string name="tray_auto_launch_disabled">自启动被禁用，点击设置</string>
+
 </resources>

@@ -35,6 +35,7 @@ dependencies {
     implementation(libs.nucleus.decorated.window.tao)
     implementation(libs.nucleus.composenativetray)
     implementation(libs.nucleus.notification.common)
+    implementation(libs.nucleus.autolaunch)
 }
 
 nucleus.application {

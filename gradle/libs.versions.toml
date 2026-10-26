@@ -29,7 +29,7 @@ appcompat = "1.8.0"
 activityCompose = "1.13.0"
 work-runtime = "2.12.0"
 coreRemoteViews = "1.1.0"
-webkit = "1.17.1"
+webkit = "1.18.0"
 
 # 网络与持久化/序列化
 ktor = "3.6.0"
@@ -42,7 +42,7 @@ kotlinxDateTime = "0.8.0"
 koin = "4.2.2"
 koin-plugin = "1.2.1"
 coil = "3.6.3"
-aboutLibraries = "15.2.0"
+aboutLibraries = "15.3.0"
 kgit = "1.0.3"
 
 # desktop平台专属
@@ -137,6 +137,7 @@ nucleus-decorated-window-core = { module = "dev.nucleusframework:nucleus.decorat
 nucleus-decorated-window-tao = { module = "dev.nucleusframework:nucleus.decorated-window-tao", version.ref = "nucleus" }
 nucleus-composenativetray = { module = "dev.nucleusframework:composenativetray", version.ref = "nucleus-tray" }
 nucleus-notification-common = { module = "dev.nucleusframework:nucleus.notification-common", version.ref = "nucleus" }
+nucleus-autolaunch = { module = "dev.nucleusframework:nucleus.autolaunch", version.ref = "nucleus" }
 
 commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3" }
 

@@ -632,4 +632,6 @@
     <string name="action_continue_visit">繼續訪問</string>
     <string name="tray_open_main_window">開啟主頁面</string>
     <string name="tray_close_app">關閉應用程式</string>
+    <string name="tray_auto_launch">開機自啟動</string>
+    <string name="tray_auto_launch_disabled">自啟動已停用，點擊設定</string>
 </resources>
