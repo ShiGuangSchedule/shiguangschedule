@@ -56,8 +56,8 @@ kotlin {
                 implementation(libs.compose.components.resources)
                 implementation(libs.compose.ui.tooling.preview)
 
-                // Dynamic Color 主题生成 (MaterialKolor)
-                implementation(libs.material.kolor)
+                // material颜色库
+                implementation(libs.material.kolor.material3)
 
                 // Lifecycle & Navigation3 导航体系
                 implementation(libs.androidx.lifecycle.viewmodel.compose)
