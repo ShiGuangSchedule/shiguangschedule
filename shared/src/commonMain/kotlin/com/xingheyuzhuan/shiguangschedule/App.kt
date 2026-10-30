@@ -200,6 +200,18 @@ fun AppNavigation(startDestination: Destination) {
     }
 }
 
+/**
+ * 跨平台路由分发接口
+ */
+expect object PlatformScreenRouter {
+    @Composable
+    fun Content(
+        destination: Destination,
+        onNavigate: (Destination) -> Unit,
+        onBack: () -> Unit
+    ): Boolean
+}
+
 @Composable
 fun ScreenContent(
     targetDest: Destination,
@@ -271,5 +283,20 @@ fun ScreenContent(
         is Destination.CourseManagementDetail -> CourseInstanceListScreen(
             targetDest.courseName, onBack, onNavigate
         )
+
+        is Destination.AndroidDestination,
+        is Destination.IosDestination,
+        is Destination.DesktopDestination -> {
+            val handled = PlatformScreenRouter.Content(
+                destination = targetDest,
+                onNavigate = onNavigate,
+                onBack = onBack
+            )
+            if (!handled) {
+                LaunchedEffect(targetDest) {
+                    onBack()
+                }
+            }
+        }
     }
 }

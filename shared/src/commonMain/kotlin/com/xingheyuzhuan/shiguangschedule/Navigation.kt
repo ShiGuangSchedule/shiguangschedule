@@ -24,6 +24,11 @@ sealed interface Destination : NavKey {
     /** 标记一级主界面的子接口 */
     sealed interface MainDestination : Destination
 
+    // --- 平台专属页面标记接口 ---
+    sealed interface AndroidDestination : Destination
+    sealed interface IosDestination : Destination
+    sealed interface DesktopDestination : Destination
+
     // --- 一级导航页面（底栏对应页面） ---
     @Serializable data object CourseSchedule : MainDestination
     @Serializable data object Settings : MainDestination
