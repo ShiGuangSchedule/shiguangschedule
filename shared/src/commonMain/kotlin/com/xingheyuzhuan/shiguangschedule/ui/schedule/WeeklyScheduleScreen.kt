@@ -19,15 +19,18 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -52,6 +55,8 @@ import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleMode
 import com.xingheyuzhuan.shiguangschedule.navigation.AddEditCourseChannel
 import com.xingheyuzhuan.shiguangschedule.navigation.PresetCourseData
 import com.xingheyuzhuan.shiguangschedule.ui.components.CourseTablePickerDialog
+import com.xingheyuzhuan.shiguangschedule.ui.components.StackOrderEntry
+import com.xingheyuzhuan.shiguangschedule.ui.components.StackOrderSheetContent
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.CourseDetailBottomSheet
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.FloatingCourseBar
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGrid
@@ -62,6 +67,7 @@ import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.WeekSelectorBot
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.rememberScheduleGridState
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.model.MergedCourseBlock
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.model.WeeklyScheduleUiState
+import com.xingheyuzhuan.shiguangschedule.ui.schedule.util.StackOrderUtils
 import com.xingheyuzhuan.shiguangschedule.ui.theme.LocalIsDarkTheme
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
@@ -73,6 +79,7 @@ import kotlinx.datetime.number
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -81,12 +88,14 @@ import shiguangschedule.shared.generated.resources.action_select_table
 import shiguangschedule.shared.generated.resources.arrow_drop_down_24px
 import shiguangschedule.shared.generated.resources.format_week_display
 import shiguangschedule.shared.generated.resources.ic_launcher_foreground
+import shiguangschedule.shared.generated.resources.label_section_range_suffix
 import shiguangschedule.shared.generated.resources.snackbar_add_course_within_semester
 import shiguangschedule.shared.generated.resources.swap_horiz_24px
 import shiguangschedule.shared.generated.resources.title_current_week
 import shiguangschedule.shared.generated.resources.title_semester_not_set
 import shiguangschedule.shared.generated.resources.title_vacation
 import shiguangschedule.shared.generated.resources.title_vacation_until_start
+import shiguangschedule.shared.generated.resources.week_days_full_names
 import kotlin.time.Clock
 
 private const val INFINITE_PAGER_CENTER = Int.MAX_VALUE / 2
@@ -136,6 +145,7 @@ fun WeeklyScheduleScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun WeeklyScheduleContentLoaded(
     uiState: WeeklyScheduleUiState,
@@ -183,6 +193,7 @@ private fun WeeklyScheduleContentLoaded(
     var showTableSwitcher by remember { mutableStateOf(false) }
     var isGridHolding by remember { mutableStateOf(false) }
     var selectedBlockForDetail by remember { mutableStateOf<MergedCourseBlock?>(null) }
+    var stackOrderBlock by remember { mutableStateOf<MergedCourseBlock?>(null) }
 
     val composedStyle by remember(uiState.style) {
         derivedStateOf { with(ScheduleGridStyleComposed) { uiState.style.toComposedStyle() } }
@@ -377,6 +388,10 @@ private fun WeeklyScheduleContentLoaded(
                             selectedBlockForDetail = block
                         }
 
+                        override fun onStackBadgeClicked(block: MergedCourseBlock) {
+                            stackOrderBlock = block
+                        }
+
                         override fun onGridCellClicked(day: Int, section: Int) {
                             if (floatingCourse != null) {
                                 val targetWeek = uiState.weekIndexInPager ?: uiState.currentWeekNumber ?: return
@@ -562,5 +577,67 @@ private fun WeeklyScheduleContentLoaded(
                 onNavigate(Destination.AddEditCourse(courseId = courseId))
             }
         )
+    }
+
+    // 冲突课程堆叠顺序弹窗（点击堆叠角标进入）
+    val blockForStackOrder = stackOrderBlock
+    if (blockForStackOrder != null) {
+        val clusterCourses = blockForStackOrder.clusterCourses.ifEmpty { blockForStackOrder.courses }
+        // 只让本周生效的课程参与排序，非本周课程不参与层级竞争
+        val displayedWeek = uiState.weekIndexInPager
+        val stackableCourses = remember(clusterCourses, displayedWeek) {
+            if (displayedWeek == null) {
+                clusterCourses
+            } else {
+                clusterCourses.filter { wrapper ->
+                    wrapper.weeks.any { it.weekNumber == displayedWeek }
+                }.ifEmpty { clusterCourses }
+            }
+        }
+        val weekDays = stringArrayResource(Res.array.week_days_full_names)
+        val sectionSuffix = stringResource(Res.string.label_section_range_suffix)
+        val entries = remember(stackableCourses, composedStyle.courseColorMaps, isDark, weekDays, sectionSuffix) {
+            stackableCourses.map { wrapper ->
+                val course = wrapper.course
+                val timeText = if (course.isCustomTime) {
+                    "${course.customStartTime.orEmpty()} - ${course.customEndTime.orEmpty()}"
+                } else {
+                    "${course.startSection ?: 0}-${course.endSection ?: 0}$sectionSuffix"
+                }
+                val dayText = weekDays.getOrNull(course.day - 1).orEmpty()
+                StackOrderEntry(
+                    id = course.id,
+                    title = course.name,
+                    subtitle = listOf(dayText, timeText)
+                        .filter { it.isNotBlank() }
+                        .joinToString(" · "),
+                    color = composedStyle.courseColorMaps
+                        .getOrNull(course.colorInt)
+                        ?.let { if (isDark) it.dark else it.light }
+                        ?: Color.Gray
+                )
+            }
+        }
+        val clusterIds = remember(clusterCourses) { clusterCourses.map { it.course.id } }
+        val clusterKey = remember(blockForStackOrder.day, clusterIds) {
+            StackOrderUtils.clusterKey(blockForStackOrder.day, clusterIds)
+        }
+
+        ModalBottomSheet(
+            onDismissRequest = { stackOrderBlock = null },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ) {
+            StackOrderSheetContent(
+                entries = entries,
+                orderIds = StackOrderUtils.findClusterOrder(
+                    orders = uiState.style.stackClusterOrders,
+                    clusterKey = clusterKey
+                ),
+                onOrderChange = { newOrder ->
+                    viewModel.updateStackClusterOrder(clusterKey, newOrder)
+                },
+                onDismiss = { stackOrderBlock = null }
+            )
+        }
     }
 }

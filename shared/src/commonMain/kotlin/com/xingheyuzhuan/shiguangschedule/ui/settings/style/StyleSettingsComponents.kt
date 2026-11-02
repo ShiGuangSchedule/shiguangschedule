@@ -92,6 +92,7 @@ import shiguangschedule.shared.generated.resources.action_reset_style
 import shiguangschedule.shared.generated.resources.border_type_dashed
 import shiguangschedule.shared.generated.resources.border_type_solid
 import shiguangschedule.shared.generated.resources.check_24px
+import shiguangschedule.shared.generated.resources.desc_stack_order
 import shiguangschedule.shared.generated.resources.desc_wallpaper_set
 import shiguangschedule.shared.generated.resources.desc_wallpaper_unset
 import shiguangschedule.shared.generated.resources.dialog_reset_message
@@ -117,6 +118,7 @@ import shiguangschedule.shared.generated.resources.label_remove_location_at
 import shiguangschedule.shared.generated.resources.label_schedule_mode_24h
 import shiguangschedule.shared.generated.resources.label_section_height
 import shiguangschedule.shared.generated.resources.label_show_start_time
+import shiguangschedule.shared.generated.resources.label_stack_conflict_courses
 import shiguangschedule.shared.generated.resources.label_text_align_center_h
 import shiguangschedule.shared.generated.resources.label_text_align_center_v
 import shiguangschedule.shared.generated.resources.label_time_column_width
@@ -273,6 +275,20 @@ fun SettingsListContent(
         SliderWithInputField(stringResource(Res.string.label_inner_padding), currentStyle.courseBlockInnerPadding.value, 0f..12f, 1f) { viewModel.updateInnerPadding(it) }
         SliderWithInputField(stringResource(Res.string.label_outer_padding), currentStyle.courseBlockOuterPadding.value, 0f..8f, 1f) { viewModel.updateOuterPadding(it) }
         SliderWithInputField(stringResource(Res.string.label_opacity), currentStyle.courseBlockAlpha, 0.1f..1f, 0.05f) { viewModel.updateAlpha(it) }
+
+        StyleSwitchItem(
+            label = stringResource(Res.string.label_stack_conflict_courses),
+            checked = currentStyle.stackConflictCourses
+        ) { viewModel.updateStackConflictCourses(it) }
+
+        if (currentStyle.stackConflictCourses) {
+            Text(
+                text = stringResource(Res.string.desc_stack_order),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 4.dp)
+            )
+        }
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 

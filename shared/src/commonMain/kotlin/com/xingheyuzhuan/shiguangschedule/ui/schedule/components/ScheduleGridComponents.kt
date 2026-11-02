@@ -44,7 +44,9 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWithWeeks
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
+import com.xingheyuzhuan.shiguangschedule.data.model.StackClusterOrder
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.model.MergedCourseBlock
+import com.xingheyuzhuan.shiguangschedule.ui.schedule.util.StackOrderUtils
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
@@ -60,6 +62,21 @@ interface ISingleSchedulable {
     val endSection: Float
     val courseWrapper: CourseWithWeeks
     val parentBlock: MergedCourseBlock
+
+    /** 堆叠层级：0 为最上层；非堆叠固定为 0。 */
+    val stackRank: Int get() = 0
+
+    /** 当前格子内的课程数量；非堆叠固定为 1。 */
+    val stackCount: Int get() = 1
+
+    /** 本周真正生效且互相冲突的课程数；用于 +N 角标，非本周课程不计入。 */
+    val conflictCount: Int get() = stackCount
+
+    /** 是否绘制“堆叠格”角标（仅最上层且数量大于 1）。 */
+    val isStackTop: Boolean get() = false
+
+    /** 当前堆叠格的稳定 key；非堆叠为空字符串。 */
+    val stackClusterKey: String get() = ""
 }
 
 /**
@@ -96,6 +113,7 @@ interface ScheduleGridActions {
     fun onGridCellClicked(day: Int, section: Int)
     fun onTimeSlotClicked()
     fun onHoldStateChanged(isHolding: Boolean) {}
+    fun onStackBadgeClicked(block: MergedCourseBlock) {}
     fun onCourseMovedWithinGrid(block: MergedCourseBlock, newDay: Int, newStartSection: Float, newEndSection: Float) {}
     fun onCourseTimeAdjusted(block: MergedCourseBlock, newStart: Float, newEnd: Float) {}
     fun onInitiateFloatingMode(block: MergedCourseBlock) {}
@@ -448,32 +466,104 @@ fun TimeText(text: String, color: Color) {
 }
 
 /**
- * 计算扁平化的可调度项列表
+ * 计算扁平化的可调度项列表。
+ *
+ * @param stackConflictCourses 开启后，冲突簇内的课程不再横向分列，而是全宽重叠绘制。
+ * @param stackClusterOrders 每个冲突格独立的堆叠顺序。
  */
 fun calculateSingleSchedulables(
     mergedCourses: List<MergedCourseBlock>,
     firstDayOfWeek: Int,
-    showWeekends: Boolean
+    showWeekends: Boolean,
+    stackConflictCourses: Boolean = false,
+    stackClusterOrders: List<StackClusterOrder> = emptyList()
 ): List<ISingleSchedulable> {
+    val stackLayouts = if (stackConflictCourses) {
+        buildStackLayouts(mergedCourses, stackClusterOrders)
+    } else {
+        emptyMap()
+    }
+
     val list = mutableListOf<ISingleSchedulable>()
-    mergedCourses.forEach { block ->
+    mergedCourses.forEachIndexed { blockIndex, block ->
         val displayIdx = mapDayToDisplayIndex(block.day, firstDayOfWeek, showWeekends)
         if (displayIdx != -1) {
             val layoutInfo = block.nonActiveRanges.firstOrNull() ?: (0f to 1f)
             block.courses.firstOrNull()?.let { course ->
+                val stackLayout = stackLayouts[blockIndex]
+                val stackCount = stackLayout?.totalCount ?: 1
+                val conflictCount = stackLayout?.conflictCount?.coerceAtLeast(1) ?: 1
+                val stackRank = stackLayout?.rank ?: 0
+                val isStacked = stackCount > 1
+                val stackClusterKey = stackLayout?.clusterKey.orEmpty()
+
                 list.add(object : ISingleSchedulable {
                     override val columnIndex = displayIdx
-                    override val subColumnIndex = layoutInfo.first.toInt()
-                    override val subColumnCount = layoutInfo.second.toInt()
+                    override val subColumnIndex = if (isStacked) 0 else layoutInfo.first.toInt()
+                    override val subColumnCount = if (isStacked) 1 else layoutInfo.second.toInt()
                     override val startSection = block.startSection
                     override val endSection = block.endSection
                     override val courseWrapper = course
                     override val parentBlock = block.copy(courses = listOf(course))
+                    override val stackRank = stackRank
+                    override val stackCount = stackCount
+                    override val conflictCount = conflictCount
+                    override val isStackTop = isStacked && stackRank == 0
+                    override val stackClusterKey = stackClusterKey
                 })
             }
         }
     }
     return list
+}
+
+private data class StackLayout(
+    val rank: Int,
+    val totalCount: Int,
+    val conflictCount: Int,
+    val clusterKey: String
+)
+
+/**
+ * 冲突簇按 “课程 ID 集合 + 星期” 分组，再按本周是否生效与用户顺序分配层级。
+ *
+ * - 本周生效的课程永远排在非本周课程之上，置顶也不能让非本周课程覆盖本周课程；
+ * - 角标只统计本周真正同时生效的课程，单双周不同地点的课程不会误判为冲突；
+ * - 使用块下标作为 key，避免同一课程 ID 对应多个时间段时被覆盖。
+ */
+private fun buildStackLayouts(
+    mergedCourses: List<MergedCourseBlock>,
+    stackClusterOrders: List<StackClusterOrder>
+): Map<Int, StackLayout> {
+    val grouped = mergedCourses.withIndex().groupBy { (_, block) ->
+        val clusterIds = block.clusterCourses
+            .map { it.course.id }
+            .ifEmpty { listOfNotNull(block.courses.firstOrNull()?.course?.id) }
+        StackOrderUtils.clusterKey(block.day, clusterIds)
+    }
+
+    val result = mutableMapOf<Int, StackLayout>()
+    grouped.forEach { (clusterKey, cluster) ->
+        if (cluster.size <= 1) return@forEach
+
+        val ordered = StackOrderUtils.sortByStackOrder(
+            items = cluster,
+            explicitOrderIds = StackOrderUtils.findClusterOrder(stackClusterOrders, clusterKey),
+            idOf = { (_, block) -> block.courses.firstOrNull()?.course?.id.orEmpty() },
+            isDemoted = { (_, block) -> block.isVisualDemoted }
+        )
+        val conflictCount = cluster.count { (_, block) -> !block.isVisualDemoted }
+
+        ordered.forEachIndexed { index, (blockIndex, _) ->
+            result[blockIndex] = StackLayout(
+                rank = index,
+                totalCount = ordered.size,
+                conflictCount = conflictCount,
+                clusterKey = clusterKey
+            )
+        }
+    }
+    return result
 }
 
 fun rearrangeDays(originalDays: List<String>, firstDayOfWeek: Int): List<String> {

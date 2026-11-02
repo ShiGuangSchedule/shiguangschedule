@@ -101,4 +101,14 @@ message ScheduleGridStyleProto {
   optional string background_image_path = 19 [deprecated = true];
 
   optional WidgetStyleProto widget_style = 28;   // 小组件样式配置
+
+  // 冲突课程堆叠显示
+  optional bool stack_conflict_courses = 29;     // 是否将冲突课程重叠显示（默认 false，即并排缩小）
+  repeated StackClusterOrderProto stack_cluster_orders = 31; // 每个冲突格独立的堆叠顺序
+}
+
+// 单个冲突格的堆叠顺序
+message StackClusterOrderProto {
+  string cluster_key = 1;              // 星期 + 冲突簇课程 ID 集合生成的稳定 key
+  repeated string course_ids = 2;      // 靠前的课程显示在最上层
 }

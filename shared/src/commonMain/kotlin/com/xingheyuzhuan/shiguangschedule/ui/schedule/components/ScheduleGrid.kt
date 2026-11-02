@@ -18,6 +18,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
@@ -66,13 +67,27 @@ fun ScheduleGrid(
         val gridLineColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
         val strokeWidthPx = 1f
 
-        val singleSchedulables = remember(viewState.mergedCourses, viewState.firstDayOfWeek, viewState.showWeekends) {
-            calculateSingleSchedulables(viewState.mergedCourses, viewState.firstDayOfWeek, viewState.showWeekends)
+        val singleSchedulables = remember(
+            viewState.mergedCourses,
+            viewState.firstDayOfWeek,
+            viewState.showWeekends,
+            style.stackConflictCourses,
+            style.stackClusterOrders
+        ) {
+            calculateSingleSchedulables(
+                mergedCourses = viewState.mergedCourses,
+                firstDayOfWeek = viewState.firstDayOfWeek,
+                showWeekends = viewState.showWeekends,
+                stackConflictCourses = style.stackConflictCourses,
+                stackClusterOrders = style.stackClusterOrders
+            )
         }
         val sectionHeightPx = with(density) { style.sectionHeight.toPx() }
 
         var activeDragHour by remember { mutableStateOf<Int?>(null) }
         var activeDragMinuteStr by remember { mutableStateOf<String?>(null) }
+
+        val expandedStackKey = state.expandedItem?.stackClusterKey.orEmpty()
 
         if (is24HourMode && state.expandedItem != null) {
             val currentTargetSection = when {
@@ -192,13 +207,23 @@ fun ScheduleGrid(
                         singleSchedulables.forEach { item ->
                             val isExpanded = state.expandedItem != null && state.expandedItem?.parentBlock === item.parentBlock
 
+                            val hideStackBackCard = expandedStackKey.isNotEmpty() &&
+                                item.stackClusterKey == expandedStackKey &&
+                                item !== state.expandedItem
+
                             Box(
                                 modifier = Modifier
                                     .padding(style.courseBlockOuterPadding)
-                                    .zIndex(if (isExpanded) 2f else 0f)
+                                    .alpha(if (hideStackBackCard) 0f else 1f)
+                                    .zIndex(
+                                        if (isExpanded) 100f
+                                        else if (item.stackCount > 1) (item.stackCount - item.stackRank).toFloat()
+                                        else 0f
+                                    )
                                     .then(
-                                        if (!isExpanded) {
-                                            Modifier.pointerInput(item) {
+                                        when {
+                                            hideStackBackCard -> Modifier
+                                            !isExpanded -> Modifier.pointerInput(item) {
                                                 detectTapGestures(
                                                     onTap = { actions.onCourseBlockClicked(item.parentBlock) },
                                                     onLongPress = {
@@ -207,8 +232,7 @@ fun ScheduleGrid(
                                                     }
                                                 )
                                             }
-                                        } else {
-                                            Modifier.pointerInput(item) {
+                                            else -> Modifier.pointerInput(item) {
                                                 detectTapGestures(onTap = { state.expandedItem = null; actions.onHoldStateChanged(false) })
                                             }
                                         }
@@ -278,7 +302,15 @@ fun ScheduleGrid(
                                         } else {
                                             Modifier
                                         }
-                                    } else Modifier
+                                    } else Modifier,
+                                    stackCount = item.stackCount,
+                                    conflictCount = item.conflictCount,
+                                    isStackTop = item.isStackTop,
+                                    onStackBadgeClick = if (item.isStackTop && item.conflictCount > 1) {
+                                        { actions.onStackBadgeClicked(item.parentBlock) }
+                                    } else {
+                                        null
+                                    }
                                 )
 
                                 if (isExpanded && state.activeMoveIntent == null && !item.parentBlock.isVisualDemoted) {

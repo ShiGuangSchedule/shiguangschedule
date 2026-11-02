@@ -274,6 +274,16 @@ class StyleSettingsViewModel(
         styleRepository.setScheduleMode(mode)
     }
 
+    /** 更新冲突课程是否堆叠显示 */
+    fun updateStackConflictCourses(enabled: Boolean) = viewModelScope.launch {
+        styleRepository.setStackConflictCourses(enabled)
+    }
+
+    /** 更新单个冲突格的堆叠顺序（靠前的课程在最上层） */
+    fun updateStackClusterOrder(clusterKey: String, courseIds: List<String>) = viewModelScope.launch {
+        styleRepository.setStackClusterOrder(clusterKey, courseIds)
+    }
+
     /** * 更新课程块字体的缩放比例
      * @param scale 缩放倍数，通常范围在 0.5 - 2.0 之间
      */
@@ -354,54 +364,73 @@ class StyleSettingsViewModel(
 
     private fun createDemoCourses(dummyTableId: String, is24HourMode: Boolean): List<MergedCourseBlock> {
         return if (is24HourMode) {
+            // 24小时绝对时间模式：两门课程时间重叠，用于演示并排/堆叠切换
+            val earlyBlock = createBlock(
+                tableId = dummyTableId, day = 1, start = 0f, end = 1.5f, name = "深夜研讨",
+                startSection = null, endSection = null,
+                isCustomTime = true, customStartTime = "00:00", customEndTime = "01:30",
+                subColumn = 0f, totalColumns = 2f,
+                colorInt = 0
+            )
+            val lateBlock = createBlock(
+                tableId = dummyTableId, day = 1, start = 0.5f, end = 2f, name = "凌晨补录",
+                startSection = null, endSection = null,
+                isCustomTime = true, customStartTime = "00:30", customEndTime = "02:00",
+                subColumn = 1f, totalColumns = 2f,
+                colorInt = 1
+            )
+            val cluster = listOf(earlyBlock, lateBlock).map { it.courses.first() }
             listOf(
-                // 24小时绝对时间模式：全部是自定义时间（自由时间），需要携带具体的时间字符串
-                createBlock(
-                    tableId = dummyTableId, day = 1, start = 0.0f, end = 1.75f, name = "深夜研讨",
-                    startSection = null, endSection = null,
-                    isCustomTime = true, customStartTime = "00:00", customEndTime = "00:45",
-                    colorInt = 0
-                ),
-                createBlock(
-                    tableId = dummyTableId, day = 2, start = 0.5f, end = 2.0f, name = "凌晨补录",
-                    startSection = null, endSection = null,
-                    isCustomTime = true, customStartTime = "01:00", customEndTime = "02:00",
-                    colorInt = 1
-                )
+                earlyBlock.copy(clusterCourses = cluster),
+                lateBlock.copy(clusterCourses = cluster)
             )
         } else {
+            val normalBlock = createBlock(
+                tableId = dummyTableId, day = 1, start = 0f, end = 2f, name = "普通课程展示",
+                startSection = 1, endSection = 2,
+                isCustomTime = false, customStartTime = null, customEndTime = null,
+                colorInt = 0
+            )
+            // 传统节次模式：在传统表格中按绝对时间定位的非标准课程，isCustomTime 为 true
+            val customTimeBlock = createBlock(
+                tableId = dummyTableId, day = 2, start = 0.618f, end = 2.5f, name = "精准渲染演示",
+                startSection = null, endSection = null,
+                isCustomTime = true, customStartTime = "09:15", customEndTime = "11:05",
+                colorInt = 1
+            )
+            // 同一时间的两门本周课程，用于演示并排/堆叠两种冲突布局
+            val conflictBlockA = createBlock(
+                tableId = dummyTableId, day = 3, start = 0f, end = 3f, name = "冲突课程 A",
+                startSection = 1, endSection = 3,
+                isCustomTime = false, customStartTime = null, customEndTime = null,
+                subColumn = 0f, totalColumns = 2f,
+                colorInt = 2
+            )
+            val conflictBlockB = createBlock(
+                tableId = dummyTableId, day = 3, start = 1f, end = 3f, name = "冲突课程 B",
+                startSection = 2, endSection = 3,
+                isCustomTime = false, customStartTime = null, customEndTime = null,
+                subColumn = 1f, totalColumns = 2f,
+                colorInt = 3
+            )
+            // 堆叠布局按 clusterCourses 分组，预览数据必须与真实合并结果保持一致
+            val conflictCluster = listOf(conflictBlockA, conflictBlockB)
+                .map { it.courses.first() }
+            // 非本周课程单独占一格，用于演示降级样式，避免干扰冲突计数
+            val demotedBlock = createBlock(
+                tableId = dummyTableId, day = 4, start = 0f, end = 2f, name = "非本周课程",
+                startSection = 1, endSection = 2,
+                isCustomTime = false, customStartTime = null, customEndTime = null,
+                isNonCurrentWeek = true,
+                colorInt = 4
+            )
+
             listOf(
-                // 传统节次模式 1：标准节次课程（对应第1节到第2节），isCustomTime 为 false，不传时间字符串
-                createBlock(
-                    tableId = dummyTableId, day = 1, start = 0f, end = 2f, name = "普通课程展示",
-                    startSection = 1, endSection = 2,
-                    isCustomTime = false, customStartTime = null, customEndTime = null,
-                    colorInt = 0
-                ),
-                // 传统节次模式 2：精准自由时间演示（在传统表格里按绝对时间乱飞的非标准课程），isCustomTime 为 true
-                createBlock(
-                    tableId = dummyTableId, day = 2, start = 0.618f, end = 2.5f, name = "精准渲染演示",
-                    startSection = null, endSection = null,
-                    isCustomTime = true, customStartTime = "09:15", customEndTime = "11:05",
-                    colorInt = 1
-                ),
-                // 传统节次模式 3：冲突课程 A（标准节次课程，对应第1节到第3节）
-                createBlock(
-                    tableId = dummyTableId, day = 3, start = 0f, end = 3f, name = "冲突课程 A",
-                    startSection = 1, endSection = 3,
-                    isCustomTime = false, customStartTime = null, customEndTime = null,
-                    subColumn = 0f, totalColumns = 2f,
-                    colorInt = 2
-                ),
-                // 传统节次模式 4：冲突课程 B（标准节次课程，对应第2节到第3节，非当前周降级显示）
-                createBlock(
-                    tableId = dummyTableId, day = 3, start = 1f, end = 3f, name = "冲突课程 B",
-                    startSection = 2, endSection = 3,
-                    isCustomTime = false, customStartTime = null, customEndTime = null,
-                    subColumn = 1f, totalColumns = 2f,
-                    isNonCurrentWeek = true,
-                    colorInt = 3
-                )
+                normalBlock,
+                customTimeBlock,
+                conflictBlockA.copy(clusterCourses = conflictCluster),
+                conflictBlockB.copy(clusterCourses = conflictCluster),
+                demotedBlock
             )
         }
     }

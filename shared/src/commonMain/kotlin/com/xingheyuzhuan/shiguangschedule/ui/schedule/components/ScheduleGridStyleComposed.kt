@@ -6,6 +6,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.xingheyuzhuan.shiguangschedule.data.model.DualColor
 import com.xingheyuzhuan.shiguangschedule.data.model.ScheduleGridStyle
+import com.xingheyuzhuan.shiguangschedule.data.model.StackClusterOrder
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.BorderTypeProto
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleModeProto
 
@@ -47,6 +48,9 @@ data class ScheduleGridStyleComposed(
     val borderType: BorderTypeProto,        // 边框类型 (NONE/SOLID/DASHED)
     val scheduleMode: ScheduleModeProto,    // 供 UI 和逻辑层判断当前走哪种排版规则
 
+    val stackConflictCourses: Boolean,      // 冲突课程是否堆叠显示
+    val stackClusterOrders: List<StackClusterOrder>, // 每个冲突格独立顺序
+
     val pageTextColor: Color?, // 页面字符颜色
     val courseTextColor: Color?, // 课程块文字颜色
 ) {
@@ -81,6 +85,8 @@ data class ScheduleGridStyleComposed(
                 textAlignCenterVertical = this.textAlignCenterVertical,
                 borderType = this.borderType,
                 scheduleMode = this.scheduleMode,
+                stackConflictCourses = this.stackConflictCourses,
+                stackClusterOrders = this.stackClusterOrders,
                 pageTextColor = this.pageTextColorLong?.let { Color(it) },
                 courseTextColor = this.courseTextColorLong?.let { Color(it) },
             )

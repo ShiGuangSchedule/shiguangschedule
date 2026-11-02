@@ -216,6 +216,13 @@ class WeeklyScheduleViewModel(
 
     fun updatePagerDate(newDate: LocalDate) = _pagerMondayDate.update { newDate }
 
+    /**
+     * 持久化单个冲突格的堆叠顺序（靠前的课程显示在最上层）。
+     */
+    fun updateStackClusterOrder(clusterKey: String, courseIds: List<String>) = viewModelScope.launch {
+        styleSettingsRepository.setStackClusterOrder(clusterKey, courseIds)
+    }
+
     fun switchCourseTable(tableId: String) {
         viewModelScope.launch {
             val currentSettings = appSettingsRepository.getAppSettingsOnce()

@@ -6,10 +6,19 @@ import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.BorderTypePr
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.DualColorProto
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleGridStyleProto
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleModeProto
+import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.StackClusterOrderProto
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.WidgetStyleProto
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.WidgetThemeModeProto
 
 // 1. Compose 业务模型
+
+/**
+ * 单个冲突格的堆叠顺序。clusterKey 由星期与冲突簇课程 ID 集合生成。
+ */
+data class StackClusterOrder(
+    val clusterKey: String,
+    val courseIds: List<String>
+)
 
 /**
  * 浅色和深色模式下的颜色对。
@@ -79,6 +88,10 @@ data class ScheduleGridStyle(
     val pageTextColorLong: Long? = null,
     val courseTextColorLong: Long? = null,
 
+    // 冲突课程堆叠显示
+    val stackConflictCourses: Boolean = false,
+    val stackClusterOrders: List<StackClusterOrder> = emptyList(),
+
     // 小组件独立外观样式配置
     val widgetStyle: WidgetStyle = WidgetStyle.DEFAULT
 ) {
@@ -140,6 +153,8 @@ data class ScheduleGridStyle(
             scheduleMode = ScheduleModeProto.SECTION_MODE,
             pageTextColorLong = null,
             courseTextColorLong = null,
+            stackConflictCourses = false,
+            stackClusterOrders = emptyList(),
             widgetStyle = WidgetStyle.DEFAULT
         )
     }
@@ -229,6 +244,12 @@ fun ScheduleGridStyleProto.toCompose(): ScheduleGridStyle {
         borderType = this.border_type ?: d.borderType,
         scheduleMode = this.schedule_mode ?: d.scheduleMode,
 
+        // 冲突课程堆叠显示
+        stackConflictCourses = this.stack_conflict_courses ?: d.stackConflictCourses,
+        stackClusterOrders = this.stack_cluster_orders.map {
+            StackClusterOrder(clusterKey = it.cluster_key, courseIds = it.course_ids)
+        },
+
         // 8. 小组件独立样式映射
         widgetStyle = this.widget_style?.toCompose() ?: d.widgetStyle
     )
@@ -262,6 +283,13 @@ fun ScheduleGridStyle.toProto(): ScheduleGridStyleProto {
 
         page_text_color_long = this.pageTextColorLong,
         course_text_color_long = this.courseTextColorLong,
+        stack_conflict_courses = this.stackConflictCourses,
+        stack_cluster_orders = this.stackClusterOrders.map {
+            StackClusterOrderProto(
+                cluster_key = it.clusterKey,
+                course_ids = it.courseIds
+            )
+        },
         widget_style = this.widgetStyle.toProto()
     )
 }

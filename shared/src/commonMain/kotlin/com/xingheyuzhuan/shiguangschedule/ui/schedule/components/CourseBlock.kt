@@ -2,15 +2,21 @@ package com.xingheyuzhuan.shiguangschedule.ui.schedule.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,6 +28,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -34,6 +43,9 @@ import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.BorderTypeProto
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleModeProto
 import com.xingheyuzhuan.shiguangschedule.ui.theme.LocalIsDarkTheme
+import org.jetbrains.compose.resources.stringResource
+import shiguangschedule.shared.generated.resources.Res
+import shiguangschedule.shared.generated.resources.a11y_stacked_hidden_courses
 
 @Composable
 fun CourseBlock(
@@ -42,7 +54,11 @@ fun CourseBlock(
     style: ScheduleGridStyleComposed,
     timeSlots: List<TimeSlot>,
     modifier: Modifier = Modifier,
-    isFloating: Boolean = false // 标记当前块是否处于长按选中/悬浮状态
+    isFloating: Boolean = false, // 标记当前块是否处于长按选中/悬浮状态
+    stackCount: Int = 1,
+    conflictCount: Int = stackCount, // 本周实际冲突课程数，不含非本周课程
+    isStackTop: Boolean = false,
+    onStackBadgeClick: (() -> Unit)? = null
 ) {
     val course = courseWrapper.course
     val isDarkTheme = LocalIsDarkTheme.current
@@ -59,7 +75,7 @@ fun CourseBlock(
     val blockColor = (courseColorAdapted ?: fallbackColorAdapted).copy(alpha = currentAlpha)
     val textColor = style.courseTextColor ?: MaterialTheme.colorScheme.onSurface
 
-    // 字体大小
+    // 字体大小保持原设计
     val s13 = (13 * style.fontScale).sp
     val s10 = (10 * style.fontScale).sp
 
@@ -119,9 +135,21 @@ fun CourseBlock(
     val verticalArrangement = if (style.textAlignCenterVertical) Arrangement.Center else Arrangement.Top
     val textAlign = if (style.textAlignCenterHorizontal) TextAlign.Center else TextAlign.Start
 
+    val showStackBadge = isStackTop && conflictCount > 1
+    val showCourseContent = stackCount <= 1 || isStackTop || isFloating
+    // 角标只占用顶部横带，避免压缩文字宽度导致窄列逐字竖排
+    val badgeTopPadding = if (showStackBadge) 16.dp else 0.dp
+
     // 选中捏起时，增加三维物理阴影
     val floatingShadowModifier = if (isFloating) {
         Modifier.shadow(elevation = 8.dp, shape = shape, clip = false)
+    } else {
+        Modifier
+    }
+
+    // 堆叠格先铺一层不透明底色，避免课程块透明度把下层课程透出来
+    val stackOpacityBacking = if (stackCount > 1 && (isStackTop || isFloating)) {
+        Modifier.background(MaterialTheme.colorScheme.surface)
     } else {
         Modifier
     }
@@ -132,48 +160,56 @@ fun CourseBlock(
             .fillMaxSize()
             .then(borderModifier)
             .clip(shape)
+            .then(stackOpacityBacking)
             .background(color = blockColor)
     ) {
-        // 课程文字内容容器
-        Column(
-            modifier = Modifier.fillMaxSize().padding(style.courseBlockInnerPadding),
-            horizontalAlignment = horizontalAlignment,
-            verticalArrangement = verticalArrangement
-        ) {
-            if (timeTextToShow != null) {
-                Text(
-                    text = timeTextToShow,
-                    fontSize = s10,
-                    color = textColor.copy(alpha = 0.8f),
-                    fontWeight = FontWeight.SemiBold,
-                    textAlign = textAlign,
-                    style = TextStyle(lineHeight = 1.em)
-                )
-            }
-
-            Text(
-                text = course.name,
-                fontSize = s13,
-                fontWeight = FontWeight.Bold,
-                color = textColor,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = textAlign,
-                modifier = Modifier.weight(1f, fill = false),
-                style = TextStyle(lineHeight = 1.2.em)
-            )
-
-            if (!style.hideTeacher) {
-                val teacher = course.teacher
-                if (teacher.isNotBlank()) {
-                    Text(text = teacher, fontSize = s10, color = textColor, textAlign = textAlign, overflow = TextOverflow.Ellipsis, style = TextStyle(lineHeight = 1.em))
+        if (showCourseContent) {
+            // 课程文字内容容器
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(style.courseBlockInnerPadding)
+                    .padding(top = badgeTopPadding),
+                horizontalAlignment = horizontalAlignment,
+                verticalArrangement = verticalArrangement
+            ) {
+                if (timeTextToShow != null) {
+                    Text(
+                        text = timeTextToShow,
+                        fontSize = s10,
+                        color = textColor.copy(alpha = 0.8f),
+                        fontWeight = FontWeight.SemiBold,
+                        textAlign = textAlign,
+                        style = TextStyle(lineHeight = 1.em)
+                    )
                 }
-            }
 
-            if (!style.hideLocation) {
-                val position = course.position
-                if (position.isNotBlank()) {
-                    val prefix = if (style.removeLocationAt) "" else "@"
-                    Text(text = "$prefix$position", fontSize = s10, color = textColor, textAlign = textAlign, overflow = TextOverflow.Ellipsis, style = TextStyle(lineHeight = 1.em))
+                Text(
+                    text = course.name,
+                    fontSize = s13,
+                    fontWeight = FontWeight.Bold,
+                    color = textColor,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = textAlign,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f, fill = false),
+                    style = TextStyle(lineHeight = 1.2.em)
+                )
+
+                if (!style.hideTeacher) {
+                    val teacher = course.teacher
+                    if (teacher.isNotBlank()) {
+                        Text(text = teacher, fontSize = s10, color = textColor, textAlign = textAlign, overflow = TextOverflow.Ellipsis, style = TextStyle(lineHeight = 1.em))
+                    }
+                }
+
+                if (!style.hideLocation) {
+                    val position = course.position
+                    if (position.isNotBlank()) {
+                        val prefix = if (style.removeLocationAt) "" else "@"
+                        Text(text = "$prefix$position", fontSize = s10, color = textColor, textAlign = textAlign, overflow = TextOverflow.Ellipsis, style = TextStyle(lineHeight = 1.em))
+                    }
                 }
             }
         }
@@ -196,5 +232,50 @@ fun CourseBlock(
                     }
             )
         }
+
+        if (showStackBadge) {
+            StackBadge(
+                hiddenCount = conflictCount - 1,
+                textColor = textColor,
+                onClick = onStackBadgeClick
+            )
+        }
+    }
+}
+
+@Composable
+private fun BoxScope.StackBadge(
+    hiddenCount: Int,
+    textColor: Color,
+    onClick: (() -> Unit)?
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val description = stringResource(Res.string.a11y_stacked_hidden_courses, hiddenCount)
+
+    Box(
+        modifier = Modifier
+            .align(Alignment.TopEnd)
+            .padding(top = 3.dp, end = 3.dp)
+            .size(20.dp)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                enabled = onClick != null
+            ) {
+                onClick?.invoke()
+            }
+            .semantics { contentDescription = description },
+        contentAlignment = Alignment.TopEnd
+    ) {
+        Text(
+            text = "+$hiddenCount",
+            fontSize = 8.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = textColor.copy(alpha = 0.78f),
+            style = TextStyle(lineHeight = 1.em),
+            modifier = Modifier
+                .padding(top = 3.dp, end = 3.dp)
+                .clearAndSetSemantics {}
+        )
     }
 }

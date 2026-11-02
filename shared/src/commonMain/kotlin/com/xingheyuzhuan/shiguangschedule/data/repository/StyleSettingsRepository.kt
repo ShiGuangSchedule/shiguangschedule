@@ -9,6 +9,7 @@ import com.xingheyuzhuan.shiguangschedule.data.model.ScheduleGridStyle
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.BorderTypeProto
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleGridStyleProto
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleModeProto
+import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.StackClusterOrderProto
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.WidgetStyleProto
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.WidgetThemeModeProto
 import com.xingheyuzhuan.shiguangschedule.data.model.toCompose
@@ -241,6 +242,28 @@ class StyleSettingsRepository(
     /** 设置课表展示模式 */
     suspend fun setScheduleMode(mode: ScheduleModeProto) = updateStyle {
         it.copy(schedule_mode = mode)
+    }
+
+    /** 设置冲突课程是否堆叠显示 */
+    suspend fun setStackConflictCourses(enabled: Boolean) = updateStyle {
+        it.copy(stack_conflict_courses = enabled)
+    }
+
+    /**
+     * 设置单个冲突格的堆叠顺序；传空列表即清除该格的自定义顺序。
+     */
+    suspend fun setStackClusterOrder(clusterKey: String, courseIds: List<String>) = updateStyle { current ->
+        val remaining = current.stack_cluster_orders.filterNot { it.cluster_key == clusterKey }
+        current.copy(
+            stack_cluster_orders = if (courseIds.isEmpty()) {
+                remaining
+            } else {
+                remaining + StackClusterOrderProto(
+                    cluster_key = clusterKey,
+                    course_ids = courseIds
+                )
+            }
+        )
     }
 
     /** 设置页面文本颜色 */
