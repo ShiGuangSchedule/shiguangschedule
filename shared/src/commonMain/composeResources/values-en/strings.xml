@@ -502,6 +502,10 @@
 
     <!-- Quick Actions -->
     <string name="label_course_text_color">Course block text color</string>
+    <string name="label_course_text_tonal">Match text color to course color</string>
+    <string name="label_text_tint_strength">Tint strength</string>
+    <string name="label_text_contrast">Text contrast</string>
+    <string name="desc_course_text_tonal">Generate same-hue text from the card background; adjust tint and contrast</string>
     <string name="label_schedule_mode_24h">24-Hour Timeline Mode</string>
     <string name="item_quick_actions">Quick Actions</string>
     <string name="desc_quick_actions">Includes schedule tweaks, temporary changes, etc.</string>

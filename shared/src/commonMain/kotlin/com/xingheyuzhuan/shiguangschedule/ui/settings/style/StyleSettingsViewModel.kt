@@ -9,6 +9,7 @@ import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
 import com.xingheyuzhuan.shiguangschedule.data.model.AppSettingsModel
 import com.xingheyuzhuan.shiguangschedule.data.model.DualColor
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.BorderTypeProto
+import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.CourseTextColorModeProto
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleModeProto
 import com.xingheyuzhuan.shiguangschedule.data.repository.AppSettingsRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.StyleSettingsRepository
@@ -329,6 +330,21 @@ class StyleSettingsViewModel(
     /** 更新课程块内部文字颜色 */
     fun updateCourseTextColor(color: Color?) = viewModelScope.launch {
         styleRepository.setCourseTextColor(color)
+    }
+
+    /** 更新课程文字配色模式（全局自定义 / 同色系自动） */
+    fun updateCourseTextColorMode(mode: CourseTextColorModeProto) = viewModelScope.launch {
+        styleRepository.setCourseTextColorMode(mode)
+    }
+
+    /** 更新同色系文字浓度 */
+    fun updateCourseTextTintStrength(strength: Float) = viewModelScope.launch {
+        styleRepository.setCourseTextTintStrength(strength)
+    }
+
+    /** 更新主文字目标对比度 */
+    fun updateCourseTextContrastRatio(ratio: Float) = viewModelScope.launch {
+        styleRepository.setCourseTextContrastRatio(ratio)
     }
 
     /**

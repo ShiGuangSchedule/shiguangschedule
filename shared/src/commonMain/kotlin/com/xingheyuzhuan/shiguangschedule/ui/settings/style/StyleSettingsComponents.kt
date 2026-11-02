@@ -64,6 +64,7 @@ import com.xingheyuzhuan.shiguangschedule.Destination
 import com.xingheyuzhuan.shiguangschedule.data.di.TargetPlatform
 import com.xingheyuzhuan.shiguangschedule.data.di.isPlatformSupported
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.BorderTypeProto
+import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.CourseTextColorModeProto
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleModeProto
 import com.xingheyuzhuan.shiguangschedule.ui.components.AdvancedColorPicker
 import com.xingheyuzhuan.shiguangschedule.ui.components.ColorPickerConfig
@@ -92,6 +93,7 @@ import shiguangschedule.shared.generated.resources.action_reset_style
 import shiguangschedule.shared.generated.resources.border_type_dashed
 import shiguangschedule.shared.generated.resources.border_type_solid
 import shiguangschedule.shared.generated.resources.check_24px
+import shiguangschedule.shared.generated.resources.desc_course_text_tonal
 import shiguangschedule.shared.generated.resources.desc_stack_order
 import shiguangschedule.shared.generated.resources.desc_wallpaper_set
 import shiguangschedule.shared.generated.resources.desc_wallpaper_unset
@@ -102,6 +104,7 @@ import shiguangschedule.shared.generated.resources.image_24px
 import shiguangschedule.shared.generated.resources.label_border_type
 import shiguangschedule.shared.generated.resources.label_corner_radius
 import shiguangschedule.shared.generated.resources.label_course_text_color
+import shiguangschedule.shared.generated.resources.label_course_text_tonal
 import shiguangschedule.shared.generated.resources.label_day_header_height
 import shiguangschedule.shared.generated.resources.label_font_scale
 import shiguangschedule.shared.generated.resources.label_hide_date_under_day
@@ -121,6 +124,8 @@ import shiguangschedule.shared.generated.resources.label_show_start_time
 import shiguangschedule.shared.generated.resources.label_stack_conflict_courses
 import shiguangschedule.shared.generated.resources.label_text_align_center_h
 import shiguangschedule.shared.generated.resources.label_text_align_center_v
+import shiguangschedule.shared.generated.resources.label_text_contrast
+import shiguangschedule.shared.generated.resources.label_text_tint_strength
 import shiguangschedule.shared.generated.resources.label_time_column_width
 import shiguangschedule.shared.generated.resources.label_wallpaper
 import shiguangschedule.shared.generated.resources.preview_dark_mode
@@ -256,12 +261,45 @@ fun SettingsListContent(
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
         Text(stringResource(Res.string.style_category_course_block), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
-        ColorPickerItem(
-            label = stringResource(Res.string.label_course_text_color),
-            currentColor = currentStyle.courseTextColor,
-            onColorChanged = { viewModel.updateCourseTextColor(it) },
-            onReset = { viewModel.updateCourseTextColor(null) }
-        )
+        StyleSwitchItem(
+            label = stringResource(Res.string.label_course_text_tonal),
+            checked = currentStyle.courseTextColorMode == CourseTextColorModeProto.COURSE_TEXT_COLOR_TONAL
+        ) { enabled ->
+            viewModel.updateCourseTextColorMode(
+                if (enabled) {
+                    CourseTextColorModeProto.COURSE_TEXT_COLOR_TONAL
+                } else {
+                    CourseTextColorModeProto.COURSE_TEXT_COLOR_GLOBAL
+                }
+            )
+        }
+        if (currentStyle.courseTextColorMode == CourseTextColorModeProto.COURSE_TEXT_COLOR_TONAL) {
+            Text(
+                text = stringResource(Res.string.desc_course_text_tonal),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 4.dp)
+            )
+            SliderWithInputField(
+                stringResource(Res.string.label_text_tint_strength),
+                currentStyle.courseTextTintStrength,
+                0f..1f,
+                0.05f
+            ) { viewModel.updateCourseTextTintStrength(it) }
+            SliderWithInputField(
+                stringResource(Res.string.label_text_contrast),
+                currentStyle.courseTextContrastRatio,
+                4.5f..10f,
+                0.5f
+            ) { viewModel.updateCourseTextContrastRatio(it) }
+        } else {
+            ColorPickerItem(
+                label = stringResource(Res.string.label_course_text_color),
+                currentColor = currentStyle.courseTextColor,
+                onColorChanged = { viewModel.updateCourseTextColor(it) },
+                onReset = { viewModel.updateCourseTextColor(null) }
+            )
+        }
         StyleSwitchItem(stringResource(Res.string.label_show_start_time), currentStyle.showStartTime) { viewModel.updateShowStartTime(it) }
         StyleSwitchItem(stringResource(Res.string.label_hide_location), currentStyle.hideLocation) { viewModel.updateHideLocation(it) }
         StyleSwitchItem(stringResource(Res.string.label_hide_teacher), currentStyle.hideTeacher) { viewModel.updateHideTeacher(it) }

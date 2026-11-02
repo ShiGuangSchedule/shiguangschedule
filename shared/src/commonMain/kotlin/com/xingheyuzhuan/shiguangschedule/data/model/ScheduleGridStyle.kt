@@ -3,6 +3,7 @@ package com.xingheyuzhuan.shiguangschedule.data.model
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.BorderTypeProto
+import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.CourseTextColorModeProto
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.DualColorProto
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleGridStyleProto
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleModeProto
@@ -87,6 +88,9 @@ data class ScheduleGridStyle(
     val scheduleMode: ScheduleModeProto = ScheduleModeProto.SECTION_MODE,
     val pageTextColorLong: Long? = null,
     val courseTextColorLong: Long? = null,
+    val courseTextColorMode: CourseTextColorModeProto = CourseTextColorModeProto.COURSE_TEXT_COLOR_GLOBAL,
+    val courseTextTintStrength: Float = 0.8f,
+    val courseTextContrastRatio: Float = 6.0f,
 
     // 冲突课程堆叠显示
     val stackConflictCourses: Boolean = false,
@@ -153,6 +157,9 @@ data class ScheduleGridStyle(
             scheduleMode = ScheduleModeProto.SECTION_MODE,
             pageTextColorLong = null,
             courseTextColorLong = null,
+            courseTextColorMode = CourseTextColorModeProto.COURSE_TEXT_COLOR_GLOBAL,
+            courseTextTintStrength = 0.8f,
+            courseTextContrastRatio = 6.0f,
             stackConflictCourses = false,
             stackClusterOrders = emptyList(),
             widgetStyle = WidgetStyle.DEFAULT
@@ -237,6 +244,9 @@ fun ScheduleGridStyleProto.toCompose(): ScheduleGridStyle {
         removeLocationAt = this.remove_location_at ?: d.removeLocationAt,
         pageTextColorLong = this.page_text_color_long,
         courseTextColorLong = this.course_text_color_long,
+        courseTextColorMode = this.course_text_color_mode ?: d.courseTextColorMode,
+        courseTextTintStrength = this.course_text_tint_strength ?: d.courseTextTintStrength,
+        courseTextContrastRatio = this.course_text_contrast_ratio ?: d.courseTextContrastRatio,
 
         // 7. 对齐与边框
         textAlignCenterHorizontal = this.text_align_center_horizontal ?: d.textAlignCenterHorizontal,
@@ -283,6 +293,9 @@ fun ScheduleGridStyle.toProto(): ScheduleGridStyleProto {
 
         page_text_color_long = this.pageTextColorLong,
         course_text_color_long = this.courseTextColorLong,
+        course_text_color_mode = this.courseTextColorMode,
+        course_text_tint_strength = this.courseTextTintStrength,
+        course_text_contrast_ratio = this.courseTextContrastRatio,
         stack_conflict_courses = this.stackConflictCourses,
         stack_cluster_orders = this.stackClusterOrders.map {
             StackClusterOrderProto(

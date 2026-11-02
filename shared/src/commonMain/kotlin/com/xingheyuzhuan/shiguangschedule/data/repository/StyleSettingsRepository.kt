@@ -7,6 +7,7 @@ import androidx.datastore.core.okio.OkioSerializer
 import com.xingheyuzhuan.shiguangschedule.data.model.DualColor
 import com.xingheyuzhuan.shiguangschedule.data.model.ScheduleGridStyle
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.BorderTypeProto
+import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.CourseTextColorModeProto
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleGridStyleProto
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleModeProto
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.StackClusterOrderProto
@@ -274,6 +275,21 @@ class StyleSettingsRepository(
     /** 设置课程块文字颜色 */
     suspend fun setCourseTextColor(color: Color?) = updateStyle {
         it.copy(course_text_color_long = color?.toArgb()?.toLong())
+    }
+
+    /** 设置课程文字配色模式（全局自定义 / 同色系自动） */
+    suspend fun setCourseTextColorMode(mode: CourseTextColorModeProto) = updateStyle {
+        it.copy(course_text_color_mode = mode)
+    }
+
+    /** 设置同色系文字浓度（0.0 - 1.0） */
+    suspend fun setCourseTextTintStrength(strength: Float) = updateStyle {
+        it.copy(course_text_tint_strength = strength.coerceIn(0f, 1f))
+    }
+
+    /** 设置主文字目标对比度（4.5 - 12.0） */
+    suspend fun setCourseTextContrastRatio(ratio: Float) = updateStyle {
+        it.copy(course_text_contrast_ratio = ratio.coerceIn(4.5f, 12f))
     }
 
     /** 重置主界面样式设置（保留小组件样式） */

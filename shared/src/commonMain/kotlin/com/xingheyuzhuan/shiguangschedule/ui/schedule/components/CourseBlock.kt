@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -42,6 +43,7 @@ import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWithWeeks
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.BorderTypeProto
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleModeProto
+import com.xingheyuzhuan.shiguangschedule.ui.theme.rememberCourseTextColors
 import com.xingheyuzhuan.shiguangschedule.ui.theme.LocalIsDarkTheme
 import org.jetbrains.compose.resources.stringResource
 import shiguangschedule.shared.generated.resources.Res
@@ -73,7 +75,17 @@ fun CourseBlock(
 
     val currentAlpha = if (isFloating) 0.95f else style.courseBlockAlpha
     val blockColor = (courseColorAdapted ?: fallbackColorAdapted).copy(alpha = currentAlpha)
-    val textColor = style.courseTextColor ?: MaterialTheme.colorScheme.onSurface
+    val effectiveBackground = blockColor.compositeOver(MaterialTheme.colorScheme.surface)
+    val textColors = rememberCourseTextColors(
+        background = effectiveBackground,
+        mode = style.courseTextColorMode,
+        globalColor = style.courseTextColor,
+        tintStrength = style.courseTextTintStrength,
+        contrastTarget = style.courseTextContrastRatio,
+        sourceColor = courseColorAdapted ?: fallbackColorAdapted
+    )
+    val textColor = textColors.primary
+    val secondaryTextColor = textColors.secondary
 
     // 字体大小保持原设计
     val s13 = (13 * style.fontScale).sp
@@ -177,7 +189,7 @@ fun CourseBlock(
                     Text(
                         text = timeTextToShow,
                         fontSize = s10,
-                        color = textColor.copy(alpha = 0.8f),
+                        color = secondaryTextColor,
                         fontWeight = FontWeight.SemiBold,
                         textAlign = textAlign,
                         style = TextStyle(lineHeight = 1.em)

@@ -549,6 +549,10 @@
     <string name="placeholder_input_value">请输入数值</string>
     <string name="label_page_text_color">课表页面文字颜色</string>
     <string name="label_course_text_color">课程块文字颜色</string>
+    <string name="label_course_text_tonal">文字颜色跟随课程配色</string>
+    <string name="label_text_tint_strength">同色系浓度</string>
+    <string name="label_text_contrast">文字对比度</string>
+    <string name="desc_course_text_tonal">根据卡片背景生成同色系文字，可调整浓度和对比度</string>
     <string name="label_schedule_mode_24h">24小时时间轴模式</string>
     <string name="style_category_other">其他样式</string>
     <string name="label_hide_date">隐藏日期</string>

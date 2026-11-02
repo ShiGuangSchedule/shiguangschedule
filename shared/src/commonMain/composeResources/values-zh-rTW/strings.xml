@@ -498,6 +498,10 @@
 
     <!-- 快捷操作 -->
     <string name="label_course_text_color">課程區塊文字顏色</string>
+    <string name="label_course_text_tonal">文字顏色跟隨課程配色</string>
+    <string name="label_text_tint_strength">同色系濃度</string>
+    <string name="label_text_contrast">文字對比度</string>
+    <string name="desc_course_text_tonal">根據卡片背景產生同色系文字，可調整濃度和對比度</string>
     <string name="label_schedule_mode_24h">24小時時間軸模式</string>
     <string name="item_quick_actions">快捷操作</string>
     <string name="desc_quick_actions">包含調課、課程臨時變動等功能</string>

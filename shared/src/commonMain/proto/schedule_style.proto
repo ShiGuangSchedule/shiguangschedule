@@ -26,6 +26,12 @@ enum ScheduleModeProto {
   TIME_24H_MODE = 1;   // 24小时绝对时间轴模式
 }
 
+// 课程文字颜色模式
+enum CourseTextColorModeProto {
+  COURSE_TEXT_COLOR_GLOBAL = 0; // 使用全局自定义文字颜色
+  COURSE_TEXT_COLOR_TONAL = 1;  // 根据课程卡片背景生成同色系高对比文字
+}
+
 // 定义小组件主题深浅模式枚举
 enum WidgetThemeModeProto {
   WIDGET_THEME_FOLLOW_SYSTEM = 0; // 跟随系统 (默认)
@@ -105,6 +111,11 @@ message ScheduleGridStyleProto {
   // 冲突课程堆叠显示
   optional bool stack_conflict_courses = 29;     // 是否将冲突课程重叠显示（默认 false，即并排缩小）
   repeated StackClusterOrderProto stack_cluster_orders = 31; // 每个冲突格独立的堆叠顺序
+
+  // 课程文字颜色模式
+  optional CourseTextColorModeProto course_text_color_mode = 32;
+  optional float course_text_tint_strength = 33;   // 同色系浓度 0.0 - 1.0
+  optional float course_text_contrast_ratio = 34;  // 主文字目标对比度 4.5 - 12.0
 }
 
 // 单个冲突格的堆叠顺序

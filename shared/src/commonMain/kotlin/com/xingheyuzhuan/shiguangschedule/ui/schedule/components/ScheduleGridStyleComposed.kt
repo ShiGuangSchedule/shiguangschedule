@@ -8,6 +8,7 @@ import com.xingheyuzhuan.shiguangschedule.data.model.DualColor
 import com.xingheyuzhuan.shiguangschedule.data.model.ScheduleGridStyle
 import com.xingheyuzhuan.shiguangschedule.data.model.StackClusterOrder
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.BorderTypeProto
+import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.CourseTextColorModeProto
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleModeProto
 
 
@@ -53,6 +54,9 @@ data class ScheduleGridStyleComposed(
 
     val pageTextColor: Color?, // 页面字符颜色
     val courseTextColor: Color?, // 课程块文字颜色
+    val courseTextColorMode: CourseTextColorModeProto, // 课程文字配色模式
+    val courseTextTintStrength: Float,                 // 同色系浓度
+    val courseTextContrastRatio: Float,                // 主文字目标对比度
 ) {
     companion object {
         /**
@@ -89,6 +93,9 @@ data class ScheduleGridStyleComposed(
                 stackClusterOrders = this.stackClusterOrders,
                 pageTextColor = this.pageTextColorLong?.let { Color(it) },
                 courseTextColor = this.courseTextColorLong?.let { Color(it) },
+                courseTextColorMode = this.courseTextColorMode,
+                courseTextTintStrength = this.courseTextTintStrength,
+                courseTextContrastRatio = this.courseTextContrastRatio,
             )
         }
     }
