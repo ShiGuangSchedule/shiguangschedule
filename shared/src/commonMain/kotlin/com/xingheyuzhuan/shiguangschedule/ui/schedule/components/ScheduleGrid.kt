@@ -16,6 +16,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -44,12 +45,14 @@ fun ScheduleGrid(
     style: ScheduleGridStyleComposed,
     modifier: Modifier = Modifier
 ) {
+    val currentActions by rememberUpdatedState(actions)
+
     Box(modifier.fillMaxSize()) {
         val density = LocalDensity.current
 
         LaunchedEffect(viewState.mergedCourses) {
             state.resetAllStates()
-            actions.onHoldStateChanged(false)
+            currentActions.onHoldStateChanged(false)
         }
 
         val pageTextColor = style.pageTextColor ?: MaterialTheme.colorScheme.onSurface
@@ -179,7 +182,7 @@ fun ScheduleGrid(
             ) {
                 TimeColumn(
                     style = style, timeSlots = viewState.timeSlots, maxGridSections = maxGridSections,
-                    is24HourMode = is24HourMode, onTimeSlotClicked = { actions.onTimeSlotClicked() },
+                    is24HourMode = is24HourMode, onTimeSlotClicked = { currentActions.onTimeSlotClicked() },
                     modifier = Modifier.height(totalGridHeight), lineColor = gridLineColor,
                     currentSectionIndex = viewState.currentSectionIndex, textColor = pageTextColor,
                     subTextColor = pageSubTextColor, strokeWidthPx = strokeWidthPx,
@@ -200,16 +203,16 @@ fun ScheduleGrid(
                                         if (!isExpanded) {
                                             Modifier.pointerInput(item) {
                                                 detectTapGestures(
-                                                    onTap = { actions.onCourseBlockClicked(item.parentBlock) },
+                                                    onTap = { currentActions.onCourseBlockClicked(item.parentBlock) },
                                                     onLongPress = {
                                                         state.expandedItem = item
-                                                        actions.onHoldStateChanged(true)
+                                                        currentActions.onHoldStateChanged(true)
                                                     }
                                                 )
                                             }
                                         } else {
                                             Modifier.pointerInput(item) {
-                                                detectTapGestures(onTap = { state.expandedItem = null; actions.onHoldStateChanged(false) })
+                                                detectTapGestures(onTap = { state.expandedItem = null; currentActions.onHoldStateChanged(false) })
                                             }
                                         }
                                     )
@@ -244,9 +247,9 @@ fun ScheduleGrid(
                                                             val touchRightEdge = (currentAbsoluteX + blockWidth) >= (state.gridWidthPx - strictThresholdPx)
 
                                                             if (touchLeftEdge || touchRightEdge) {
-                                                                actions.onInitiateFloatingMode(intent.parentBlock)
+                                                                currentActions.onInitiateFloatingMode(intent.parentBlock)
                                                                 state.resetAllStates()
-                                                                actions.onHoldStateChanged(false)
+                                                                currentActions.onHoldStateChanged(false)
                                                             } else {
                                                                 val deltaCols = (state.bodyDragOffsetX / cellWidth).roundToInt()
                                                                 val targetDisplayIdx = (item.columnIndex + deltaCols).coerceIn(0, displayDaysCount - 1)
@@ -260,13 +263,13 @@ fun ScheduleGrid(
                                                                 state.bodyDragOffsetX = targetX - initialX
                                                                 state.bodyDragOffsetY = (targetStart - intent.initialStartSection) * sectionHeightPx
 
-                                                                actions.onCourseMovedWithinGrid(intent.parentBlock, targetDay, targetStart, targetEnd)
+                                                                currentActions.onCourseMovedWithinGrid(intent.parentBlock, targetDay, targetStart, targetEnd)
                                                             }
                                                         }
                                                     },
                                                     onDragCancel = {
                                                         state.resetAllStates()
-                                                        actions.onHoldStateChanged(false)
+                                                        currentActions.onHoldStateChanged(false)
                                                     },
                                                     onDrag = { change, dragAmount ->
                                                         change.consume()
@@ -348,7 +351,7 @@ fun ScheduleGrid(
                                                     state.bottomHandleDragOffsetY = (finalEnd - currentItem.endSection) * sectionHeightPx
                                                 }
                                                 if (finalStart != currentItem.startSection || finalEnd != currentItem.endSection) {
-                                                    actions.onCourseTimeAdjusted(currentItem.parentBlock, finalStart, finalEnd)
+                                                    currentActions.onCourseTimeAdjusted(currentItem.parentBlock, finalStart, finalEnd)
                                                 }
                                             }
                                         }
@@ -376,12 +379,15 @@ fun ScheduleGrid(
                             detectTapGestures { offset ->
                                 if (state.expandedItem != null) {
                                     state.expandedItem = null
-                                    actions.onHoldStateChanged(false)
+                                    currentActions.onHoldStateChanged(false)
                                     return@detectTapGestures
                                 }
                                 val dayIdx = (offset.x / (size.width / displayDaysCount)).toInt().coerceIn(0, displayDaysCount - 1)
                                 val secIdx = (offset.y / sectionHeightPx).toInt().coerceIn(0, maxGridSections - 1)
-                                actions.onGridCellClicked(mapDisplayIndexToDay(dayIdx, viewState.firstDayOfWeek), if (is24HourMode) secIdx else (secIdx + 1))
+                                currentActions.onGridCellClicked(
+                                    mapDisplayIndexToDay(dayIdx, viewState.firstDayOfWeek),
+                                    if (is24HourMode) secIdx else (secIdx + 1)
+                                )
                             }
                         }
                 ) { measurables, constraints ->
