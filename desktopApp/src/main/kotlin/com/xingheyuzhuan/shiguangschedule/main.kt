@@ -42,7 +42,6 @@ import com.xingheyuzhuan.shiguangschedule.component.DesktopToastHost
 import com.xingheyuzhuan.shiguangschedule.component.DesktopTray
 import com.xingheyuzhuan.shiguangschedule.component.rememberDesktopFileDropState
 import com.xingheyuzhuan.shiguangschedule.data.di.AppStorage
-import com.xingheyuzhuan.shiguangschedule.data.di.SharedModule
 import com.xingheyuzhuan.shiguangschedule.data.di.TargetPlatform
 import com.xingheyuzhuan.shiguangschedule.data.di.isPlatformSupported
 import com.xingheyuzhuan.shiguangschedule.service.DesktopAppController
@@ -67,6 +66,7 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.ComponentScan
+import org.koin.core.annotation.Configuration
 import org.koin.core.annotation.KoinApplication
 import org.koin.core.annotation.Module
 import org.koin.core.context.GlobalContext
@@ -75,6 +75,7 @@ import shiguangschedule.shared.generated.resources.Res
 import shiguangschedule.shared.generated.resources.app_name
 import shiguangschedule.shared.generated.resources.ic_launcher
 import shiguangschedule.shared.generated.resources.ic_menu_logo
+import java.io.PrintStream
 import java.io.PrintWriter
 import java.io.StringWriter
 import java.util.logging.FileHandler
@@ -84,10 +85,12 @@ import java.util.logging.SimpleFormatter
 import kotlin.time.Duration.Companion.milliseconds
 
 @Module
+@Configuration
 @ComponentScan("com.xingheyuzhuan.shiguangschedule")
+@Suppress("unused")
 class DesktopAppConfig
 
-@KoinApplication(modules = [SharedModule::class, DesktopAppConfig::class])
+@KoinApplication
 class DesktopKoinApp
 
 fun main(args: Array<String>) {
@@ -300,29 +303,55 @@ fun DesktopWindowThemeWrapper(content: @Composable () -> Unit) {
 private fun setupLogging() {
     try {
         val appStorage = GlobalContext.get().get<AppStorage>()
-
         val logDir = java.io.File(appStorage.cacheDir.toString()).apply { mkdirs() }
         val logFile = java.io.File(logDir, "shiguangschedule-runtime.log").absolutePath
 
-        val fileHandler = FileHandler(
-            logFile,
-            5 * 1024 * 1024,
-            10,
-            true
-        ).apply {
+        val fileHandler = FileHandler(logFile, 5 * 1024 * 1024, 10, true).apply {
             formatter = SimpleFormatter()
             level = Level.INFO
+            encoding = "UTF-8"
         }
 
         val rootLogger = Logger.getLogger("")
         rootLogger.addHandler(fileHandler)
         rootLogger.level = Level.INFO
 
+        System.setOut(PrintStream(LoggerOutputStream(rootLogger, Level.INFO), true, "UTF-8"))
+        System.setErr(PrintStream(LoggerOutputStream(rootLogger, Level.SEVERE), true, "UTF-8"))
+
     } catch (e: Exception) {
         e.printStackTrace()
     }
 }
 
+private class LoggerOutputStream(
+    private val logger: Logger,
+    private val level: Level
+) : java.io.ByteArrayOutputStream() {
+
+    // 单字节写入：检测换行，遇到换行就 flush
+    override fun write(b: Int) {
+        super.write(b)
+        if (b == '\n'.code) flush()
+    }
+
+    // 批量写入：逐字节走 write(Int)，这样才能检测换行
+    override fun write(b: ByteArray, off: Int, len: Int) {
+        for (i in off until off + len) {
+            write(b[i].toInt() and 0xFF)
+        }
+    }
+
+    override fun flush() {
+        if (size() > 0) {
+            val msg = toString("UTF-8").trimEnd()
+            if (msg.isNotEmpty()) {
+                logger.log(level, msg)
+            }
+            reset()
+        }
+    }
+}
 private fun getStackTraceText(prefix: String, throwable: Throwable): String {
     val sw = StringWriter()
     throwable.printStackTrace(PrintWriter(sw))
