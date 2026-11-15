@@ -45,6 +45,8 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.xingheyuzhuan.shiguangschedule.Destination
+import com.xingheyuzhuan.shiguangschedule.data.di.TargetPlatform
+import com.xingheyuzhuan.shiguangschedule.data.di.isPlatformSupported
 import com.xingheyuzhuan.shiguangschedule.ui.components.NativeNumberPicker
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
@@ -418,7 +420,15 @@ private fun AdvancedSettingsSection(onNavigate: (Destination) -> Unit) {
             SettingItem(
                 title = stringResource(Res.string.title_course_notification_settings),
                 subtitle = stringResource(Res.string.desc_notification_settings),
-                onClick = { onNavigate(Destination.NotificationSettings) }
+                onClick = {
+                    val destination = when {
+                        isPlatformSupported(TargetPlatform.ANDROID) -> Destination.AndroidNotificationSettings
+                        isPlatformSupported(TargetPlatform.IOS) -> Destination.IosNotificationSettings
+                        isPlatformSupported(TargetPlatform.desktop) -> Destination.DesktopNotificationSettings
+                        else -> return@SettingItem
+                    }
+                    onNavigate(destination)
+                }
             )
             SettingItem(
                 title = stringResource(Res.string.title_manage_course_tables),

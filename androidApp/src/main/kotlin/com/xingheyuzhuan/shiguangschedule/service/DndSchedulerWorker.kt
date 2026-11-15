@@ -7,15 +7,16 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.util.Log
-import androidx.work.WorkManager
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.ExistingWorkPolicy
-import androidx.work.Constraints
-import androidx.work.NetworkType
-import androidx.work.CoroutineWorker
-import androidx.work.WorkerParameters
 import androidx.core.content.getSystemService
-import com.xingheyuzhuan.shiguangschedule.data.repository.AppSettingsRepository
+import androidx.work.Constraints
+import androidx.work.CoroutineWorker
+import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.WorkerParameters
+import com.xingheyuzhuan.shiguangschedule.data.model.AutoControlMode
+import com.xingheyuzhuan.shiguangschedule.data.repository.AndroidAppSettingsRepository
 import com.xingheyuzhuan.shiguangschedule.data.repository.WidgetRepository
 import kotlinx.coroutines.flow.first
 import org.koin.android.annotation.KoinWorker
@@ -33,7 +34,7 @@ import java.util.Locale
 class DndSchedulerWorker(
     appContext: Context,
     workerParams: WorkerParameters,
-    private val appSettingsRepository: AppSettingsRepository,
+    private val androidAppSettingsRepository: AndroidAppSettingsRepository,
     private val widgetRepository: WidgetRepository
 ) : CoroutineWorker(appContext, workerParams) {
 
@@ -66,10 +67,10 @@ class DndSchedulerWorker(
     }
 
     override suspend fun doWork(): Result {
-        val appSettings = appSettingsRepository.getAppSettings().first()
+        val androidSettings = androidAppSettingsRepository.getSettings().first()
 
-        if (!appSettings.autoModeEnabled) {
-            Log.d(TAG, "上课时自动模式开关已关闭，取消所有模式闹钟。")
+        if (androidSettings.autoControlMode == AutoControlMode.OFF) {
+            Log.d(TAG, "上课时自动模式已关闭，取消所有模式闹钟。")
             cancelDndAlarms()
             return Result.success()
         }

@@ -137,8 +137,6 @@
     <string name="title_course_notification_settings">Course reminder settings</string>
     <string name="section_title_general">General</string>
     <string name="section_title_advanced">Advanced</string>
-    <string name="text_permission_importance_title">Permissions are crucial for Android reminders.</string>
-    <string name="text_permission_importance_detail">To ensure timely reminders, you need to:\n1. Grant exact alarm permission (Android 12+)\n2. Enable app auto-start\n3. Disable battery optimization\n4. Grant Do Not Disturb permission (for auto mode)\n\nPlease manually enable these permissions in the settings below.</string>
     <string name="item_course_reminder">Course reminders</string>
     <string name="item_remind_time_before">Remind before</string>
     <string name="remind_time_minutes_format">%1$s minutes</string>
@@ -150,20 +148,7 @@
     <string name="status_unauthorized">Unauthorized</string>
     <string name="item_background_and_autostart">Background run &amp; Auto-start</string>
     <string name="item_ignore_battery_optimization">Ignore battery optimization</string>
-    <string name="section_title_skip_dates">Skip dates feature</string>
-    <string name="text_skip_dates_experimental">Experimental feature, not guaranteed to work</string>
-    <string name="item_update_holiday_info">Update holiday information</string>
-    <string name="update_holiday_info_hint">May be unstable (holiday info usually published at year-end)</string>
-    <string name="item_clear_skipped_dates">Clear skipped dates</string>
-    <string name="item_view_skipped_dates">View skipped dates</string>
-    <string name="skipped_dates_count_format">%1$d dates</string>
-    <string name="skipped_dates_none">None</string>
-    <string name="toast_holidays_update_success">Holiday information updated successfully!</string>
-    <string name="toast_update_failed">Update failed: %1$s</string>
-    <string name="toast_clear_success">All skipped dates cleared!</string>
-    <string name="toast_clear_failed">Clear failed: %1$s</string>
     <string name="dialog_title_auto_mode_selection">Select auto mode</string>
-    <string name="auto_mode_dnd_permission_warning">(Missing DND permission, DND/Silent may not work)</string>
     <string name="dialog_title_set_remind_time">Set reminder time</string>
     <string name="label_minutes_input">Minutes</string>
     <string name="error_input_empty">Please enter minutes</string>
@@ -171,17 +156,11 @@
     <string name="dialog_title_exact_alarm_permission">Exact alarm permission needed</string>
     <string name="dialog_text_exact_alarm_permission">To ensure reminders arrive on time, please grant exact alarm permission.</string>
     <string name="action_go_to_settings">Go to settings</string>
-    <string name="dialog_title_clear_confirmation">Confirm clear</string>
-    <string name="dialog_text_clear_confirmation">This will permanently delete all skipped dates and cannot be undone. Continue?</string>
     <string name="dialog_title_dnd_permission">Do not disturb permission needed</string>
     <string name="dialog_text_dnd_permission">To enable auto mode during class, please grant Do Not Disturb permission.</string>
     <string name="auto_mode_off">Off</string>
     <string name="auto_mode_dnd">Do not disturb (DND)</string>
     <string name="auto_mode_silent">Silent mode</string>
-    <string name="dialog_title_view_skipped_dates">Skipped reminder dates</string>
-    <string name="text_no_skipped_dates">No skipped dates set.</string>
-    <string name="action_close">Close</string>
-    <string name="toast_notification_permission_denied">Notification permission denied, cannot receive course reminders.</string>
     <string name="item_compat_wearable_sync">Wearable Sync Compatibility</string>
     <string name="desc_compat_wearable_sync">Android 16's dynamic notification updates conflict with some wearable sync apps. Enabling this will improve compatibility but disable real-time "Ongoing" update effects.</string>
 
@@ -633,4 +612,8 @@
     <string name="tray_close_app">Quit</string>
     <string name="tray_auto_launch">Launch at login</string>
     <string name="tray_auto_launch_disabled">Launch at login disabled, tap to fix</string>
+    <string name="section_title_permission">Permissions</string>
+    <string name="item_promoted_notifications">Real-time Updates</string>
+    <string name="dialog_title_notification_permission_denied">Notification Permission Required</string>
+    <string name="dialog_text_notification_permission_denied">To receive class reminders, please allow the app to send notifications.</string>
 </resources>

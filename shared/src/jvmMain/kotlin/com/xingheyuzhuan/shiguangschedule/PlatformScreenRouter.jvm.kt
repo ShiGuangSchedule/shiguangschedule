@@ -1,6 +1,7 @@
 package com.xingheyuzhuan.shiguangschedule
 
 import androidx.compose.runtime.Composable
+import com.xingheyuzhuan.shiguangschedule.ui.settings.notification.NotificationSettingsScreen
 
 actual object PlatformScreenRouter {
     @Composable
@@ -12,7 +13,10 @@ actual object PlatformScreenRouter {
         return when (destination) {
             is Destination.DesktopDestination -> {
                 when (destination) {
-                    // TODO: 桌面专属页面在这里实现
+                    Destination.DesktopNotificationSettings -> {
+                        NotificationSettingsScreen(onBack = onBack)
+                        true
+                    }
                     else -> false
                 }
             }

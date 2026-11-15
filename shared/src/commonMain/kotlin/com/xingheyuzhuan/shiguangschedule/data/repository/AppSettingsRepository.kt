@@ -171,9 +171,6 @@ class AppSettingsRepository(
             prefs[AppSettingsModel.KEY_REMINDER_ENABLED] = newSettings.reminderEnabled
             prefs[AppSettingsModel.KEY_REMIND_BEFORE_MINUTES] = newSettings.remindBeforeMinutes
             prefs[AppSettingsModel.KEY_HOLIDAYS_JSON] = Json.encodeToString(newSettings.holidays)
-            prefs[AppSettingsModel.KEY_AUTO_MODE_ENABLED] = newSettings.autoModeEnabled
-            prefs[AppSettingsModel.KEY_AUTO_CONTROL_MODE] = newSettings.autoControlMode.value
-            prefs[AppSettingsModel.KEY_COMPAT_WEARABLE_SYNC] = newSettings.compatWearableSync
             prefs[AppSettingsModel.KEY_SHOW_NON_CURRENT_WEEK_COURSES] = newSettings.showNonCurrentWeekCourses
             prefs[AppSettingsModel.KEY_START_SCREEN] = newSettings.startScreen.value
             prefs[AppSettingsModel.KEY_THEME_MODE] = newSettings.themeMode.value

@@ -118,14 +118,10 @@ class WidgetDataSynchronizer(
             }
             .launchIn(scope)
 
-        // 2. 监听通知/自动化配置变更，同样触发同步通知（以便各平台调度 WorkManager/系统闹钟/DND 任务）
+        // 2. 监听提醒配置变更，触发同步通知
         appSettingsRepository.getAppSettings()
             .map { settings ->
-                Triple(
-                    settings.reminderEnabled to settings.remindBeforeMinutes,
-                    settings.autoModeEnabled to settings.autoControlMode,
-                    settings.compatWearableSync
-                )
+                settings.reminderEnabled to settings.remindBeforeMinutes
             }
             .distinctUntilChanged()
             .onEach {

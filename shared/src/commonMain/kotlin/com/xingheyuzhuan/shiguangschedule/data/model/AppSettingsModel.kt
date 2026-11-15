@@ -45,26 +45,6 @@ data class Holiday(
 )
 
 /**
- * 上课时的自动化控制模式枚举
- */
-enum class AutoControlMode(val value: String) {
-    /** 请勿打扰模式 */
-    DND("DND"),
-
-    /** 静音模式 */
-    SILENT("SILENT");
-
-    companion object {
-        /**
-         * 根据字符串获取对应的枚举值，如果匹配失败则返回默认的 DND 模式
-         */
-        fun fromString(value: String?): AutoControlMode {
-            return entries.find { it.value == value } ?: DND
-        }
-    }
-}
-
-/**
  * 可选的启动页面枚举
  */
 enum class StartScreen(val value: String, val labelRes: StringResource) {
@@ -118,19 +98,6 @@ data class AppSettingsModel(
     /** 节假日及调休列表 */
     val holidays: List<Holiday> = emptyList(),
 
-    /** 自动化模式的总开关 */
-    val autoModeEnabled: Boolean = false,
-
-    /** 自动化控制的具体模式，限定为 [AutoControlMode] */
-    val autoControlMode: AutoControlMode = AutoControlMode.DND,
-
-    /**
-     * 兼容穿戴设备同步通知的开关
-     * true: 开启兼容模式（关闭 Ongoing，方便手环抓取）
-     * false: 关闭兼容模式（默认，使用 Android 16 实时更新特性）
-     */
-    val compatWearableSync: Boolean = false,
-
     /** 是否显示非本周课程 */
     val showNonCurrentWeekCourses: Boolean = false,
 
@@ -172,12 +139,19 @@ data class AppSettingsModel(
         val KEY_REMIND_BEFORE_MINUTES = intPreferencesKey("remind_before_minutes")
         /** 节假日及调休列表 JSON 字符串的存储键 */
         val KEY_HOLIDAYS_JSON = stringPreferencesKey("holidays_json")
+
+        @Deprecated("已迁移至 AndroidAppSettingsModel，将在下个版本移除")
         /** 自动化模式总开关的存储键 */
         val KEY_AUTO_MODE_ENABLED = booleanPreferencesKey("auto_mode_enabled")
+
+        @Deprecated("已迁移至 AndroidAppSettingsModel，将在下个版本移除")
         /** 自动化控制具体模式的存储键 */
         val KEY_AUTO_CONTROL_MODE = stringPreferencesKey("auto_control_mode")
+
+        @Deprecated("已迁移至 AndroidAppSettingsModel，将在下个版本移除")
         /** 兼容穿戴设备同步通知开关的存储键 */
         val KEY_COMPAT_WEARABLE_SYNC = booleanPreferencesKey("compat_wearable_sync")
+
         /** 是否显示非本周课程的存储键 */
         val KEY_SHOW_NON_CURRENT_WEEK_COURSES = booleanPreferencesKey("show_non_current_week_courses")
         /** 应用启动页面的存储键 */
@@ -229,9 +203,6 @@ data class AppSettingsModel(
                 reminderEnabled = prefs[KEY_REMINDER_ENABLED] ?: d.reminderEnabled,
                 remindBeforeMinutes = prefs[KEY_REMIND_BEFORE_MINUTES] ?: d.remindBeforeMinutes,
                 holidays = parsedHolidays,
-                autoModeEnabled = prefs[KEY_AUTO_MODE_ENABLED] ?: d.autoModeEnabled,
-                autoControlMode = AutoControlMode.fromString(prefs[KEY_AUTO_CONTROL_MODE]),
-                compatWearableSync = prefs[KEY_COMPAT_WEARABLE_SYNC] ?: d.compatWearableSync,
                 showNonCurrentWeekCourses = prefs[KEY_SHOW_NON_CURRENT_WEEK_COURSES] ?: d.showNonCurrentWeekCourses,
                 startScreen = prefs[KEY_START_SCREEN]?.let { StartScreen.fromString(it) } ?: d.startScreen,
                 themeMode = prefs[KEY_THEME_MODE]?.let { AppThemeMode.fromString(it) } ?: d.themeMode,

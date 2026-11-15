@@ -47,7 +47,6 @@ import com.xingheyuzhuan.shiguangschedule.ui.settings.coursemanagement.CourseIns
 import com.xingheyuzhuan.shiguangschedule.ui.settings.coursemanagement.CourseNameListScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.coursetables.ManageCourseTablesScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.holiday.HolidayManagementScreen
-import com.xingheyuzhuan.shiguangschedule.ui.settings.notification.NotificationSettingsScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.quickactions.QuickActionsScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.quickactions.delete.QuickDeleteScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.quickactions.tweaks.TweakScheduleScreen
@@ -230,7 +229,6 @@ fun ScreenContent(
         Destination.ManageCourseTables -> ManageCourseTablesScreen(onBack)
         Destination.SchoolSelectionListScreen -> SchoolSelectionListScreen(onNavigate, onBack)
         Destination.CourseTableConversion -> CourseTableConversionScreen(onNavigate, onBack)
-        Destination.NotificationSettings -> NotificationSettingsScreen(onBack)
         Destination.MoreOptions -> MoreOptionsScreen(onNavigate, onBack)
         Destination.OpenSourceLicenses -> OpenSourceLicensesScreen(onBack)
         Destination.UpdateRepo -> UpdateRepoScreen(onBack)
