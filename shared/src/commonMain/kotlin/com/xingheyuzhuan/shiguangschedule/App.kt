@@ -13,6 +13,7 @@ import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -30,6 +31,7 @@ import androidx.navigation3.ui.NavDisplay
 import com.xingheyuzhuan.shiguangschedule.data.model.StartScreen
 import com.xingheyuzhuan.shiguangschedule.tool.ExternalFileManager
 import com.xingheyuzhuan.shiguangschedule.ui.components.AdaptiveNavigationScaffold
+import com.xingheyuzhuan.shiguangschedule.ui.components.LocalScaffoldPadding
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.WeeklyScheduleScreen
 import com.xingheyuzhuan.shiguangschedule.ui.schoolselection.list.AdapterSelectionScreen
 import com.xingheyuzhuan.shiguangschedule.ui.schoolselection.list.SchoolSelectionListScreen
@@ -165,34 +167,36 @@ fun AppNavigation(startDestination: Destination) {
         onTabSelected = onNavigate,
         showNavigation = showNavigation,
         navHideFractionProvider = { navHideFraction }
-    ) { _ ->
-        NavDisplay(
-            backStack = backStack,
-            onBack = onBack,
-            modifier = Modifier.fillMaxSize(),
-            transitionSpec = { transitionSpec },
-            popTransitionSpec = { popTransitionSpec },
-            predictivePopTransitionSpec = { predictivePopTransitionSpec },
-            entryDecorators = listOf(
-                rememberSaveableStateHolderNavEntryDecorator(),
-                rememberViewModelStoreNavEntryDecorator()
-            )
-        ) { key ->
-            val destination = key as Destination
+    ) { innerPadding ->
+        CompositionLocalProvider(LocalScaffoldPadding provides innerPadding) {
+            NavDisplay(
+                backStack = backStack,
+                onBack = onBack,
+                modifier = Modifier.fillMaxSize(),
+                transitionSpec = { transitionSpec },
+                popTransitionSpec = { popTransitionSpec },
+                predictivePopTransitionSpec = { predictivePopTransitionSpec },
+                entryDecorators = listOf(
+                    rememberSaveableStateHolderNavEntryDecorator(),
+                    rememberViewModelStoreNavEntryDecorator()
+                )
+            ) { key ->
+                val destination = key as Destination
 
-            NavEntry(
-                key = key,
-                metadata = metadata {
-                    put(ShiguangNavMetadata.IsMainScreenKey, destination.isMainScreen)
-                }
-            ) {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    ScreenContent(
-                        targetDest = destination,
-                        onNavigate = onNavigate,
-                        onBack = onBack,
-                        onNavHideFractionChanged = { navHideFraction = it }
-                    )
+                NavEntry(
+                    key = key,
+                    metadata = metadata {
+                        put(ShiguangNavMetadata.IsMainScreenKey, destination.isMainScreen)
+                    }
+                ) {
+                    Surface(modifier = Modifier.fillMaxSize()) {
+                        ScreenContent(
+                            targetDest = destination,
+                            onNavigate = onNavigate,
+                            onBack = onBack,
+                            onNavHideFractionChanged = { navHideFraction = it }
+                        )
+                    }
                 }
             }
         }

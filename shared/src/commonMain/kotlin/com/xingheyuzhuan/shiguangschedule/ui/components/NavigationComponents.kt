@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentSize
@@ -41,6 +42,7 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffo
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
@@ -78,6 +80,16 @@ private data class NavItemData(
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector
 )
+
+/**
+ * 定义一个 Local 用于在组件树中隐式传递 Scaffold 的 PaddingValues，
+ */
+val LocalScaffoldPadding = compositionLocalOf { PaddingValues(0.dp) }
+
+/**
+ * 底部悬浮导航栏自身固定的内容高度
+ */
+val BottomNavContentHeight = 64.dp
 
 /**
  * 自适应导航栏组件
@@ -133,6 +145,10 @@ fun AdaptiveNavigationScaffold(
 
     val layoutType = NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfoV2())
 
+    // 获取系统的安全区高度
+    val systemBottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+
     Box(modifier = modifier.fillMaxSize()) {
         when (layoutType) {
             NavigationSuiteType.NavigationRail -> {
@@ -166,20 +182,30 @@ fun AdaptiveNavigationScaffold(
                         }
                     }
                     Box(modifier = Modifier.weight(1f)) {
-                        content(PaddingValues(0.dp))
+                        content(
+                            PaddingValues(
+                                top = statusBarTop,
+                                bottom = systemBottomInset
+                            )
+                        )
                     }
                 }
             }
 
             NavigationSuiteType.NavigationBar -> {
                 val density = LocalDensity.current
-                val navBarBottomInsetPx = with(density) {
-                    WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding().toPx()
-                }
-                val navBarTotalHeightPx = with(density) { 88.dp.toPx() } + navBarBottomInsetPx
+
+                val verticalPadding = 24.dp
+                val totalNavBarHeight = BottomNavContentHeight + verticalPadding + systemBottomInset
+                val navBarTotalHeightPx = with(density) { totalNavBarHeight.toPx() }
 
                 Box(modifier = Modifier.fillMaxSize()) {
-                    content(PaddingValues(0.dp))
+                    val calculatedPadding = PaddingValues(
+                        top = statusBarTop,
+                        bottom = totalNavBarHeight
+                    )
+
+                    content(calculatedPadding)
 
                     AnimatedVisibility(
                         visible = showNavigation,
@@ -220,7 +246,12 @@ fun AdaptiveNavigationScaffold(
             }
 
             else -> {
-                content(PaddingValues(0.dp))
+                content(
+                    PaddingValues(
+                        top = statusBarTop,
+                        bottom = systemBottomInset
+                    )
+                )
             }
         }
     }
@@ -240,15 +271,18 @@ private fun FixedWidthNavBarContainer(
     SubcomposeLayout(modifier = modifier) { constraints ->
         val minSpacingPx = minSpacing.roundToPx()
 
-        // 测量各 Tab 处于未选中和选中状态时的宽度
+        // 测量各 Tab 处于未选中状态时的宽度
         val unselectedWidths = navItems.mapIndexed { index, item ->
-            subcompose("measure_unselected_$index") {
+            val position = index + 1
+            subcompose(position) {
                 TabContent(item = item, isSelected = false, textAlpha = 0f)
             }.first().measure(constraints).width
         }
 
+        // 测量各 Tab 处于选中状态时的宽度
         val selectedWidths = navItems.mapIndexed { index, item ->
-            subcompose("measure_selected_$index") {
+            val position = index + 1
+            subcompose(position + 100) {
                 TabContent(item = item, isSelected = true, textAlpha = 1f)
             }.first().measure(constraints).width
         }
@@ -267,8 +301,9 @@ private fun FixedWidthNavBarContainer(
 
         // 测量实际渲染的 Tab 节点
         val placeables = navItems.mapIndexed { index, item ->
+            val position = index + 1
             val isSelected = currentDestination::class == item.destination::class
-            subcompose("real_$index") {
+            subcompose(position + 200) {
                 key(item.destination) {
                     AnimatedTabItem(
                         item = item,
@@ -315,8 +350,7 @@ private fun AnimatedTabItem(
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioNoBouncy,
             stiffness = Spring.StiffnessMediumLow
-        ),
-        label = "TabWidthAnimation"
+        )
     )
 
     // 根据当前的宽度计算动画展开进度 (0f ~ 1f)

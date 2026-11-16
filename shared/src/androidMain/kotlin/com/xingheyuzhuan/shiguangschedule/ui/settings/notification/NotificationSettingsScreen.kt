@@ -9,7 +9,6 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,7 +17,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -30,15 +28,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -63,6 +58,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.xingheyuzhuan.shiguangschedule.data.model.AutoControlMode
+import com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup.SettingsGroupCard
+import com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup.items.SettingsIcon
+import com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup.items.SettingsRow
+import com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup.items.SettingsSwitchRow
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -189,15 +188,6 @@ fun NotificationSettingsScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    /** 课程提醒开关的统一切换入口 */
-    val toggleReminder = {
-        if (uiState.appSettings.reminderEnabled) {
-            viewModel.onReminderEnabledChanged(false)
-        } else {
-            attemptToEnableReminder()
-        }
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -223,91 +213,81 @@ fun NotificationSettingsScreen(
             val appSettings = uiState.appSettings
             val androidSettings = uiState.androidSettings
 
-            // 用普通 Column + verticalScroll 替代 LazyColumn
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(innerPadding)
                     .padding(horizontal = settingPadding),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // 常规标题
-                Text(
-                    text = stringResource(Res.string.section_title_general),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 8.dp, start = 4.dp)
-                )
-
-                // 常规卡片
-                ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                    Column {
-                        SettingItem(
+                // 常规分组
+                SettingsGroupCard(
+                    modifier = Modifier.padding(top = 8.dp),
+                    title = stringResource(Res.string.section_title_general)
+                ) {
+                    item {
+                        SettingsSwitchRow(
                             title = stringResource(Res.string.item_course_reminder),
-                            onClick = toggleReminder
-                        ) {
-                            Switch(
-                                checked = appSettings.reminderEnabled,
-                                onCheckedChange = { toggleReminder() }
-                            )
-                        }
+                            checked = appSettings.reminderEnabled,
+                            onCheckedChange = { targetEnabled ->
+                                if (targetEnabled) {
+                                    attemptToEnableReminder()
+                                } else {
+                                    viewModel.onReminderEnabledChanged(false)
+                                }
+                            }
+                        )
+                    }
 
-                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
-
-                        SettingItem(
+                    item {
+                        SettingsRow(
                             title = stringResource(Res.string.item_remind_time_before),
-                            onClick = { showRemindTimeDialog = true }
-                        ) {
-                            Text(
-                                text = stringResource(Res.string.remind_time_minutes_format, appSettings.remindBeforeMinutes.toString()),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
-
-                        SettingItem(
-                            title = stringResource(Res.string.dialog_title_auto_mode_selection),
-                            onClick = { showAutoModeDialog = true }
-                        ) {
-                            Text(
-                                text = stringResource(androidSettings.autoControlMode.labelRes),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        if (isAndroid16Plus) {
-                            HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
-                            SettingItem(
-                                title = stringResource(Res.string.item_compat_wearable_sync),
-                                subtitle = stringResource(Res.string.desc_compat_wearable_sync),
-                                onClick = { viewModel.onCompatWearableSyncChanged(!androidSettings.compatWearableSync) }
-                            ) {
-                                Switch(
-                                    checked = androidSettings.compatWearableSync,
-                                    onCheckedChange = { viewModel.onCompatWearableSyncChanged(it) }
+                            onClick = { showRemindTimeDialog = true },
+                            trailing = {
+                                Text(
+                                    text = stringResource(
+                                        Res.string.remind_time_minutes_format,
+                                        appSettings.remindBeforeMinutes.toString()
+                                    ),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
+                        )
+                    }
+
+                    item {
+                        SettingsRow(
+                            title = stringResource(Res.string.dialog_title_auto_mode_selection),
+                            onClick = { showAutoModeDialog = true },
+                            trailing = {
+                                Text(
+                                    text = stringResource(androidSettings.autoControlMode.labelRes),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        )
+                    }
+
+                    if (isAndroid16Plus) {
+                        item {
+                            SettingsSwitchRow(
+                                title = stringResource(Res.string.item_compat_wearable_sync),
+                                subtitle = stringResource(Res.string.desc_compat_wearable_sync),
+                                checked = androidSettings.compatWearableSync,
+                                onCheckedChange = viewModel::onCompatWearableSyncChanged
+                            )
                         }
                     }
                 }
 
-                // 权限标题
-                Text(
-                    text = stringResource(Res.string.section_title_permission),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 16.dp, start = 4.dp)
-                )
-
-                // 权限卡片
-                ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                    Column {
+                // 权限分组
+                SettingsGroupCard(
+                    title = stringResource(Res.string.section_title_permission)
+                ) {
+                    item {
                         PermissionItem(
                             title = stringResource(Res.string.item_exact_alarm_permission),
                             isGranted = permissions.hasExactAlarmPermission,
@@ -320,9 +300,9 @@ fun NotificationSettingsScreen(
                                 }
                             }
                         )
+                    }
 
-                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
-
+                    item {
                         PermissionItem(
                             title = stringResource(Res.string.item_dnd_permission),
                             isGranted = permissions.hasDndPermission,
@@ -331,9 +311,9 @@ fun NotificationSettingsScreen(
                                 context.startActivity(intent)
                             }
                         )
+                    }
 
-                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
-
+                    item {
                         PermissionItem(
                             title = stringResource(Res.string.item_ignore_battery_optimization),
                             isGranted = permissions.isIgnoringBatteryOptimizations,
@@ -342,9 +322,10 @@ fun NotificationSettingsScreen(
                                 context.startActivity(intent)
                             }
                         )
+                    }
 
-                        if (isAndroid16Plus) {
-                            HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                    if (isAndroid16Plus) {
+                        item {
                             PermissionItem(
                                 title = stringResource(Res.string.item_promoted_notifications),
                                 isGranted = permissions.canPostPromotedNotifications,
@@ -356,25 +337,26 @@ fun NotificationSettingsScreen(
                                 }
                             )
                         }
+                    }
 
-                        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
-
-                        SettingItem(
+                    item {
+                        SettingsRow(
                             title = stringResource(Res.string.item_background_and_autostart),
                             onClick = {
                                 val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                                     data = "package:${context.packageName}".toUri()
                                 }
                                 context.startActivity(intent)
+                            },
+                            trailing = {
+                                SettingsIcon(
+                                    imageVector = vectorResource(Res.drawable.chevron_right_24px)
+                                )
                             }
-                        ) {
-                            Icon(
-                                imageVector = vectorResource(Res.drawable.chevron_right_24px),
-                                contentDescription = null
-                            )
-                        }
+                        )
                     }
                 }
+
                 Spacer(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
             }
 
@@ -475,38 +457,6 @@ fun NotificationSettingsScreen(
     }
 }
 
-/** 统一的设置项 */
-@Composable
-private fun SettingItem(
-    title: String,
-    subtitle: String? = null,
-    onClick: (() -> Unit)? = null,
-    trailingContent: @Composable () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 64.dp)
-            .clickable(enabled = onClick != null) { onClick?.invoke() }
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            if (subtitle != null) {
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        Spacer(modifier = Modifier.width(16.dp))
-        trailingContent()
-    }
-}
-
 /** 权限项：右侧展示“已授权/未授权”状态 */
 @Composable
 private fun PermissionItem(
@@ -514,14 +464,18 @@ private fun PermissionItem(
     isGranted: Boolean,
     onClick: () -> Unit
 ) {
-    SettingItem(title = title, onClick = onClick) {
-        Text(
-            text = stringResource(if (isGranted) Res.string.status_authorized else Res.string.status_unauthorized),
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (isGranted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-            fontWeight = FontWeight.SemiBold
-        )
-    }
+    SettingsRow(
+        title = title,
+        onClick = onClick,
+        trailing = {
+            Text(
+                text = stringResource(if (isGranted) Res.string.status_authorized else Res.string.status_unauthorized),
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (isGranted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    )
 }
 
 /** 提前提醒时间输入弹窗，限制范围 0~60 分钟 */
