@@ -219,6 +219,9 @@ fun WeekSelectorBottomSheet(
                 }
             }
 
+            val singleWeeks = remember(totalWeeks) { (1..totalWeeks).filter { it % 2 != 0 }.toSet() }
+            val doubleWeeks = remember(totalWeeks) { (1..totalWeeks).filter { it % 2 == 0 }.toSet() }
+
             FlowRow(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -234,16 +237,16 @@ fun WeekSelectorBottomSheet(
                     label = { Text(actionSelectAll) }
                 )
                 FilterChip(
-                    selected = tempSelectedWeeks.isNotEmpty() && tempSelectedWeeks.all { it % 2 != 0 },
+                    selected = singleWeeks.isNotEmpty() && tempSelectedWeeks == singleWeeks,
                     onClick = {
-                        tempSelectedWeeks = (1..totalWeeks).filter { it % 2 != 0 }.toSet()
+                        tempSelectedWeeks = if (tempSelectedWeeks == singleWeeks) emptySet() else singleWeeks
                     },
                     label = { Text(actionSingleWeek) }
                 )
                 FilterChip(
-                    selected = tempSelectedWeeks.isNotEmpty() && tempSelectedWeeks.all { it % 2 == 0 },
+                    selected = doubleWeeks.isNotEmpty() && tempSelectedWeeks == doubleWeeks,
                     onClick = {
-                        tempSelectedWeeks = (1..totalWeeks).filter { it % 2 == 0 }.toSet()
+                        tempSelectedWeeks = if (tempSelectedWeeks == doubleWeeks) emptySet() else doubleWeeks
                     },
                     label = { Text(actionDoubleWeek) }
                 )
