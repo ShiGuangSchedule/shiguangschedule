@@ -1,5 +1,6 @@
 package com.xingheyuzhuan.shiguangschedule.ui.theme
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
@@ -9,6 +10,11 @@ import platform.UIKit.UIApplication
 import platform.UIKit.UIUserInterfaceStyle
 import platform.UIKit.UIWindow
 import platform.UIKit.UIWindowScene
+
+@Composable
+actual fun rememberSystemDark(): Boolean {
+    return isSystemInDarkTheme()
+}
 
 @Composable
 actual fun rememberColorScheme(

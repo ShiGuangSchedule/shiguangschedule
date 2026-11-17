@@ -6,7 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -32,9 +31,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -142,7 +142,7 @@ fun ColorIndicatorSection(
 }
 
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WeekSelectorBottomSheet(
     totalWeeks: Int,
@@ -151,7 +151,10 @@ fun WeekSelectorBottomSheet(
     onConfirm: (Set<Int>) -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
-    val modalBottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val modalBottomSheetState = rememberBottomSheetState(
+        initialValue = SheetValue.Hidden,
+        enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)
+    )
     var tempSelectedWeeks by remember { mutableStateOf(selectedWeeks) }
     val titleSelectWeeks = stringResource(Res.string.title_select_weeks)
     val actionSelectAll = stringResource(Res.string.action_select_all)
@@ -216,6 +219,9 @@ fun WeekSelectorBottomSheet(
                 }
             }
 
+            val singleWeeks = remember(totalWeeks) { (1..totalWeeks).filter { it % 2 != 0 }.toSet() }
+            val doubleWeeks = remember(totalWeeks) { (1..totalWeeks).filter { it % 2 == 0 }.toSet() }
+
             FlowRow(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -231,16 +237,16 @@ fun WeekSelectorBottomSheet(
                     label = { Text(actionSelectAll) }
                 )
                 FilterChip(
-                    selected = tempSelectedWeeks.isNotEmpty() && tempSelectedWeeks.all { it % 2 != 0 },
+                    selected = singleWeeks.isNotEmpty() && tempSelectedWeeks == singleWeeks,
                     onClick = {
-                        tempSelectedWeeks = (1..totalWeeks).filter { it % 2 != 0 }.toSet()
+                        tempSelectedWeeks = if (tempSelectedWeeks == singleWeeks) emptySet() else singleWeeks
                     },
                     label = { Text(actionSingleWeek) }
                 )
                 FilterChip(
-                    selected = tempSelectedWeeks.isNotEmpty() && tempSelectedWeeks.all { it % 2 == 0 },
+                    selected = doubleWeeks.isNotEmpty() && tempSelectedWeeks == doubleWeeks,
                     onClick = {
-                        tempSelectedWeeks = (1..totalWeeks).filter { it % 2 == 0 }.toSet()
+                        tempSelectedWeeks = if (tempSelectedWeeks == doubleWeeks) emptySet() else doubleWeeks
                     },
                     label = { Text(actionDoubleWeek) }
                 )
@@ -279,7 +285,10 @@ fun ColorPickerBottomSheet(
     onConfirm: (colorIndex: Int, applyToAll: Boolean) -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
-    val modalBottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val modalBottomSheetState = rememberBottomSheetState(
+        initialValue = SheetValue.Hidden,
+        enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)
+    )
     var tempSelectedIndex by remember { mutableIntStateOf(selectedIndex) }
     var applyToAll by remember { mutableStateOf(false) }
 

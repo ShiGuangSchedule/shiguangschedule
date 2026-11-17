@@ -5,8 +5,6 @@ import platform.UIKit.UIActivityViewController
 import platform.UIKit.UIApplication
 import platform.UIKit.UIWindowScene
 
-actual val isShareDialogSupported: Boolean = true
-
 actual fun platformShareFile(filePath: String, mimeType: String) {
     val fileUrl = NSURL.fileURLWithPath(filePath)
     val activityItems = listOf(fileUrl)

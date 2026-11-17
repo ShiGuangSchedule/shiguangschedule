@@ -235,3 +235,39 @@ val JS_BRIDGE_INIT = """
     window.AndroidBridge = shiguangBridge;
 })();
 """.trimIndent()
+
+/**
+ * 包装适配脚本：IIFE 沙箱隔离与异常捕获
+ */
+fun wrapAdapterScript(rawJsCode: String): String {
+    return """
+        (function() {
+            (function() {
+                var bridge = window.shiguangBridgePromise;
+                var orig = bridge && bridge.showPrompt;
+                if (typeof orig !== "function") return;
+
+                bridge.showPrompt = function(title, tip, def, validator) {
+                    if (typeof validator === "string" && /^[A-Za-z_${'$'}][\w${'$'}]*$/.test(validator)) {
+                        var fn = null;
+                        try { fn = eval(validator); }
+                        catch (e) { console.warn("[ShiguangBridge] validator '" + validator + "' not found", e); }
+
+                        if (typeof fn === "function") {
+                            window[validator] = fn;
+                        } else {
+                            try { window.shiguangBridge.showToast("校验器 '" + validator + "' 未找到或不是函数"); } catch (_) {}
+                        }
+                    }
+                    return orig.call(bridge, title, tip, def, validator);
+                };
+            })();
+            try {
+                $rawJsCode
+            } catch (e) {
+                window.shiguangBridge.showToast("适配脚本执行出错: " + e.message);
+                console.error("[ShiguangBridge] 适配脚本执行异常: ", e);
+            }
+        })();
+    """.trimIndent()
+}

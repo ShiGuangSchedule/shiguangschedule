@@ -2,10 +2,8 @@
 
 # 拾光课程表
 
-![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/XingHeYuZhuan/shiguangschedule/total)  ![GitHub License](https://img.shields.io/github/license/XingHeYuZhuan/shiguangschedule)  ![GitHub Repo stars](https://img.shields.io/github/stars/XingHeYuZhuan/shiguangschedule)
-
-<a href="https://hellogithub.com/repository/XingHeYuZhuan/shiguangschedule" target="_blank"><img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=9f09baa3931a4f79940100829d4d0ca4&claim_uid=TRP24EpKZ5sx68l&theme=neutral" alt="Featured｜HelloGitHub" style="width: 250px; height: 54px;" width="250" height="54" /></a>
-<a href="https://trendshift.io/repositories/45835?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-45835" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/45835/daily?language=Kotlin" alt="XingHeYuZhuan%2Fshiguangschedule | Trendshift" width="250" height="55"/></a>
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/XingHeYuZhuan/shiguangschedule/total)  ![GitHub License](https://img.shields.io/github/license/XingHeYuZhuan/shiguangschedule)  ![GitHub Repo stars](https://img.shields.io/github/stars/XingHeYuZhuan/shiguangschedule)  
+<a href="https://trendshift.io/repositories/45835?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-45835" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/45835/daily?language=Kotlin" alt="ShiGuangSchedule%2Fshiguangschedule | Trendshift" width="250" height="55"/></a>
 
 #### 与我们交流和讨论 ![](https://img.shields.io/badge/QQ_频道-pd68794181-blue)
 
@@ -98,10 +96,10 @@
 
 ## 相关链接
 
-- 项目主页：[https://github.com/XingHeYuZhuan/shiguangschedule](https://github.com/XingHeYuZhuan/shiguangschedule)
-- 适配脚本仓库：[https://github.com/XingHeYuZhuan/shiguang_warehouse](https://github.com/XingHeYuZhuan/shiguang_warehouse)
-- 查看如何适配,Wiki：[https://github.com/XingHeYuZhuan/shiguangschedule/wiki](https://github.com/XingHeYuZhuan/shiguangschedule/wiki)
-- 浏览器测试插件:[https://github.com/XingHeYuZhuan/shiguang_Tester](https://github.com/XingHeYuZhuan/shiguang_Tester)  
+- 项目主页：[https://github.com/ShiGuangSchedule/shiguangschedule](https://github.com/ShiGuangSchedule/shiguangschedule)
+- 适配脚本仓库：[https://github.com/ShiGuangSchedule/shiguang_warehouse](https://github.com/ShiGuangSchedule/shiguang_warehouse)
+- 查看如何适配,Wiki：[https://github.com/ShiGuangSchedule/shiguangschedule/wiki](https://github.com/ShiGuangSchedule/shiguangschedule/wiki)
+- 浏览器测试插件:[https://github.com/ShiGuangSchedule/shiguang-extension](https://github.com/ShiGuangSchedule/shiguang-extension)  
 
 - ###### 由[@Jursin](https://github.com/Jursin)主导并维护的网站:[https://sgschedule.jursin.top/](https://sgschedule.jursin.top/)  
 ---
@@ -111,21 +109,21 @@
 ## 贡献  
 欢迎任何人提交你的贡献  
 ### 教务适配贡献  
-<a href="https://github.com/XingHeYuZhuan/shiguang_warehouse/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=XingHeYuZhuan/shiguang_warehouse" />
+<a href="https://github.com/ShiGuangSchedule/shiguang_warehouse/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=ShiGuangSchedule/shiguang_warehouse&max=1000" />
 </a>
 
 ### 软件开发贡献  
-<a href="https://github.com/XingHeYuZhuan/shiguangschedule/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=XingHeYuZhuan/shiguangschedule" />
+<a href="https://github.com/ShiGuangSchedule/shiguangschedule/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=ShiGuangSchedule/shiguangschedule&max=1000" />
 </a>
 
 
 ## Star 历史
-<a href="https://www.star-history.com/?repos=XingHeYuZhuan%2Fshiguangschedule&type=timeline&legend=top-left">
+<a href="https://www.star-history.com/?repos=shiguangschedule%2Fshiguangschedule%2Cshiguangschedule%2Fshiguang_warehouse&type=timeline&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=XingHeYuZhuan/shiguangschedule&type=timeline&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=XingHeYuZhuan/shiguangschedule&type=timeline&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=XingHeYuZhuan/shiguangschedule&type=timeline&legend=top-left" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=shiguangschedule/shiguangschedule%2Cshiguangschedule/shiguang_warehouse&type=timeline&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=shiguangschedule/shiguangschedule%2Cshiguangschedule/shiguang_warehouse&type=timeline&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=shiguangschedule/shiguangschedule%2Cshiguangschedule/shiguang_warehouse&type=timeline&legend=top-left" />
  </picture>
 </a>

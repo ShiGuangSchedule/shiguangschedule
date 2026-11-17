@@ -13,10 +13,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -34,7 +35,18 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
 import shiguangschedule.shared.generated.resources.Res
-import shiguangschedule.shared.generated.resources.*
+import shiguangschedule.shared.generated.resources.action_cancel
+import shiguangschedule.shared.generated.resources.action_confirm
+import shiguangschedule.shared.generated.resources.label_custom_time
+import shiguangschedule.shared.generated.resources.label_day_of_week
+import shiguangschedule.shared.generated.resources.label_end_section
+import shiguangschedule.shared.generated.resources.label_end_time
+import shiguangschedule.shared.generated.resources.label_start_section
+import shiguangschedule.shared.generated.resources.label_start_time
+import shiguangschedule.shared.generated.resources.title_select_time
+import shiguangschedule.shared.generated.resources.toast_end_time_must_be_later
+import shiguangschedule.shared.generated.resources.toast_time_invalid
+import shiguangschedule.shared.generated.resources.week_days_full_names
 
 /**
  * 节次时间选择底部弹窗 (节次模式)
@@ -51,7 +63,10 @@ fun CourseTimePickerBottomSheet(
     timeSlots: List<TimeSlot>,
     onDismissRequest: () -> Unit
 ) {
-    val modalBottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val modalBottomSheetState = rememberBottomSheetState(
+        initialValue = SheetValue.Hidden,
+        enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)
+    )
 
     var tempSelectedDay by remember { mutableIntStateOf(selectedDay) }
     var tempStartSection by remember { mutableIntStateOf(startSection) }
@@ -135,7 +150,10 @@ fun CustomTimeRangePickerBottomSheet(
     onDismissRequest: () -> Unit,
     onTimeRangeSelected: (startTime: String, endTime: String) -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = rememberBottomSheetState(
+        initialValue = SheetValue.Hidden,
+        enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)
+    )
     val scope = rememberCoroutineScope()
 
     val confirmText = stringResource(Res.string.action_confirm)

@@ -16,11 +16,12 @@ import androidx.core.content.getSystemService
 import com.xingheyuzhuan.shiguangschedule.MainActivity
 import com.xingheyuzhuan.shiguangschedule.R
 import com.xingheyuzhuan.shiguangschedule.data.model.AutoControlMode
+import com.xingheyuzhuan.shiguangschedule.data.repository.AndroidAppSettingsRepository
 import com.xingheyuzhuan.shiguangschedule.widget.updateAllWidgets
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import com.xingheyuzhuan.shiguangschedule.data.repository.AppSettingsRepository
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -29,7 +30,7 @@ import org.koin.core.component.inject
  */
 class CourseAlarmReceiver : BroadcastReceiver(), KoinComponent {
 
-    private val appSettingsRepository: AppSettingsRepository by inject()
+    private val androidAppSettingsRepository: AndroidAppSettingsRepository by inject()
 
     companion object {
         const val NOTIFICATION_CHANNEL_ID = "course_notification_channel"
@@ -59,6 +60,7 @@ class CourseAlarmReceiver : BroadcastReceiver(), KoinComponent {
             if (audioManager == null || notificationManager == null) return
             if (!notificationManager.isNotificationPolicyAccessGranted) return
             when (modeType) {
+                AutoControlMode.OFF -> Unit
                 AutoControlMode.DND -> {
                     notificationManager.setInterruptionFilter(
                         if (enableMode) NotificationManager.INTERRUPTION_FILTER_PRIORITY
@@ -95,9 +97,12 @@ class CourseAlarmReceiver : BroadcastReceiver(), KoinComponent {
             val pendingResult = goAsync()
             CoroutineScope(Dispatchers.IO).launch {
                 try {
-                    val appSettings = appSettingsRepository.getAppSettingsOnce()
-                    val modeToUse = appSettings.autoControlMode
-                    val isCompatMode = appSettings.compatWearableSync
+                    val androidSettings = androidAppSettingsRepository.getSettings().first()
+                    val modeToUse = androidSettings.autoControlMode
+
+                    val isCompatMode =
+                        Build.VERSION.SDK_INT < Build.VERSION_CODES.BAKLAVA ||
+                                androidSettings.compatWearableSync
 
                     if (!dndAction.isNullOrEmpty()) {
                         when (dndAction) {
@@ -205,7 +210,7 @@ class CourseAlarmReceiver : BroadcastReceiver(), KoinComponent {
             )
 
         // Android 16 实时更新特性
-        if (Build.VERSION.SDK_INT >= 36) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) {
             builder.setRequestPromotedOngoing(true)
             builder.setShortCriticalText(liveStatusText)
         }

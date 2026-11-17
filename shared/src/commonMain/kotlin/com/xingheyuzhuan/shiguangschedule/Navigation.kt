@@ -7,7 +7,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.subclass
-import kotlin.reflect.KClass
 
 /**
  * 导航元数据 Key 定义
@@ -25,6 +24,11 @@ sealed interface Destination : NavKey {
     /** 标记一级主界面的子接口 */
     sealed interface MainDestination : Destination
 
+    // --- 平台专属页面标记接口 ---
+    sealed interface AndroidDestination : Destination
+    sealed interface IosDestination : Destination
+    sealed interface DesktopDestination : Destination
+
     // --- 一级导航页面（底栏对应页面） ---
     @Serializable data object CourseSchedule : MainDestination
     @Serializable data object Settings : MainDestination
@@ -35,7 +39,6 @@ sealed interface Destination : NavKey {
     @Serializable data object ManageCourseTables : Destination
     @Serializable data object SchoolSelectionListScreen : Destination
     @Serializable data object CourseTableConversion : Destination
-    @Serializable data object NotificationSettings : Destination
     @Serializable data object MoreOptions : Destination
     @Serializable data object OpenSourceLicenses : Destination
     @Serializable data object UpdateRepo : Destination
@@ -88,6 +91,15 @@ sealed interface Destination : NavKey {
         val comboId: String? = null,
         val copyFromId: String? = null
     ) : Destination
+
+    // Android 平台专属页面
+    @Serializable data object AndroidNotificationSettings : AndroidDestination
+
+    // Ios 平台专属页面
+    @Serializable data object IosNotificationSettings : IosDestination
+
+    // Desktop 平台专属页面
+    @Serializable data object DesktopNotificationSettings : DesktopDestination
 }
 
 val Destination.isMainScreen: Boolean
@@ -108,7 +120,6 @@ val navSerializersModule = SerializersModule {
         subclass(Destination.ManageCourseTables::class)
         subclass(Destination.SchoolSelectionListScreen::class)
         subclass(Destination.CourseTableConversion::class)
-        subclass(Destination.NotificationSettings::class)
         subclass(Destination.MoreOptions::class)
         subclass(Destination.OpenSourceLicenses::class)
         subclass(Destination.UpdateRepo::class)
@@ -131,6 +142,15 @@ val navSerializersModule = SerializersModule {
         subclass(Destination.CourseManagementDetail::class)
         subclass(Destination.SingleScheduleEdit::class)
         subclass(Destination.ComboScheduleEdit::class)
+
+        // Android 平台专属页面
+        subclass(Destination.AndroidNotificationSettings::class)
+
+        // Ios 平台专属页面
+        subclass(Destination.IosNotificationSettings::class)
+
+        // Desktop 平台专属页面
+        subclass(Destination.DesktopNotificationSettings::class)
     }
 }
 

@@ -4,6 +4,12 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import com.xingheyuzhuan.shiguangschedule.data.model.AppThemeMode
+import dev.nucleusframework.darkmodedetector.isSystemInDarkMode
+
+@Composable
+actual fun rememberSystemDark(): Boolean {
+    return isSystemInDarkMode()
+}
 
 @Composable
 actual fun rememberColorScheme(

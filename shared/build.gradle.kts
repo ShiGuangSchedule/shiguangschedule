@@ -14,6 +14,10 @@ plugins {
 }
 
 kotlin {
+    compilerOptions {
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
+
     listOf(
         iosArm64(),
         iosSimulatorArm64()
@@ -56,8 +60,8 @@ kotlin {
                 implementation(libs.compose.components.resources)
                 implementation(libs.compose.ui.tooling.preview)
 
-                // Dynamic Color 主题生成 (MaterialKolor)
-                implementation(libs.material.kolor)
+                // material颜色库
+                implementation(libs.material.kolor.material3)
 
                 // Lifecycle & Navigation3 导航体系
                 implementation(libs.androidx.lifecycle.viewmodel.compose)
@@ -109,6 +113,10 @@ kotlin {
         jvmMain.dependencies {
             implementation(libs.androidx.sqlite.bundled)
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.nucleus.core.runtime)
+            implementation(libs.nucleus.darkmode.detector)
+            implementation(libs.commons.lang3)
+            implementation(libs.filekit.dialogs.compose)
         }
 
         iosMain.dependencies {
@@ -120,6 +128,10 @@ kotlin {
             implementation(libs.kotlin.test)
         }
     }
+}
+
+compose.resources {
+    publicResClass = true
 }
 
 dependencies {

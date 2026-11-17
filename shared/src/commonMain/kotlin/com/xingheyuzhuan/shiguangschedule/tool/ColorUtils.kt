@@ -2,8 +2,8 @@ package com.xingheyuzhuan.shiguangschedule.tool
 
 import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
-import com.materialkolor.dynamicColorScheme
 import com.materialkolor.PaletteStyle
+import com.materialkolor.material3.dynamicColorScheme
 
 // M3 基线紫默认种子色
 val DEFAULT_SEED_COLOR = Color(0xFF6750A4)

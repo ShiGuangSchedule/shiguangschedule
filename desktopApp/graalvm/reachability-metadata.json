@@ -1,0 +1,190 @@
+{
+    "reflection": [
+        {
+            "type": "androidx.compose.material3.TooltipStateImpl$show$cancellableShow$1",
+            "fields": [
+                {
+                    "name": "label"
+                }
+            ]
+        },
+        {
+            "type": "androidx.compose.ui.platform.GlobalSnapshotManager$Registration"
+        },
+        {
+            "type": "androidx.datastore.preferences.PreferencesProto$PreferenceMap",
+            "fields": [
+                {
+                    "name": "preferences_"
+                }
+            ]
+        },
+        {
+            "type": "androidx.datastore.preferences.PreferencesProto$Value",
+            "fields": [
+                {
+                    "name": "valueCase_"
+                },
+                {
+                    "name": "value_"
+                }
+            ]
+        },
+        {
+            "type": "dev.nucleusframework.window.tao.event.TaoSyntheticMouseWheelEvent$source$1"
+        },
+        {
+            "type": "java.lang.Module",
+            "methods": [
+                {
+                    "name": "getDescriptor",
+                    "parameterTypes": [
+                        
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "java.nio.Buffer",
+            "jniAccessible": true,
+            "fields": [
+                {
+                    "name": "address"
+                }
+            ],
+            "methods": [
+                {
+                    "name": "position",
+                    "parameterTypes": [
+                        
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "libcore.io.Memory"
+        },
+        {
+            "type": "org.robolectric.Robolectric"
+        },
+        {
+            "type": "sun.text.resources.FormatData_en"
+        },
+        {
+            "type": "sun.text.resources.cldr.FormatData_en"
+        },
+        {
+            "type": "com.sun.crypto.provider.AESKeyGenerator",
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "com.sun.crypto.provider.HmacPKCS12PBECore$HmacPKCS12PBE_SHA256",
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "com.sun.crypto.provider.PBEKeyFactory$PBEWithMD5AndDES",
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "com.sun.crypto.provider.PBES2Core$HmacSHA256AndAES_256",
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "com.sun.crypto.provider.PBES2Parameters$HmacSHA256AndAES_256",
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "dev.nucleusframework.window.tao.dnd.TaoSyntheticDropContext$shadowComponent$1"
+        },
+        {
+            "type": "java.util.logging.FileHandler",
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        
+                    ]
+                },
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        "java.lang.String"
+                    ]
+                },
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        "java.lang.String",
+                        "boolean"
+                    ]
+                },
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        "java.lang.String",
+                        "int",
+                        "int"
+                    ]
+                },
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        "java.lang.String",
+                        "int",
+                        "int",
+                        "boolean"
+                    ]
+                }
+            ]
+        }
+    ],
+    "resources": [
+        {
+            "bundle": "sun.text.resources.FormatData"
+        },
+        {
+            "bundle": "sun.text.resources.cldr.FormatData"
+        },
+        {
+            "glob": "sun/text/resources/cldr/ext/FormatData_*.class"
+        },
+        {
+            "glob": "sun/text/resources/ext/FormatData_*.class"
+        }
+    ]
+}

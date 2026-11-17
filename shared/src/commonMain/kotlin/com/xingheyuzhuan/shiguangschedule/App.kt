@@ -1,5 +1,6 @@
 package com.xingheyuzhuan.shiguangschedule
 
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -8,7 +9,11 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -26,6 +31,7 @@ import androidx.navigation3.ui.NavDisplay
 import com.xingheyuzhuan.shiguangschedule.data.model.StartScreen
 import com.xingheyuzhuan.shiguangschedule.tool.ExternalFileManager
 import com.xingheyuzhuan.shiguangschedule.ui.components.AdaptiveNavigationScaffold
+import com.xingheyuzhuan.shiguangschedule.ui.components.LocalScaffoldPadding
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.WeeklyScheduleScreen
 import com.xingheyuzhuan.shiguangschedule.ui.schoolselection.list.AdapterSelectionScreen
 import com.xingheyuzhuan.shiguangschedule.ui.schoolselection.list.SchoolSelectionListScreen
@@ -43,7 +49,6 @@ import com.xingheyuzhuan.shiguangschedule.ui.settings.coursemanagement.CourseIns
 import com.xingheyuzhuan.shiguangschedule.ui.settings.coursemanagement.CourseNameListScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.coursetables.ManageCourseTablesScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.holiday.HolidayManagementScreen
-import com.xingheyuzhuan.shiguangschedule.ui.settings.notification.NotificationSettingsScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.quickactions.QuickActionsScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.quickactions.delete.QuickDeleteScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.quickactions.tweaks.TweakScheduleScreen
@@ -121,54 +126,93 @@ fun AppNavigation(startDestination: Destination) {
         }
     }
 
-    val animSpec = tween<IntOffset>(300)
+    // 判断当前是否为移动端窄屏（NavigationBar 模式）
+    val layoutType = NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfoV2())
+    val isCompact = layoutType == NavigationSuiteType.NavigationBar
+
+    val showNavigation = !isCompact || currentDestination.isMainScreen
+
+    // 动画规格定义
+    val slideAnimSpec = tween<IntOffset>(300)
+
+    val transitionSpec = remember(isCompact) {
+        if (isCompact) {
+            slideInHorizontally(initialOffsetX = { it }, animationSpec = slideAnimSpec) togetherWith
+                    slideOutHorizontally(targetOffsetX = { -it / 3 }, animationSpec = slideAnimSpec) + fadeOut()
+        } else {
+            fadeIn(animationSpec = tween(150)) togetherWith ExitTransition.None
+        }
+    }
+
+    val popTransitionSpec = remember(isCompact) {
+        if (isCompact) {
+            slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = slideAnimSpec) + fadeIn() togetherWith
+                    slideOutHorizontally(targetOffsetX = { it }, animationSpec = slideAnimSpec)
+        } else {
+            fadeIn(animationSpec = tween(150)) togetherWith ExitTransition.None
+        }
+    }
+
+    val predictivePopTransitionSpec = remember(isCompact) {
+        if (isCompact) {
+            slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = slideAnimSpec) + fadeIn() togetherWith
+                    slideOutHorizontally(targetOffsetX = { it }, animationSpec = slideAnimSpec)
+        } else {
+            fadeIn(animationSpec = tween(150)) togetherWith ExitTransition.None
+        }
+    }
 
     AdaptiveNavigationScaffold(
         currentDestination = currentDestination,
         onTabSelected = onNavigate,
-        showNavigation = currentDestination.isMainScreen,
+        showNavigation = showNavigation,
         navHideFractionProvider = { navHideFraction }
-    ) { _ ->
-        NavDisplay(
-            backStack = backStack,
-            onBack = onBack,
-            modifier = Modifier.fillMaxSize(),
-            transitionSpec = {
-                slideInHorizontally(initialOffsetX = { it }, animationSpec = animSpec) togetherWith
-                        slideOutHorizontally(targetOffsetX = { -it / 3 }, animationSpec = animSpec) + fadeOut()
-            },
-            popTransitionSpec = {
-                slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = animSpec) + fadeIn() togetherWith
-                        slideOutHorizontally(targetOffsetX = { it }, animationSpec = animSpec)
-            },
-            predictivePopTransitionSpec = {
-                slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = animSpec) + fadeIn() togetherWith
-                        slideOutHorizontally(targetOffsetX = { it }, animationSpec = animSpec)
-            },
-            entryDecorators = listOf(
-                rememberSaveableStateHolderNavEntryDecorator(),
-                rememberViewModelStoreNavEntryDecorator()
-            )
-        ) { key ->
-            val destination = key as Destination
+    ) { innerPadding ->
+        CompositionLocalProvider(LocalScaffoldPadding provides innerPadding) {
+            NavDisplay(
+                backStack = backStack,
+                onBack = onBack,
+                modifier = Modifier.fillMaxSize(),
+                transitionSpec = { transitionSpec },
+                popTransitionSpec = { popTransitionSpec },
+                predictivePopTransitionSpec = { predictivePopTransitionSpec },
+                entryDecorators = listOf(
+                    rememberSaveableStateHolderNavEntryDecorator(),
+                    rememberViewModelStoreNavEntryDecorator()
+                )
+            ) { key ->
+                val destination = key as Destination
 
-            NavEntry(
-                key = key,
-                metadata = metadata {
-                    put(ShiguangNavMetadata.IsMainScreenKey, destination.isMainScreen)
-                }
-            ) {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    ScreenContent(
-                        targetDest = destination,
-                        onNavigate = onNavigate,
-                        onBack = onBack,
-                        onNavHideFractionChanged = { navHideFraction = it }
-                    )
+                NavEntry(
+                    key = key,
+                    metadata = metadata {
+                        put(ShiguangNavMetadata.IsMainScreenKey, destination.isMainScreen)
+                    }
+                ) {
+                    Surface(modifier = Modifier.fillMaxSize()) {
+                        ScreenContent(
+                            targetDest = destination,
+                            onNavigate = onNavigate,
+                            onBack = onBack,
+                            onNavHideFractionChanged = { navHideFraction = it }
+                        )
+                    }
                 }
             }
         }
     }
+}
+
+/**
+ * 跨平台路由分发接口
+ */
+expect object PlatformScreenRouter {
+    @Composable
+    fun Content(
+        destination: Destination,
+        onNavigate: (Destination) -> Unit,
+        onBack: () -> Unit
+    ): Boolean
 }
 
 @Composable
@@ -189,7 +233,6 @@ fun ScreenContent(
         Destination.ManageCourseTables -> ManageCourseTablesScreen(onBack)
         Destination.SchoolSelectionListScreen -> SchoolSelectionListScreen(onNavigate, onBack)
         Destination.CourseTableConversion -> CourseTableConversionScreen(onNavigate, onBack)
-        Destination.NotificationSettings -> NotificationSettingsScreen(onBack)
         Destination.MoreOptions -> MoreOptionsScreen(onNavigate, onBack)
         Destination.OpenSourceLicenses -> OpenSourceLicensesScreen(onBack)
         Destination.UpdateRepo -> UpdateRepoScreen(onBack)
@@ -242,5 +285,20 @@ fun ScreenContent(
         is Destination.CourseManagementDetail -> CourseInstanceListScreen(
             targetDest.courseName, onBack, onNavigate
         )
+
+        is Destination.AndroidDestination,
+        is Destination.IosDestination,
+        is Destination.DesktopDestination -> {
+            val handled = PlatformScreenRouter.Content(
+                destination = targetDest,
+                onNavigate = onNavigate,
+                onBack = onBack
+            )
+            if (!handled) {
+                LaunchedEffect(targetDest) {
+                    onBack()
+                }
+            }
+        }
     }
 }

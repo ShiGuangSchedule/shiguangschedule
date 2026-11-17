@@ -29,9 +29,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import com.xingheyuzhuan.shiguangschedule.ui.theme.DeveloperIconBgColor
+import com.xingheyuzhuan.shiguangschedule.ui.theme.NormalIconBgColor
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
@@ -41,9 +42,6 @@ import shiguangschedule.shared.generated.resources.developer_mode_24px
 import shiguangschedule.shared.generated.resources.ic_launcher_foreground
 import shiguangschedule.shared.generated.resources.item_developer_options
 
-// 图标背景颜色定义
-private val NormalIconBgColor = Color(0xFF73CAF8)
-private val DeveloperIconBgColor = Color(0xFFBD0000)
 
 /**
  * 动态 App 图标头部组件（包含连续 5 次点击解锁开发者模式逻辑）

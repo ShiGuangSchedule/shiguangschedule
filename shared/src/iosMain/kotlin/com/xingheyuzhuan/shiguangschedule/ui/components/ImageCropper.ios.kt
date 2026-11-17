@@ -10,10 +10,6 @@ import org.jetbrains.skia.EncodedImageFormat
 import org.jetbrains.skia.IRect
 import org.jetbrains.skia.Image
 
-/**
- * iOS 平台开启裁切预览 UI 弹窗
- */
-actual val isCropWindowEnabled: Boolean = true
 
 /**
  * iOS 平台实现：利用底层 Skia 引擎进行物理裁剪并导出为 JPEG ByteArray 字节流

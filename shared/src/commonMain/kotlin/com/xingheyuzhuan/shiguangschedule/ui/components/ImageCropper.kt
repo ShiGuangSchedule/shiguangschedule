@@ -44,6 +44,8 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.zIndex
+import com.xingheyuzhuan.shiguangschedule.data.di.TargetPlatform
+import com.xingheyuzhuan.shiguangschedule.data.di.isPlatformSupported
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import shiguangschedule.shared.generated.resources.Res
@@ -54,9 +56,10 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
- * 各平台是否启用裁剪预览窗口开关
+ * 是否启用裁剪预览窗口开关
  */
-expect val isCropWindowEnabled: Boolean
+val isCropWindowEnabled: Boolean
+    get() = isPlatformSupported(TargetPlatform.mobile)
 
 /**
  * 跨平台通用图片裁剪组件
@@ -230,6 +233,7 @@ fun ImageCropper(
 
                             val imgW = imageBitmap.width * scale
                             val imgH = imageBitmap.height * scale
+
                             val imgStartX = (cw - imgW) / 2 + offset.x
                             val imgStartY = (ch - imgH) / 2 + offset.y
 

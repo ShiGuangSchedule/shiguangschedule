@@ -36,15 +36,18 @@ object CourseImportExport {
         ignoreUnknownKeys = true
     }
 
-    // 全盘二进制备份/恢复协议结构（用于 BackupRepository 全量备份）
-
     /**
      * 全盘备份文件的最外层“集装箱”
+     *
+     * schemaVersion 承载数据协议版本（当前 COURSE_SCHEMA_VERSION = 2）。
+     * 新备份落盘键名为 "schemaVersion"；旧备份中该字段名为 "appVersionCode"，
+     * 因 ignoreUnknownKeys = true 会被忽略，缺失的 schemaVersion 取默认值 2，
+     * 与旧 CBOR 信封的历史版本一致。默认值勿随升级修改。
      */
     @Serializable
     data class TotalAppBackupEnvelope(
         val backupTimestamp: Long,          // 备份生成的时间戳
-        val appVersionCode: Int,            // 实际承载 COURSE_SCHEMA_VERSION，代表数据协议版本
+        val schemaVersion: Int = 2,         // 默认值=旧 CBOR 信封历史版本，勿随升级修改
         val databasePayload: CourseDatabasePayload // 核心数据库所有实体的结构化载体
     )
 

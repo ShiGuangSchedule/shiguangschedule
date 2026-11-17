@@ -1,31 +1,22 @@
 package com.xingheyuzhuan.shiguangschedule.ui.settings
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -40,12 +31,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import com.xingheyuzhuan.shiguangschedule.Destination
+import com.xingheyuzhuan.shiguangschedule.data.di.TargetPlatform
+import com.xingheyuzhuan.shiguangschedule.data.di.isPlatformSupported
+import com.xingheyuzhuan.shiguangschedule.ui.components.LocalScaffoldPadding
 import com.xingheyuzhuan.shiguangschedule.ui.components.NativeNumberPicker
+import com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup.SettingsGroupCard
+import com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup.items.SettingsIcon
+import com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup.items.SettingsRow
+import com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup.items.SettingsSwitchRow
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -107,7 +104,6 @@ import shiguangschedule.shared.generated.resources.title_vacation
 
 private val SETTING_PADDING = 16.dp
 private val SECTION_SPACING = 16.dp
-private val ITEM_SPACING = 16.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -160,19 +156,25 @@ fun SettingsScreen(
             var showDatePickerModal by remember { mutableStateOf(false) }
             var showFirstDayOfWeekDialog by remember { mutableStateOf(false) }
 
+            val scaffoldPadding = LocalScaffoldPadding.current
+            val layoutDirection = LocalLayoutDirection.current
+
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding)
                     .padding(horizontal = SETTING_PADDING),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(SECTION_SPACING),
                 contentPadding = PaddingValues(
-                    bottom = 88.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp
+                    start = innerPadding.calculateStartPadding(layoutDirection),
+                    top = innerPadding.calculateTopPadding(),
+                    end = innerPadding.calculateEndPadding(layoutDirection),
+                    bottom = scaffoldPadding.calculateBottomPadding() + 16.dp
                 )
             ) {
                 item {
                     GeneralSettingsSection(
+                        modifier = Modifier.padding(top = 8.dp),
                         showNonCurrentWeek = appSettings.showNonCurrentWeekCourses,
                         onShowNonCurrentWeekChanged = { isChecked -> viewModel.onShowNonCurrentWeekChanged(isChecked) },
                         showWeekends = showWeekends,
@@ -186,13 +188,6 @@ fun SettingsScreen(
                         onManualWeekClick = { showManualWeekDialog = true },
                         onFirstDayOfWeekClick = { showFirstDayOfWeekDialog = true },
                         onQuickActionsClick = { onNavigate(Destination.QuickActions) }
-                    )
-                }
-                item {
-                    HorizontalDivider(
-                        modifier = Modifier.padding(vertical = 4.dp, horizontal = 16.dp),
-                        thickness = 1.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant
                     )
                 }
                 item {
@@ -278,6 +273,7 @@ fun SettingsScreen(
  */
 @Composable
 private fun GeneralSettingsSection(
+    modifier: Modifier = Modifier,
     showNonCurrentWeek: Boolean,
     onShowNonCurrentWeekChanged: (Boolean) -> Unit,
     showWeekends: Boolean,
@@ -292,101 +288,117 @@ private fun GeneralSettingsSection(
     onFirstDayOfWeekClick: () -> Unit,
     onQuickActionsClick: () -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    SettingsGroupCard(
+        modifier = modifier,
+        title = stringResource(Res.string.section_title_general_settings)
     ) {
-        Column(
-            modifier = Modifier.padding(SETTING_PADDING),
-            verticalArrangement = Arrangement.spacedBy(ITEM_SPACING)
-        ) {
-            Text(
-                stringResource(Res.string.section_title_general_settings),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            SettingItem(
+        item {
+            SettingsSwitchRow(
                 title = stringResource(Res.string.item_show_non_current_week),
-                subtitle = stringResource(Res.string.desc_show_non_current_week)
-            ) {
-                Switch(checked = showNonCurrentWeek, onCheckedChange = onShowNonCurrentWeekChanged)
-            }
+                subtitle = stringResource(Res.string.desc_show_non_current_week),
+                checked = showNonCurrentWeek,
+                onCheckedChange = onShowNonCurrentWeekChanged
+            )
+        }
 
-            SettingItem(
+        item {
+            SettingsSwitchRow(
                 title = stringResource(Res.string.item_show_weekends),
-                subtitle = stringResource(Res.string.desc_show_weekends)
-            ) {
-                Switch(checked = showWeekends, onCheckedChange = onShowWeekendsChanged)
-            }
+                subtitle = stringResource(Res.string.desc_show_weekends),
+                checked = showWeekends,
+                onCheckedChange = onShowWeekendsChanged
+            )
+        }
 
-            SettingItem(
+        item {
+            val formattedDate = semesterStartDate?.let {
+                stringResource(
+                    Res.string.date_format_year_month_day,
+                    it.year.toString(),
+                    it.month.number.toString(),
+                    it.day.toString()
+                )
+            } ?: stringResource(Res.string.status_not_set)
+
+            SettingsRow(
                 title = stringResource(Res.string.item_set_start_date),
                 subtitle = stringResource(Res.string.desc_set_start_date),
-                onClick = onSemesterStartDateClick
-            ) {
-                val formattedDate = semesterStartDate?.let {
-                    stringResource(
-                        Res.string.date_format_year_month_day,
-                        it.year.toString(),
-                        it.month.number.toString(),
-                        it.day.toString()
+                onClick = onSemesterStartDateClick,
+                trailing = {
+                    Text(
+                        text = formattedDate,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                } ?: stringResource(Res.string.status_not_set)
+                }
+            )
+        }
 
-                Text(
-                    text = formattedDate,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-
-            SettingItem(
+        item {
+            SettingsRow(
                 title = stringResource(Res.string.item_total_weeks),
                 subtitle = stringResource(Res.string.desc_total_weeks),
-                onClick = onSemesterTotalWeeksClick
-            ) {
-                Text(
-                    text = stringResource(Res.string.status_total_weeks_format, semesterTotalWeeks),
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                onClick = onSemesterTotalWeeksClick,
+                trailing = {
+                    Text(
+                        text = stringResource(Res.string.status_total_weeks_format, semesterTotalWeeks),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            )
+        }
+
+        item {
+            val weekStatusText = when {
+                semesterStartDate == null -> stringResource(Res.string.status_set_start_date_first)
+                displayCurrentWeek == null -> stringResource(Res.string.title_vacation)
+                else -> stringResource(Res.string.status_current_week_format, displayCurrentWeek)
             }
 
-            SettingItem(
+            SettingsRow(
                 title = stringResource(Res.string.item_current_week),
                 subtitle = stringResource(Res.string.desc_current_week_manual),
-                onClick = onManualWeekClick
-            ) {
-                val weekStatusText = when {
-                    semesterStartDate == null -> stringResource(Res.string.status_set_start_date_first)
-                    displayCurrentWeek == null -> stringResource(Res.string.title_vacation)
-                    else -> stringResource(Res.string.status_current_week_format, displayCurrentWeek)
+                onClick = onManualWeekClick,
+                trailing = {
+                    Text(
+                        text = weekStatusText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-                Text(
-                    text = weekStatusText,
-                    style = MaterialTheme.typography.bodyMedium
-                )
+            )
+        }
+
+        item {
+            val dayText = when (firstDayOfWeekInt) {
+                DayOfWeek.MONDAY.isoDayNumber -> stringResource(Res.string.day_of_week_monday)
+                DayOfWeek.SUNDAY.isoDayNumber -> stringResource(Res.string.day_of_week_sunday)
+                else -> stringResource(Res.string.day_of_week_monday)
             }
 
-            SettingItem(
+            SettingsRow(
                 title = stringResource(Res.string.item_first_day_of_week),
                 subtitle = stringResource(Res.string.desc_first_day_of_week),
-                onClick = onFirstDayOfWeekClick
-            ) {
-                val dayText = when (firstDayOfWeekInt) {
-                    DayOfWeek.MONDAY.isoDayNumber -> stringResource(Res.string.day_of_week_monday)
-                    DayOfWeek.SUNDAY.isoDayNumber -> stringResource(Res.string.day_of_week_sunday)
-                    else -> stringResource(Res.string.day_of_week_monday)
+                onClick = onFirstDayOfWeekClick,
+                trailing = {
+                    Text(
+                        text = dayText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-                Text(
-                    text = dayText,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
+            )
+        }
 
-            SettingItem(
+        item {
+            SettingsRow(
                 title = stringResource(Res.string.item_quick_actions),
                 subtitle = stringResource(Res.string.desc_quick_actions),
-                onClick = onQuickActionsClick
+                onClick = onQuickActionsClick,
+                trailing = {
+                    SettingsIcon(imageVector = vectorResource(Res.drawable.chevron_right_24px))
+                }
             )
         }
     }
@@ -396,89 +408,102 @@ private fun GeneralSettingsSection(
  * 高级功能卡片
  */
 @Composable
-private fun AdvancedSettingsSection(onNavigate: (Destination) -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+private fun AdvancedSettingsSection(
+    modifier: Modifier = Modifier,
+    onNavigate: (Destination) -> Unit
+) {
+    SettingsGroupCard(
+        modifier = modifier,
+        title = stringResource(Res.string.section_title_advanced_features)
     ) {
-        Column(
-            modifier = Modifier.padding(SETTING_PADDING),
-            verticalArrangement = Arrangement.spacedBy(ITEM_SPACING)
-        ) {
-            Text(
-                stringResource(Res.string.section_title_advanced_features),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            SettingItem(
+        item {
+            SettingsRow(
                 title = stringResource(Res.string.item_course_conversion),
                 subtitle = stringResource(Res.string.desc_course_conversion),
-                onClick = { onNavigate(Destination.CourseTableConversion) }
+                onClick = { onNavigate(Destination.CourseTableConversion) },
+                trailing = {
+                    SettingsIcon(imageVector = vectorResource(Res.drawable.chevron_right_24px))
+                }
             )
-            SettingItem(
+        }
+        item {
+            SettingsRow(
                 title = stringResource(Res.string.title_course_notification_settings),
                 subtitle = stringResource(Res.string.desc_notification_settings),
-                onClick = { onNavigate(Destination.NotificationSettings) }
+                onClick = {
+                    val destination = when {
+                        isPlatformSupported(TargetPlatform.ANDROID) -> Destination.AndroidNotificationSettings
+                        isPlatformSupported(TargetPlatform.IOS) -> Destination.IosNotificationSettings
+                        isPlatformSupported(TargetPlatform.desktop) -> Destination.DesktopNotificationSettings
+                        else -> return@SettingsRow
+                    }
+                    onNavigate(destination)
+                },
+                trailing = {
+                    SettingsIcon(imageVector = vectorResource(Res.drawable.chevron_right_24px))
+                }
             )
-            SettingItem(
+        }
+        item {
+            SettingsRow(
                 title = stringResource(Res.string.title_manage_course_tables),
                 subtitle = stringResource(Res.string.desc_manage_course_tables),
-                onClick = { onNavigate(Destination.ManageCourseTables) }
+                onClick = { onNavigate(Destination.ManageCourseTables) },
+                trailing = {
+                    SettingsIcon(imageVector = vectorResource(Res.drawable.chevron_right_24px))
+                }
             )
-            SettingItem(
+        }
+        item {
+            SettingsRow(
                 title = stringResource(Res.string.item_course_management),
                 subtitle = stringResource(Res.string.desc_course_management),
-                onClick = { onNavigate(Destination.CourseManagementList) }
+                onClick = { onNavigate(Destination.CourseManagementList) },
+                trailing = {
+                    SettingsIcon(imageVector = vectorResource(Res.drawable.chevron_right_24px))
+                }
             )
-            SettingItem(
+        }
+        item {
+            SettingsRow(
                 title = stringResource(Res.string.title_schedule_management),
                 subtitle = stringResource(Res.string.desc_schedule_management),
-                onClick = { onNavigate(Destination.TimeScheduleManagement) }
+                onClick = { onNavigate(Destination.TimeScheduleManagement) },
+                trailing = {
+                    SettingsIcon(imageVector = vectorResource(Res.drawable.chevron_right_24px))
+                }
             )
-            SettingItem(
+        }
+        item {
+            SettingsRow(
                 title = stringResource(Res.string.item_personalization),
                 subtitle = stringResource(Res.string.desc_personalization),
-                onClick = { onNavigate(Destination.StyleSettings) }
+                onClick = { onNavigate(Destination.StyleSettings) },
+                trailing = {
+                    SettingsIcon(imageVector = vectorResource(Res.drawable.chevron_right_24px))
+                }
             )
-            SettingItem(
+        }
+        item {
+            SettingsRow(
                 title = stringResource(Res.string.holiday_management_title),
                 subtitle = stringResource(Res.string.holiday_management_desc),
-                onClick = { onNavigate(Destination.HolidayManagement) }
+                onClick = { onNavigate(Destination.HolidayManagement) },
+                trailing = {
+                    SettingsIcon(imageVector = vectorResource(Res.drawable.chevron_right_24px))
+                }
             )
-            SettingItem(
+        }
+        item {
+            SettingsRow(
                 title = stringResource(Res.string.item_more_options),
                 subtitle = stringResource(Res.string.desc_more_options),
                 onClick = { onNavigate(Destination.MoreOptions) },
-                icon = vectorResource(Res.drawable.more_horiz_24px)
+                trailing = {
+                    SettingsIcon(imageVector = vectorResource(Res.drawable.more_horiz_24px))
+                }
             )
         }
-    }
-}
-
-/**
- * 封装单个设置项的可组合函数，提高代码复用性
- */
-@Composable
-private fun SettingItem(
-    title: String,
-    subtitle: String,
-    icon: ImageVector = vectorResource(Res.drawable.chevron_right_24px),
-    onClick: (() -> Unit)? = null,
-    trailingContent: @Composable () -> Unit = { Icon(icon, contentDescription = null) }
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = onClick != null) { onClick?.invoke() }
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            Text(subtitle, style = MaterialTheme.typography.bodyMedium)
-        }
-        trailingContent()
     }
 }
 

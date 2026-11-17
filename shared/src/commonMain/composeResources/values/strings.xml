@@ -31,6 +31,9 @@
     <string name="action_clear_selected">清空已选</string>
     <string name="action_select_date_range">选择日期范围</string>
     <string name="action_custom_date">自定义日期</string>
+    <string name="section_title_general">常规</string>
+    <string name="section_title_advanced">高级</string>
+    <string name="section_title_permission">权限</string>
 
     <!-- 主界面及今日课表 -->
     <string name="nav_today_schedule">今日课表</string>
@@ -145,10 +148,6 @@
 
     <!-- 通知设置 -->
     <string name="title_course_notification_settings">课程提醒设置</string>
-    <string name="section_title_general">常规</string>
-    <string name="section_title_advanced">高级</string>
-    <string name="text_permission_importance_title">权限设置对于 Android 提醒非常重要</string>
-    <string name="text_permission_importance_detail">为了确保提醒按时送达，你需要：\n1. 授予精确闹钟权限 (Android 12及以上)\n2. 开启应用的自启动权限\n3. 关闭应用的电池优化功能\n4. 授予勿扰模式权限（用于自动模式切换）\n\n请在下方的设置项中手动开启这些权限。</string>
     <string name="item_course_reminder">课程提醒</string>
     <string name="item_remind_time_before">提前提醒时间</string>
     <string name="remind_time_minutes_format">%1$s 分钟</string>
@@ -160,20 +159,7 @@
     <string name="status_unauthorized">未授权</string>
     <string name="item_background_and_autostart">后台运行和自启</string>
     <string name="item_ignore_battery_optimization">忽略电池优化</string>
-    <string name="section_title_skip_dates">跳过日期功能</string>
-    <string name="text_skip_dates_experimental">实验性的功能，不保证一定有用</string>
-    <string name="item_update_holiday_info">更新节假日信息</string>
-    <string name="update_holiday_info_hint">可能不稳定(一般情况下只有年末才公布下一年的节假日信息)</string>
-    <string name="item_clear_skipped_dates">清空跳过日期</string>
-    <string name="item_view_skipped_dates">查看跳过的日期</string>
-    <string name="skipped_dates_count_format">%1$d 个日期</string>
-    <string name="skipped_dates_none">无</string>
-    <string name="toast_holidays_update_success">节假日信息更新成功！</string>
-    <string name="toast_update_failed">更新失败：%1$s</string>
-    <string name="toast_clear_success">已清空所有跳过日期！</string>
-    <string name="toast_clear_failed">清空失败：%1$s</string>
     <string name="dialog_title_auto_mode_selection">上课自动模式选择</string>
-    <string name="auto_mode_dnd_permission_warning">（缺少勿扰权限，启用勿扰/静音可能无效）</string>
     <string name="dialog_title_set_remind_time">设置提前提醒时间</string>
     <string name="label_minutes_input">分钟数</string>
     <string name="error_input_empty">请输入分钟数</string>
@@ -181,19 +167,16 @@
     <string name="dialog_title_exact_alarm_permission">需要精确闹钟权限</string>
     <string name="dialog_text_exact_alarm_permission">为了确保提醒能在准确时间送达，请授予精确闹钟权限。</string>
     <string name="action_go_to_settings">去设置</string>
-    <string name="dialog_title_clear_confirmation">确认清空</string>
-    <string name="dialog_text_clear_confirmation">这会永久清除所有跳过的日期，无法恢复。确定要继续吗？</string>
     <string name="dialog_title_dnd_permission">需要勿扰模式权限</string>
     <string name="dialog_text_dnd_permission">为了启用上课自动模式，请授予应用访问勿扰模式设置的权限。</string>
     <string name="auto_mode_off">关闭</string>
     <string name="auto_mode_dnd">勿扰模式 (DND)</string>
     <string name="auto_mode_silent">静音模式 (SILENT)</string>
-    <string name="dialog_title_view_skipped_dates">跳过的提醒日期</string>
-    <string name="text_no_skipped_dates">没有设置跳过的日期。</string>
-    <string name="action_close">关闭</string>
-    <string name="toast_notification_permission_denied">通知权限被拒绝，无法接收课程提醒。</string>
     <string name="item_compat_wearable_sync">兼容穿戴设备同步通知</string>
     <string name="desc_compat_wearable_sync">因 Android 16 实时通知属性与部分穿戴设备通知同步软件存在兼容性冲突，开启此项将优化同步兼容性，但会停用实时更新效果</string>
+    <string name="item_promoted_notifications">实时动态通知</string>
+    <string name="dialog_title_notification_permission_denied">需要通知权限</string>
+    <string name="dialog_text_notification_permission_denied">为了接收课程提醒，请允许应用发送通知。</string>
 
     <!-- 设置选项 -->
     <string name="title_schedule_settings">课程表设置</string>
@@ -619,7 +602,6 @@
     <string name="backup_target_webdav">WebDAV 云同步</string>
     <string name="backup_target_local_zip">本地 ZIP 文件</string>
 
-
     <!-- 假期与调休管理 -->
     <string name="holiday_management_title">假期与调休管理</string>
     <string name="holiday_management_desc">节假日及调休安排</string>
@@ -636,5 +618,11 @@
     <string name="holiday_picker_hint_range_selected">已选新区间</string>
     <string name="holiday_picker_hint_select_end">请选择结束日期(单天点击确认即可)</string>
     <string name="holiday_picker_hint_select_start">点击选择开始日期</string>
+
+    <!-- 桌面平台专属字符资源 -->
+    <string name="tray_open_main_window">打开主页面</string>
+    <string name="tray_close_app">关闭应用</string>
+    <string name="tray_auto_launch">开机自启动</string>
+    <string name="tray_auto_launch_disabled">自启动被禁用，点击设置</string>
 
 </resources>

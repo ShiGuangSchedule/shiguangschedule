@@ -9,8 +9,6 @@ import org.koin.core.context.GlobalContext
 import shiguangschedule.shared.generated.resources.Res
 import shiguangschedule.shared.generated.resources.action_share
 
-actual val isShareDialogSupported: Boolean = true
-
 actual fun platformShareFile(filePath: String, mimeType: String) {
     val context = GlobalContext.get().get<android.content.Context>()
 

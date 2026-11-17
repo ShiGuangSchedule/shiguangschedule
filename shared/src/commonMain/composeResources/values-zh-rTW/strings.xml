@@ -136,8 +136,6 @@
     <string name="title_course_notification_settings">課程提醒設定</string>
     <string name="section_title_general">一般</string>
     <string name="section_title_advanced">進階</string>
-    <string name="text_permission_importance_title">權限設定對於 Android 提醒非常重要</string>
-    <string name="text_permission_importance_detail">為了確保提醒準時送達，你需要：\n1. 授予精確鬧鐘權限 (Android 12及以上)\n2. 開啟應用程式的自動啟動權限\n3. 關閉應用程式的電池最佳化功能\n4. 授予勿擾模式權限（用於自動模式切換）\n\n請在下方的設定項目中手動開啟這些權限。</string>
     <string name="item_course_reminder">課程提醒</string>
     <string name="item_remind_time_before">提前提醒時間</string>
     <string name="remind_time_minutes_format">%1$s 分鐘</string>
@@ -149,20 +147,7 @@
     <string name="status_unauthorized">未授權</string>
     <string name="item_background_and_autostart">背景執行和自動啟動</string>
     <string name="item_ignore_battery_optimization">忽略電池最佳化</string>
-    <string name="section_title_skip_dates">跳過日期功能</string>
-    <string name="text_skip_dates_experimental">實驗性功能，不保證一定有效</string>
-    <string name="item_update_holiday_info">更新節假日資訊</string>
-    <string name="update_holiday_info_hint">可能不穩定（一般情況下只有年底才公布下一年的節假日資訊）</string>
-    <string name="item_clear_skipped_dates">清空跳過日期</string>
-    <string name="item_view_skipped_dates">檢視跳過的日期</string>
-    <string name="skipped_dates_count_format">%1$d 個日期</string>
-    <string name="skipped_dates_none">無</string>
-    <string name="toast_holidays_update_success">節假日資訊更新成功！</string>
-    <string name="toast_update_failed">更新失敗：%1$s</string>
-    <string name="toast_clear_success">已清空所有跳過日期！</string>
-    <string name="toast_clear_failed">清空失敗：%1$s</string>
     <string name="dialog_title_auto_mode_selection">上課自動模式選擇</string>
-    <string name="auto_mode_dnd_permission_warning">（缺少勿擾權限，啟用勿擾/靜音可能無效）</string>
     <string name="dialog_title_set_remind_time">設定提前提醒時間</string>
     <string name="label_minutes_input">分鐘數</string>
     <string name="error_input_empty">請輸入分鐘數</string>
@@ -170,17 +155,11 @@
     <string name="dialog_title_exact_alarm_permission">需要精確鬧鐘權限</string>
     <string name="dialog_text_exact_alarm_permission">為了確保提醒能在準確時間送達，請授予精確鬧鐘權限。</string>
     <string name="action_go_to_settings">前往設定</string>
-    <string name="dialog_title_clear_confirmation">確認清空</string>
-    <string name="dialog_text_clear_confirmation">這會永久清除所有跳過的日期，無法復原。確定要繼續嗎？</string>
     <string name="dialog_title_dnd_permission">需要勿擾模式權限</string>
     <string name="dialog_text_dnd_permission">為了啟用上課自動模式，請授予應用程式存取勿擾模式設定的權限。</string>
     <string name="auto_mode_off">關閉</string>
     <string name="auto_mode_dnd">勿擾模式 (DND)</string>
     <string name="auto_mode_silent">靜音模式 (SILENT)</string>
-    <string name="dialog_title_view_skipped_dates">跳過的提醒日期</string>
-    <string name="text_no_skipped_dates">沒有設定跳過的日期。</string>
-    <string name="action_close">關閉</string>
-    <string name="toast_notification_permission_denied">通知權限被拒絕，無法接收課程提醒。</string>
     <string name="item_compat_wearable_sync">兼容穿戴設備同步通知</string>
     <string name="desc_compat_wearable_sync">因 Android 16 實時通知特性與部分穿戴設備通知同步軟件存在兼容性衝突，開啟此項將優化同步兼容性，但會停用實時更新效果。</string>
     
@@ -630,4 +609,12 @@
     <string name="dialog_ssl_warning_title">安全警告</string>
     <string name="dialog_ssl_warning_message">您正在訪問的網站證書不安全或已過期（%1$s），繼續訪問可能存在資料洩漏風險。是否繼續訪問？</string>
     <string name="action_continue_visit">繼續訪問</string>
+    <string name="tray_open_main_window">開啟主頁面</string>
+    <string name="tray_close_app">關閉應用程式</string>
+    <string name="tray_auto_launch">開機自啟動</string>
+    <string name="tray_auto_launch_disabled">自啟動已停用，點擊設定</string>
+    <string name="section_title_permission">權限</string>
+    <string name="item_promoted_notifications">即時動態通知</string>
+    <string name="dialog_title_notification_permission_denied">需要通知權限</string>
+    <string name="dialog_text_notification_permission_denied">為了接收課程提醒，請允許應用程式傳送通知。</string>
 </resources>
