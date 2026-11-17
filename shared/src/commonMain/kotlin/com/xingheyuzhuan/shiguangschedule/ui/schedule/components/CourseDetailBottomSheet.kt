@@ -48,6 +48,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
@@ -386,7 +387,7 @@ private fun CourseDetailItemContent(
                 DetailItem(calendarIcon, model.weeksDisplayStr)
             }
 
-            DetailItem(scheduleIcon) {
+            DetailItem(scheduleIcon, model.dayStr) {
                 Column {
                     Text(model.dayStr, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(model.timeStr, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
@@ -425,7 +426,7 @@ private fun CourseDetailItemContent(
  */
 @Composable
 private fun DetailItem(icon: ImageVector, text: String) {
-    DetailItem(icon = icon) {
+    DetailItem(icon = icon, firstLineText = text) {
         Text(text, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
@@ -434,10 +435,22 @@ private fun DetailItem(icon: ImageVector, text: String) {
  * 详情项组件（带图标和自定义内容）
  */
 @Composable
-private fun DetailItem(icon: ImageVector, content: @Composable () -> Unit) {
+private fun DetailItem(icon: ImageVector, firstLineText: String, content: @Composable () -> Unit) {
+    val textMeasurer = rememberTextMeasurer()
+    val firstLineHeight = with(LocalDensity.current) {
+        textMeasurer.measure(
+            text = firstLineText.substringBefore('\n'),
+            style = MaterialTheme.typography.bodyLarge,
+            softWrap = false,
+            maxLines = 1
+        ).size.height.toDp()
+    }
+    val iconTopPadding = ((firstLineHeight - 24.dp) / 2).coerceAtLeast(0.dp)
+    val contentTopPadding = ((24.dp - firstLineHeight) / 2).coerceAtLeast(0.dp)
+
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
         Box(
-            modifier = Modifier.size(24.dp),
+            modifier = Modifier.padding(top = iconTopPadding).size(24.dp),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -448,7 +461,9 @@ private fun DetailItem(icon: ImageVector, content: @Composable () -> Unit) {
             )
         }
         Spacer(modifier = Modifier.width(12.dp))
-        content()
+        Box(modifier = Modifier.padding(top = contentTopPadding)) {
+            content()
+        }
     }
 }
 
