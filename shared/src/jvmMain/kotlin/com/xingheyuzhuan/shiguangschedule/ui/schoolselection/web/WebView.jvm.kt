@@ -16,6 +16,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -24,11 +25,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,9 +40,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
+import com.xingheyuzhuan.shiguangschedule.data.model.CourseImportExport
 import com.xingheyuzhuan.shiguangschedule.tool.PlatformUpdateStrategy
+import com.xingheyuzhuan.shiguangschedule.ui.components.CourseTablePickerDeps
+import com.xingheyuzhuan.shiguangschedule.ui.components.CourseTablePickerDialog
 import com.xingheyuzhuan.shiguangschedule.ui.components.ToastManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import org.koin.compose.viewmodel.koinViewModel
 import java.awt.Toolkit
+import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.StringSelection
 import java.net.InetSocketAddress
 import java.util.concurrent.CompletableFuture
@@ -215,7 +230,145 @@ class DesktopWebViewController : WebViewController {
         bridgeLogs.add(msg)
     }
 
+    /**
+     * 按序执行手动粘贴的 JSON 数据导入，等待每一步异步存储完成后再触发下一阶段与 notifyTaskCompletion，
+     * 避免 notifyTaskCompletion 提前清空 importTableId 导致课程落盘失败的竞态问题。
+     */
+    internal suspend fun executeManualImportJson(
+        rawJson: String,
+        bridgeHandler: WebBridgeHandler
+    ) {
+        val messages = parseManualImportPayload(rawJson)
+        for (msg in messages) {
+            val cbId = msg.callbackId
+            val encodedMsg = bridgeJson.encodeToString(msg)
+            if (!cbId.isNullOrBlank() && msg.action != "showToast" && msg.action != "notifyTaskCompletion") {
+                val future = CompletableFuture<BridgeCallbackResponse>()
+                pendingCallbacks[cbId] = future
+                withContext(Dispatchers.Main) {
+                    bridgeHandler.onMessageReceived(encodedMsg)
+                }
+                val resp = withContext(Dispatchers.IO) {
+                    try {
+                        future.get(15, TimeUnit.SECONDS)
+                    } catch (_: Exception) {
+                        BridgeCallbackResponse(false, "\"导入步骤等待超时\"")
+                    } finally {
+                        pendingCallbacks.remove(cbId)
+                    }
+                }
+                if (!resp.isSuccess) {
+                    throw IllegalStateException("导入步骤 [${msg.action}] 失败: ${resp.resultRawJs}")
+                }
+            } else {
+                withContext(Dispatchers.Main) {
+                    bridgeHandler.onMessageReceived(encodedMsg)
+                }
+            }
+        }
+    }
+
     companion object {
+        /**
+         * 将手动粘贴的 JSON 字符串（支持课程数组 [...]、离线导出包 {"courses":...}、单条或多条 JsBridgeMessage）
+         * 统一转换为有序的 JsBridgeMessage 序列。
+         */
+        internal fun parseManualImportPayload(rawJson: String): List<JsBridgeMessage> {
+            val trimmed = rawJson.trim()
+            require(trimmed.isNotEmpty()) { "导入 JSON 内容不能为空" }
+
+            val element: JsonElement = try {
+                CourseImportExport.json.parseToJsonElement(trimmed)
+            } catch (e: Exception) {
+                throw IllegalArgumentException("JSON 语法格式无效: ${e.message}", e)
+            }
+
+            return when (element) {
+                is JsonObject -> {
+                    if (element.containsKey("action") && element["action"]?.jsonPrimitive?.isString == true) {
+                        listOf(bridgeJson.decodeFromString<JsBridgeMessage>(trimmed))
+                    } else if (element.containsKey("courses")) {
+                        val model = CourseImportExport.json.decodeFromString<CourseImportExport.CourseTableImportModel>(trimmed)
+                        buildList {
+                            if (!model.timeSlots.isNullOrEmpty()) {
+                                val slotsJson = CourseImportExport.json.encodeToString(model.timeSlots)
+                                add(
+                                    JsBridgeMessage(
+                                        action = "savePresetTimeSlots",
+                                        callbackId = "manual_timeslots",
+                                        payload = bridgeJson.encodeToString(SaveTimeSlotsPayload(slotsJson))
+                                    )
+                                )
+                            }
+                            if (model.comboSchedule != null) {
+                                val comboJson = CourseImportExport.json.encodeToString(model.comboSchedule)
+                                add(
+                                    JsBridgeMessage(
+                                        action = "saveComboSchedule",
+                                        callbackId = "manual_combo",
+                                        payload = bridgeJson.encodeToString(SaveComboSchedulePayload(comboJson))
+                                    )
+                                )
+                            }
+                            if (model.config != null) {
+                                val configJson = CourseImportExport.json.encodeToString(model.config)
+                                add(
+                                    JsBridgeMessage(
+                                        action = "saveCourseConfig",
+                                        callbackId = "manual_config",
+                                        payload = bridgeJson.encodeToString(SaveConfigPayload(configJson))
+                                    )
+                                )
+                            }
+                            val coursesJson = CourseImportExport.json.encodeToString(model.courses)
+                            add(
+                                JsBridgeMessage(
+                                    action = "saveImportedCourses",
+                                    callbackId = "manual_courses",
+                                    payload = bridgeJson.encodeToString(SaveCoursesPayload(coursesJson))
+                                )
+                            )
+                            add(JsBridgeMessage(action = "notifyTaskCompletion"))
+                        }
+                    } else {
+                        throw IllegalArgumentException("无法识别的 JSON 对象，需包含 courses 或 action 字段")
+                    }
+                }
+
+                is JsonArray -> {
+                    val firstObj = element.firstOrNull() as? JsonObject
+                    if (firstObj != null && firstObj.containsKey("action")) {
+                        bridgeJson.decodeFromString<List<JsBridgeMessage>>(trimmed)
+                    } else {
+                        val courses = CourseImportExport.json.decodeFromString<List<CourseImportExport.ImportCourseJsonModel>>(trimmed)
+                        val coursesJson = CourseImportExport.json.encodeToString(courses)
+                        listOf(
+                            JsBridgeMessage(
+                                action = "saveImportedCourses",
+                                callbackId = "manual_courses",
+                                payload = bridgeJson.encodeToString(SaveCoursesPayload(coursesJson))
+                            ),
+                            JsBridgeMessage(action = "notifyTaskCompletion")
+                        )
+                    }
+                }
+
+                else -> throw IllegalArgumentException("不支持的 JSON 根节点类型")
+            }
+        }
+
+        internal fun readFromClipboard(): String? {
+            return try {
+                val clipboard = Toolkit.getDefaultToolkit().systemClipboard
+                if (clipboard.isDataFlavorAvailable(DataFlavor.stringFlavor)) {
+                    clipboard.getData(DataFlavor.stringFlavor) as? String
+                } else {
+                    null
+                }
+            } catch (_: Exception) {
+                null
+            }
+        }
         /**
          * 解析 buildJsCallbackScript 生成的回调脚本：
          * window._shiguangNativeCallback('cb_1_...', true, ...);
@@ -394,7 +547,29 @@ actual fun PlatformWebView(
     onSslError: (failingUrl: String, onProceed: () -> Unit, onCancel: () -> Unit) -> Unit
 ) {
     val desktopController = controller as? DesktopWebViewController
+    val coroutineScope = rememberCoroutineScope()
+    val pickerDeps: CourseTablePickerDeps = koinViewModel()
+    val courseTables by pickerDeps.courseTableRepository.getAllCourseTables().collectAsState(initial = emptyList())
+    val appSettings by pickerDeps.appSettingsRepository.getAppSettings().collectAsState(initial = null)
+
+    var selectedTableId by remember { mutableStateOf<String?>(null) }
+    var showTablePickerDialog by remember { mutableStateOf(false) }
     var manualJsonInput by remember { mutableStateOf("") }
+    var isImportingManualJson by remember { mutableStateOf(false) }
+
+    val selectedTableName = remember(courseTables, selectedTableId) {
+        courseTables.find { it.id == selectedTableId }?.name ?: "默认当前课表"
+    }
+
+    LaunchedEffect(appSettings?.currentCourseTableId, courseTables) {
+        if (selectedTableId == null) {
+            val defaultId = appSettings?.currentCourseTableId ?: courseTables.firstOrNull()?.id
+            if (defaultId != null) {
+                selectedTableId = defaultId
+                bridgeHandler.setImportTableId(defaultId)
+            }
+        }
+    }
 
     LaunchedEffect(url) {
         desktopController?.currentUrlState = url
@@ -461,7 +636,11 @@ actual fun PlatformWebView(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Button(
                         onClick = {
                             val target = if (url.isNotBlank() && url != "about:blank") url else "https://"
@@ -471,6 +650,14 @@ actual fun PlatformWebView(
                         enabled = url.isNotBlank() && url != "about:blank"
                     ) {
                         Text("在系统浏览器中打开教务网页")
+                    }
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    FilledTonalButton(
+                        onClick = { showTablePickerDialog = true }
+                    ) {
+                        Text("导入目标：$selectedTableName")
                     }
                 }
             }
@@ -547,21 +734,60 @@ actual fun PlatformWebView(
                     maxLines = 4,
                     placeholder = { Text("粘贴课程数组 JSON ([{...}]) 或导出包 JSON") }
                 )
-                Button(
-                    onClick = {
-                        val trimmed = manualJsonInput.trim()
-                        if (trimmed.isNotBlank()) {
-                            if (trimmed.startsWith("[")) {
-                                bridgeHandler.saveImportedCourses(trimmed)
-                                bridgeHandler.notifyTaskCompletion()
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedButton(
+                        onClick = {
+                            val clip = DesktopWebViewController.readFromClipboard()
+                            if (!clip.isNullOrBlank()) {
+                                manualJsonInput = clip
+                                ToastManager.show("已从剪贴板粘贴内容")
                             } else {
-                                bridgeHandler.onMessageReceived(trimmed)
+                                ToastManager.show("剪贴板中无可用文本")
                             }
                         }
-                    },
-                    enabled = manualJsonInput.isNotBlank()
-                ) {
-                    Text("解析并导入粘贴的 JSON")
+                    ) {
+                        Text("从剪贴板粘贴")
+                    }
+
+                    Button(
+                        onClick = {
+                            val trimmed = manualJsonInput.trim()
+                            if (trimmed.isNotBlank()) {
+                                val targetId = selectedTableId
+                                    ?: appSettings?.currentCourseTableId
+                                    ?: courseTables.firstOrNull()?.id
+                                if (targetId == null) {
+                                    showTablePickerDialog = true
+                                    ToastManager.show("请先选择要导入的目标课表")
+                                    return@Button
+                                }
+                                coroutineScope.launch {
+                                    isImportingManualJson = true
+                                    try {
+                                        bridgeHandler.setImportTableId(targetId)
+                                        if (desktopController != null) {
+                                            desktopController.executeManualImportJson(trimmed, bridgeHandler)
+                                        } else {
+                                            val msgs = DesktopWebViewController.parseManualImportPayload(trimmed)
+                                            msgs.forEach { msg ->
+                                                bridgeHandler.onMessageReceived(bridgeJson.encodeToString(msg))
+                                            }
+                                        }
+                                    } catch (e: Exception) {
+                                        ToastManager.show("JSON 解析导入失败: ${e.message}")
+                                    } finally {
+                                        isImportingManualJson = false
+                                    }
+                                }
+                            }
+                        },
+                        enabled = manualJsonInput.isNotBlank() && !isImportingManualJson
+                    ) {
+                        Text(if (isImportingManualJson) "正在导入..." else "解析并导入粘贴的 JSON")
+                    }
                 }
             }
         }
@@ -590,5 +816,18 @@ actual fun PlatformWebView(
                 }
             }
         }
+    }
+
+    if (showTablePickerDialog) {
+        CourseTablePickerDialog(
+            title = "选择导入目标课表",
+            onDismissRequest = { showTablePickerDialog = false },
+            onTableSelected = { table ->
+                selectedTableId = table.id
+                bridgeHandler.setImportTableId(table.id)
+                showTablePickerDialog = false
+                ToastManager.show("已将导入目标课表切换为：${table.name}")
+            }
+        )
     }
 }
