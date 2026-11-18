@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
@@ -13,22 +14,31 @@ plugins {
     alias(libs.plugins.aboutLibraries)
 }
 
+val enableIosTargets = System.getProperty("os.name").orEmpty().contains("Mac", ignoreCase = true) ||
+        project.findProperty("enableIos") == "true"
+
 kotlin {
     compilerOptions {
         freeCompilerArgs.add("-Xexpect-actual-classes")
     }
 
-    listOf(
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach { iosTarget ->
-        iosTarget.binaries.framework {
-            baseName = "Shared"
-            isStatic = true
+    if (enableIosTargets) {
+        listOf(
+            iosArm64(),
+            iosSimulatorArm64()
+        ).forEach { iosTarget ->
+            iosTarget.binaries.framework {
+                baseName = "Shared"
+                isStatic = true
+            }
         }
     }
 
-    jvm()
+    jvm {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_21)
+        }
+    }
 
     android {
         namespace = "com.xingheyuzhuan.shiguangschedule.shared"
@@ -119,9 +129,11 @@ kotlin {
             implementation(libs.filekit.dialogs.compose)
         }
 
-        iosMain.dependencies {
-            implementation(libs.androidx.sqlite.framework)
-            implementation(libs.ktor.client.darwin)
+        if (enableIosTargets) {
+            iosMain.dependencies {
+                implementation(libs.androidx.sqlite.framework)
+                implementation(libs.ktor.client.darwin)
+            }
         }
 
         commonTest.dependencies {
@@ -138,8 +150,10 @@ dependencies {
     androidRuntimeClasspath(libs.compose.ui.tooling)
     add("kspAndroid", libs.androidx.room3.compiler)
     add("kspJvm", libs.androidx.room3.compiler)
-    add("kspIosArm64", libs.androidx.room3.compiler)
-    add("kspIosSimulatorArm64", libs.androidx.room3.compiler)
+    if (enableIosTargets) {
+        add("kspIosArm64", libs.androidx.room3.compiler)
+        add("kspIosSimulatorArm64", libs.androidx.room3.compiler)
+    }
 }
 
 // 导出第三方依赖许可信息
