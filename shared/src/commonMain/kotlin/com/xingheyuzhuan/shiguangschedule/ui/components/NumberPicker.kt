@@ -1,6 +1,8 @@
 package com.xingheyuzhuan.shiguangschedule.ui.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,6 +19,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -34,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.stringResource
+import kotlinx.coroutines.launch
 import shiguangschedule.shared.generated.resources.Res
 import shiguangschedule.shared.generated.resources.a11y_state_not_selected
 import shiguangschedule.shared.generated.resources.a11y_state_selected
@@ -61,6 +65,7 @@ fun <T> NativeNumberPicker(
     }
 
     val listState = rememberLazyListState(initialSelectedIndex)
+    val coroutineScope = rememberCoroutineScope()
     val itemHeightPx = with(LocalDensity.current) { itemHeight.toPx() }
 
     // 计算当前精确的滚动位置（用于线性插值）
@@ -171,6 +176,14 @@ fun <T> NativeNumberPicker(
                     modifier = Modifier
                         .height(itemHeight)
                         .fillMaxWidth()
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) {
+                            coroutineScope.launch {
+                                listState.animateScrollToItem(index)
+                            }
+                        }
                         .semantics {
                             selected = isSelected
                             val stateText = if (isSelected) stateSelected else stateNotSelected

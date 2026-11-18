@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -61,6 +62,8 @@ import shiguangschedule.shared.generated.resources.Res
 import shiguangschedule.shared.generated.resources.a11y_edit
 import shiguangschedule.shared.generated.resources.action_double_week
 import shiguangschedule.shared.generated.resources.action_single_week
+import shiguangschedule.shared.generated.resources.arrow_back_24px
+import shiguangschedule.shared.generated.resources.arrow_forward_24px
 import shiguangschedule.shared.generated.resources.award_star_24px
 import shiguangschedule.shared.generated.resources.calendar_today_24px
 import shiguangschedule.shared.generated.resources.class_24px
@@ -236,13 +239,56 @@ fun CourseDetailBottomSheet(
                 }
             }
             if (uiModels.size > 1) {
-                WormPagerIndicator(
-                    pagerState = pagerState,
-                    pageCount = uiModels.size,
+                val pagerScope = rememberCoroutineScope()
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 36.dp, bottom = 0.dp)
-                )
+                        .padding(top = 24.dp, start = 24.dp, end = 24.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    IconButton(
+                        onClick = {
+                            if (pagerState.currentPage > 0) {
+                                pagerScope.launch {
+                                    pagerState.animateScrollToPage(pagerState.currentPage - 1)
+                                }
+                            }
+                        },
+                        enabled = pagerState.currentPage > 0
+                    ) {
+                        Icon(
+                            imageVector = vectorResource(Res.drawable.arrow_back_24px),
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    WormPagerIndicator(
+                        pagerState = pagerState,
+                        pageCount = uiModels.size,
+                        dotSize = 8.dp,
+                        spacing = 10.dp,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+
+                    IconButton(
+                        onClick = {
+                            if (pagerState.currentPage < uiModels.lastIndex) {
+                                pagerScope.launch {
+                                    pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                                }
+                            }
+                        },
+                        enabled = pagerState.currentPage < uiModels.lastIndex
+                    ) {
+                        Icon(
+                            imageVector = vectorResource(Res.drawable.arrow_forward_24px),
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
             }
         }
     }
