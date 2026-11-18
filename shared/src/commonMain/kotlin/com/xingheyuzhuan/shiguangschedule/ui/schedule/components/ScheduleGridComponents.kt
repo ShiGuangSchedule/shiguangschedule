@@ -2,6 +2,7 @@ package com.xingheyuzhuan.shiguangschedule.ui.schedule.components
 
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -383,6 +384,7 @@ fun TimeColumn(
 
 /**
  * 课表编辑状态下的拉伸手柄（上下边界调整）
+ * 针对电脑端触控屏与高分屏优化：提供 48.dp 级触控热区与居中胶囊视觉指示器，防止边缘列裁切与误触。
  */
 @Composable
 fun BoxScope.CourseEditHandles(
@@ -390,17 +392,19 @@ fun BoxScope.CourseEditHandles(
     onDragging: (deltaY: Float) -> Unit,
     onDragEnd: () -> Unit
 ) {
-    val handleBoxSize = 32.dp
+    val handleTouchSize = 48.dp
 
     Box(
         modifier = Modifier
-            .align(Alignment.TopStart)
-            .offset(x = (-16).dp, y = (-16).dp)
-            .size(handleBoxSize)
+            .align(Alignment.TopCenter)
+            .offset(y = (-24).dp)
+            .fillMaxWidth()
+            .height(handleTouchSize)
             .pointerInput(Unit) {
                 detectDragGestures(
                     onDragStart = { onDragStart(true) },
                     onDragEnd = { onDragEnd() },
+                    onDragCancel = { onDragEnd() },
                     onDrag = { change, dragAmount ->
                         change.consume()
                         onDragging(dragAmount.y)
@@ -414,13 +418,15 @@ fun BoxScope.CourseEditHandles(
 
     Box(
         modifier = Modifier
-            .align(Alignment.BottomEnd)
-            .offset(x = 16.dp, y = 16.dp)
-            .size(handleBoxSize)
+            .align(Alignment.BottomCenter)
+            .offset(y = 24.dp)
+            .fillMaxWidth()
+            .height(handleTouchSize)
             .pointerInput(Unit) {
                 detectDragGestures(
                     onDragStart = { onDragStart(false) },
                     onDragEnd = { onDragEnd() },
+                    onDragCancel = { onDragEnd() },
                     onDrag = { change, dragAmount ->
                         change.consume()
                         onDragging(dragAmount.y)
@@ -437,8 +443,9 @@ fun BoxScope.CourseEditHandles(
 private fun EditHandleDot() {
     Box(
         modifier = Modifier
-            .size(12.dp)
+            .size(width = 28.dp, height = 12.dp)
             .background(Color(0xFF2196F3), CircleShape)
+            .border(1.5.dp, Color.White, CircleShape)
     )
 }
 

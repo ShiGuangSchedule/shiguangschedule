@@ -118,13 +118,14 @@ fun ScheduleGrid(
             activeDragMinuteStr = null
         }
 
-        // 自动边缘滚动监测线程
+        // 自动边缘滚动监测线程（支持按边缘距离平滑加速，优化大屏触控拖拽体验）
         LaunchedEffect(state.isEditingActive) {
             if (state.isEditingActive) {
                 while (true) {
                     val item = state.expandedItem ?: break
-                    val threshold = with(density) { 40.dp.toPx() }
-                    val scrollSpeed = with(density) { 8.dp.toPx() }
+                    val threshold = with(density) { 56.dp.toPx() }
+                    val minScrollSpeed = with(density) { 4.dp.toPx() }
+                    val maxScrollSpeed = with(density) { 16.dp.toPx() }
 
                     var relativeTop: Float? = null
                     var relativeBottom: Float? = null
@@ -145,13 +146,18 @@ fun ScheduleGrid(
                     var scrollAmount = 0f
                     if (relativeTop != null && relativeTop < threshold) {
                         if (state.gridScrollState.value > 0) {
-                            scrollAmount = -scrollSpeed
+                            val ratio = ((threshold - relativeTop) / threshold).coerceIn(0f, 1f)
+                            val speed = minScrollSpeed + (maxScrollSpeed - minScrollSpeed) * ratio
+                            scrollAmount = -speed
                             if (state.gridScrollState.value + scrollAmount < 0) scrollAmount = -state.gridScrollState.value.toFloat()
                         }
                     } else if (relativeBottom != null && state.viewportHeightPx > 0f && relativeBottom > state.viewportHeightPx - threshold) {
                         val maxScroll = state.gridScrollState.maxValue
                         if (state.gridScrollState.value < maxScroll) {
-                            scrollAmount = scrollSpeed
+                            val distanceIntoZone = relativeBottom - (state.viewportHeightPx - threshold)
+                            val ratio = (distanceIntoZone / threshold).coerceIn(0f, 1f)
+                            val speed = minScrollSpeed + (maxScrollSpeed - minScrollSpeed) * ratio
+                            scrollAmount = speed
                             if (state.gridScrollState.value + scrollAmount > maxScroll) scrollAmount = (maxScroll - state.gridScrollState.value).toFloat()
                         }
                     }
@@ -263,7 +269,13 @@ fun ScheduleGrid(
                                                                 state.bodyDragOffsetX = targetX - initialX
                                                                 state.bodyDragOffsetY = (targetStart - intent.initialStartSection) * sectionHeightPx
 
-                                                                currentActions.onCourseMovedWithinGrid(intent.parentBlock, targetDay, targetStart, targetEnd)
+                                                                if (targetDay == intent.initialDay && targetStart == intent.initialStartSection) {
+                                                                    state.activeMoveIntent = null
+                                                                    state.bodyDragOffsetX = 0f
+                                                                    state.bodyDragOffsetY = 0f
+                                                                } else {
+                                                                    currentActions.onCourseMovedWithinGrid(intent.parentBlock, targetDay, targetStart, targetEnd)
+                                                                }
                                                             }
                                                         }
                                                     },
@@ -352,6 +364,11 @@ fun ScheduleGrid(
                                                 }
                                                 if (finalStart != currentItem.startSection || finalEnd != currentItem.endSection) {
                                                     currentActions.onCourseTimeAdjusted(currentItem.parentBlock, finalStart, finalEnd)
+                                                } else {
+                                                    state.isTopHandleDragging = false
+                                                    state.isBottomHandleDragging = false
+                                                    state.topHandleDragOffsetY = 0f
+                                                    state.bottomHandleDragOffsetY = 0f
                                                 }
                                             }
                                         }
