@@ -4,8 +4,11 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
@@ -39,7 +42,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.LayoutDirection
@@ -78,7 +88,10 @@ import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import shiguangschedule.shared.generated.resources.Res
 import shiguangschedule.shared.generated.resources.action_select_table
+import shiguangschedule.shared.generated.resources.arrow_back_24px
 import shiguangschedule.shared.generated.resources.arrow_drop_down_24px
+import shiguangschedule.shared.generated.resources.arrow_forward_24px
+import shiguangschedule.shared.generated.resources.calendar_today_24px
 import shiguangschedule.shared.generated.resources.format_week_display
 import shiguangschedule.shared.generated.resources.ic_launcher_foreground
 import shiguangschedule.shared.generated.resources.snackbar_add_course_within_semester
@@ -239,7 +252,53 @@ private fun WeeklyScheduleContentLoaded(
     val systemNavigationBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val dynamicBottomOffset = systemNavigationBarInset + (88.dp * (1f - navHideFraction))
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        try {
+            focusRequester.requestFocus()
+        } catch (_: Exception) {
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .focusRequester(focusRequester)
+            .focusable()
+            .onPreviewKeyEvent { event ->
+                if (event.type == KeyEventType.KeyDown) {
+                    when (event.key) {
+                        Key.DirectionLeft -> {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage((pagerState.currentPage - 1).coerceAtLeast(0))
+                            }
+                            true
+                        }
+                        Key.DirectionRight -> {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                            }
+                            true
+                        }
+                        Key.Home, Key.T -> {
+                            if (pagerState.currentPage != INFINITE_PAGER_CENTER) {
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(INFINITE_PAGER_CENTER)
+                                }
+                                true
+                            } else false
+                        }
+                        Key.Escape -> {
+                            if (floatingCourse != null) {
+                                viewModel.exitFloatingMode()
+                                true
+                            } else false
+                        }
+                        else -> false
+                    }
+                } else false
+            }
+    ) {
         uiState.wallpaperPath?.let { path ->
             AsyncImage(
                 model = path,
@@ -258,34 +317,84 @@ private fun WeeklyScheduleContentLoaded(
             topBar = {
                 CenterAlignedTopAppBar(
                     title = {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier
-                                .clickable {
-                                    if (!uiState.isSemesterSet || uiState.semesterStartDate == null) {
-                                        onNavigate(Destination.Settings)
-                                    } else {
-                                        showWeekSelector = true
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    coroutineScope.launch {
+                                        pagerState.animateScrollToPage((pagerState.currentPage - 1).coerceAtLeast(0))
                                     }
                                 }
-                                .padding(vertical = 4.dp)
-                        ) {
-                            Text(
-                                text = displayTitle,
-                                style = MaterialTheme.typography.titleLarge,
-                                color = titleTextColor
-                            )
-                            Icon(
-                                imageVector = vectorResource(Res.drawable.arrow_drop_down_24px),
-                                contentDescription = null,
+                            ) {
+                                Icon(
+                                    imageVector = vectorResource(Res.drawable.arrow_back_24px),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = customSubTextColor
+                                )
+                            }
+
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier
-                                    .size(20.dp)
-                                    .offset(y = (-4).dp),
-                                tint = customSubTextColor
-                            )
+                                    .clickable {
+                                        if (!uiState.isSemesterSet || uiState.semesterStartDate == null) {
+                                            onNavigate(Destination.Settings)
+                                        } else {
+                                            showWeekSelector = true
+                                        }
+                                    }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = displayTitle,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = titleTextColor
+                                )
+                                Icon(
+                                    imageVector = vectorResource(Res.drawable.arrow_drop_down_24px),
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .offset(y = (-4).dp),
+                                    tint = customSubTextColor
+                                )
+                            }
+
+                            IconButton(
+                                onClick = {
+                                    coroutineScope.launch {
+                                        pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = vectorResource(Res.drawable.arrow_forward_24px),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = customSubTextColor
+                                )
+                            }
                         }
                     },
                     actions = {
+                        if (pagerState.currentPage != INFINITE_PAGER_CENTER) {
+                            IconButton(
+                                onClick = {
+                                    coroutineScope.launch {
+                                        pagerState.animateScrollToPage(INFINITE_PAGER_CENTER)
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = vectorResource(Res.drawable.calendar_today_24px),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
                         IconButton(onClick = { showTableSwitcher = true }) {
                             Icon(
                                 imageVector = vectorResource(Res.drawable.swap_horiz_24px),
