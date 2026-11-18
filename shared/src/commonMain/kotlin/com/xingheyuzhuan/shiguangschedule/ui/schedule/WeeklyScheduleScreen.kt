@@ -282,7 +282,7 @@ private fun WeeklyScheduleContentLoaded(
                             }
                             true
                         }
-                        Key.Home, Key.T -> {
+                        Key.MoveHome, Key.T -> {
                             if (pagerState.currentPage != INFINITE_PAGER_CENTER) {
                                 coroutineScope.launch {
                                     pagerState.animateScrollToPage(INFINITE_PAGER_CENTER)
