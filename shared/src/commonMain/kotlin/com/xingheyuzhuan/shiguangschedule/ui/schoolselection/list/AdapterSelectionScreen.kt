@@ -18,7 +18,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -38,6 +37,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.xingheyuzhuan.shiguangschedule.Destination
+import com.xingheyuzhuan.shiguangschedule.data.di.TargetPlatform
+import com.xingheyuzhuan.shiguangschedule.data.di.isPlatformSupported
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -59,7 +60,6 @@ import shiguangschedule.shared.generated.resources.text_no_detailed_description
 /**
  * 二级页面：显示特定学校和当前类别下的所有适配器列表。
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdapterSelectionScreen(
     onNavigate: (Destination) -> Unit,
@@ -143,21 +143,30 @@ fun AdapterSelectionScreen(
                             AdapterCard(
                                 adapter = adapter,
                                 onClick = { selectedAdapter ->
-                                    val initialUrl = (selectedAdapter.import_url ?: "").ifBlank { "about:blank" }
-                                    val jsFileName = selectedAdapter.asset_js_path
-
-                                    // 构建正确的 JS 路径
-                                    val assetJsPath = if (jsFileName.isNotBlank()) {
-                                        "$resourceFolder/$jsFileName"
-                                    } else {
-                                        "$resourceFolder/${selectedAdapter.adapter_id}.js"
-                                    }
-                                    onNavigate(
-                                        Destination.WebView(
-                                            initialUrl = initialUrl,
-                                            assetJsPath = assetJsPath
+                                    if (isPlatformSupported(TargetPlatform.desktop)) {
+                                        onNavigate(
+                                            Destination.DesktopExtensionBridgeSettings(
+                                                schoolId = schoolId,
+                                                adapterId = selectedAdapter.adapter_id
+                                            )
                                         )
-                                    )
+                                    } else {
+                                        val initialUrl = (selectedAdapter.import_url ?: "").ifBlank { "about:blank" }
+                                        val jsFileName = selectedAdapter.asset_js_path
+
+                                        // 构建正确的 JS 路径
+                                        val assetJsPath = if (jsFileName.isNotBlank()) {
+                                            "$resourceFolder/$jsFileName"
+                                        } else {
+                                            "$resourceFolder/${selectedAdapter.adapter_id}.js"
+                                        }
+                                        onNavigate(
+                                            Destination.WebView(
+                                                initialUrl = initialUrl,
+                                                assetJsPath = assetJsPath
+                                            )
+                                        )
+                                    }
                                 }
                             )
                         }

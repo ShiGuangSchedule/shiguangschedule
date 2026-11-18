@@ -32,7 +32,7 @@ coreRemoteViews = "1.1.0"
 webkit = "1.18.0"
 
 # 网络与持久化/序列化
-ktor = "3.6.0"
+ktor = "3.6.1"
 wire = "7.1.2"
 kotlinSerialization = "1.12.0"
 okio = "3.18.2"
@@ -109,6 +109,11 @@ ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negoti
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
 ktor-client-auth = { module = "io.ktor:ktor-client-auth", version.ref = "ktor" }
+
+# Ktor 服务端相关
+ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
+ktor-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "ktor" }
+ktor-server-websockets = { module = "io.ktor:ktor-server-websockets", version.ref = "ktor" }
 
 # Kotlinx 序列化 & 基础工具
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinSerialization" }
