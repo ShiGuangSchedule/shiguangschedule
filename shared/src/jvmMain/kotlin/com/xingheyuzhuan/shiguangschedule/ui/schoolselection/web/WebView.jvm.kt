@@ -10,21 +10,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -33,6 +26,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -45,15 +39,13 @@ import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
 import com.xingheyuzhuan.shiguangschedule.tool.PlatformUpdateStrategy
 import com.xingheyuzhuan.shiguangschedule.ui.components.ToastManager
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonObject
 import java.awt.Toolkit
-import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.StringSelection
-import java.net.InetAddress
 import java.net.InetSocketAddress
-import java.net.URI
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 @Composable
 actual fun PlatformBackHandler(enabled: Boolean, onBack: () -> Unit) {
@@ -61,233 +53,303 @@ actual fun PlatformBackHandler(enabled: Boolean, onBack: () -> Unit) {
 }
 
 /**
- * 桌面端 Web 控制器：维护当前教务 URL 与最近一次注入的适配脚本，
- * 供桌面端本地浏览器桥接助手生成并复制完整导入脚本。
+ * 桌面端本地浏览器桥接控制器：
+ * 通过轻量级本地回环 HTTP 服务 (127.0.0.1) 将系统浏览器控制台执行的教务适配脚本与客户端 WebBridgeHandler 双向打通，
+ * 无需打包体积庞大的 Chromium/CEF 内核即可完成教务系统课表导入。
  */
 class DesktopWebViewController : WebViewController {
-    override var currentUrl: String by mutableStateOf("")
+    var currentUrlState by mutableStateOf("")
+    override val currentUrl: String
+        get() = currentUrlState
+
+    var generatedBrowserScript by mutableStateOf<String?>(null)
         internal set
 
-    var latestInjectedScript: String? by mutableStateOf(null)
-        private set
+    var bridgePort by mutableIntStateOf(0)
+        internal set
 
-    var scriptExecutionCount: Int by mutableIntStateOf(0)
-        private set
+    val bridgeLogs = mutableStateListOf<String>()
 
-    var reloadCount: Int by mutableIntStateOf(0)
-        private set
+    internal var activeBridgeHandler: WebBridgeHandler? = null
+    private var httpServer: HttpServer? = null
+    private val pendingCallbacks = ConcurrentHashMap<String, CompletableFuture<BridgeCallbackResponse>>()
 
-    fun updateCurrentUrl(url: String) {
-        currentUrl = url
-    }
+    data class BridgeCallbackResponse(
+        val isSuccess: Boolean,
+        val resultRawJs: String
+    )
 
-    override fun reload() {
-        reloadCount++
-    }
-
-    override fun goBack(): Boolean = false
-
-    override fun canGoBack(): Boolean = false
-
-    override fun setDevToolsEnabled(enabled: Boolean) = Unit
-
-    override fun executeScript(jsCode: String) {
-        latestInjectedScript = jsCode
-        scriptExecutionCount++
-    }
-
-    override fun evaluateJavascript(script: String, callback: ((String?) -> Unit)?) {
-        callback?.invoke(null)
-    }
-}
-
-@Composable
-actual fun rememberWebViewController(): WebViewController {
-    return remember { DesktopWebViewController() }
-}
-
-/**
- * 桌面端本地回环桥接负载解析器：
- * 支持解析单条 JsBridgeMessage、JsBridgeMessage 数组、带 messages 字段的打包对象，
- * 或直接粘贴的课程 JSON 数组（自动包装为 saveImportedCourses + notifyTaskCompletion）。
- */
-object DesktopBridgePayloadParser {
-
-    fun extractBridgeMessages(rawInput: String): List<String> {
-        val trimmed = rawInput.trim()
-        if (trimmed.isEmpty()) return emptyList()
-
-        return try {
-            val element = bridgeJson.parseToJsonElement(trimmed)
-            when (element) {
-                is JsonObject -> {
-                    when {
-                        "action" in element -> listOf(trimmed)
-                        "messages" in element -> {
-                            val messagesArray = element["messages"] as? JsonArray ?: return emptyList()
-                            messagesArray.map { it.toString() }
-                        }
-                        else -> emptyList()
-                    }
-                }
-                is JsonArray -> {
-                    if (element.isEmpty()) return emptyList()
-                    val firstObj = element.firstOrNull() as? JsonObject
-                    if (firstObj != null && "action" in firstObj) {
-                        element.map { it.toString() }
-                    } else if (firstObj != null && ("name" in firstObj || "courses" in firstObj || "day" in firstObj)) {
-                        val saveCoursesMsg = JsBridgeMessage(
-                            action = "saveImportedCourses",
-                            payload = bridgeJson.encodeToString(
-                                SaveCoursesPayload.serializer(),
-                                SaveCoursesPayload(coursesJsonString = trimmed)
-                            )
-                        )
-                        val completeMsg = JsBridgeMessage(action = "notifyTaskCompletion")
-                        listOf(
-                            bridgeJson.encodeToString(JsBridgeMessage.serializer(), saveCoursesMsg),
-                            bridgeJson.encodeToString(JsBridgeMessage.serializer(), completeMsg)
-                        )
-                    } else {
-                        emptyList()
-                    }
-                }
-                else -> emptyList()
+    fun startLocalBridgeServer() {
+        if (httpServer != null) return
+        try {
+            val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+            server.executor = Executors.newCachedThreadPool { runnable ->
+                Thread(runnable, "Shiguang-Desktop-WebBridge").apply { isDaemon = true }
             }
-        } catch (_: Exception) {
-            emptyList()
+            server.createContext("/bridge") { exchange ->
+                handleBridgeExchange(exchange)
+            }
+            server.start()
+            httpServer = server
+            bridgePort = server.address.port
+            appendLog("本地导入桥接服务已启动: http://127.0.0.1:$bridgePort/bridge")
+        } catch (e: Exception) {
+            appendLog("本地桥接服务启动失败: ${e.message}")
         }
     }
 
-    fun buildBrowserConsoleBridgeScript(endpointUrl: String, wrappedAdapterScript: String): String {
-        return """
-(function() {
-    var BRIDGE_ENDPOINT = "$endpointUrl";
-    var recordedMessages = [];
-    var hasNetworkError = false;
-
-    function sendBridgeMessage(action, payloadObj, callbackId) {
-        var msg = {
-            action: action,
-            callbackId: callbackId || null,
-            payload: payloadObj ? JSON.stringify(payloadObj) : null
-        };
-        recordedMessages.push(msg);
-        return fetch(BRIDGE_ENDPOINT, {
-            method: "POST",
-            mode: "cors",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(msg)
-        }).then(function(resp) {
-            if (!resp.ok) throw new Error("HTTP " + resp.status);
-            return true;
-        }).catch(function(err) {
-            hasNetworkError = true;
-            console.warn("[ShiguangDesktopBridge] 本地回环直连受限，将在完成时导出剪贴板数据包:", err);
-            return true;
-        });
+    fun stopLocalBridgeServer() {
+        try {
+            httpServer?.stop(0)
+        } catch (_: Exception) {
+        } finally {
+            httpServer = null
+            bridgePort = 0
+            pendingCallbacks.values.forEach {
+                it.complete(BridgeCallbackResponse(false, "\"Bridge closed\""))
+            }
+            pendingCallbacks.clear()
+        }
     }
 
-    function exportFallbackBundleIfNeeded() {
-        if (!hasNetworkError || recordedMessages.length === 0) return;
-        var bundleText = JSON.stringify({ messages: recordedMessages });
-        console.log("[ShiguangDesktopBridge] 请复制以下 JSON 数据到拾光课程表桌面端粘贴导入:\n" + bundleText);
+    private fun handleBridgeExchange(exchange: HttpExchange) {
+        exchange.responseHeaders.add("Access-Control-Allow-Origin", "*")
+        exchange.responseHeaders.add("Access-Control-Allow-Methods", "POST, OPTIONS")
+        exchange.responseHeaders.add("Access-Control-Allow-Headers", "Content-Type")
+        exchange.responseHeaders.add("Access-Control-Allow-Private-Network", "true")
+        exchange.responseHeaders.add("Content-Type", "application/json; charset=utf-8")
+
+        if (exchange.requestMethod.equals("OPTIONS", ignoreCase = true)) {
+            exchange.sendResponseHeaders(204, -1)
+            exchange.close()
+            return
+        }
+
+        if (!exchange.requestMethod.equals("POST", ignoreCase = true)) {
+            val resp = """{"ok":false,"error":"Method not allowed"}""".toByteArray(Charsets.UTF_8)
+            exchange.sendResponseHeaders(405, resp.size.toLong())
+            exchange.responseBody.use { it.write(resp) }
+            return
+        }
+
         try {
-            if (typeof copy === "function") {
-                copy(bundleText);
-            } else if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(bundleText);
+            val body = exchange.requestBody.bufferedReader(Charsets.UTF_8).readText()
+            val message = bridgeJson.decodeFromString<JsBridgeMessage>(body)
+            val callbackId = message.callbackId
+            appendLog("收到浏览器桥接指令: ${message.action}")
+
+            val handler = activeBridgeHandler
+            if (handler == null) {
+                val resp = """{"ok":false,"error":"Bridge handler not ready"}""".toByteArray(Charsets.UTF_8)
+                exchange.sendResponseHeaders(503, resp.size.toLong())
+                exchange.responseBody.use { it.write(resp) }
+                return
             }
-        } catch (_) {}
-        alert("检测到浏览器安全策略拦截了本地端口直连。\n导入数据包已输出到控制台（并尝试复制到剪贴板），请切回拾光课程表桌面端点击【从剪贴板导入数据】完成导入！");
+
+            if (callbackId != null && message.action != "showToast" && message.action != "notifyTaskCompletion") {
+                val future = CompletableFuture<BridgeCallbackResponse>()
+                pendingCallbacks[callbackId] = future
+                handler.onMessageReceived(body)
+
+                val callbackResp = try {
+                    future.get(180, TimeUnit.SECONDS)
+                } catch (_: Exception) {
+                    BridgeCallbackResponse(false, "\"操作等待超时\"")
+                } finally {
+                    pendingCallbacks.remove(callbackId)
+                }
+
+                val responseJson = """{"ok":${callbackResp.isSuccess},"result":${callbackResp.resultRawJs}}"""
+                val bytes = responseJson.toByteArray(Charsets.UTF_8)
+                exchange.sendResponseHeaders(200, bytes.size.toLong())
+                exchange.responseBody.use { it.write(bytes) }
+            } else {
+                handler.onMessageReceived(body)
+                val bytes = """{"ok":true,"result":true}""".toByteArray(Charsets.UTF_8)
+                exchange.sendResponseHeaders(200, bytes.size.toLong())
+                exchange.responseBody.use { it.write(bytes) }
+            }
+        } catch (e: Exception) {
+            appendLog("处理桥接消息异常: ${e.message}")
+            val errBytes = """{"ok":false,"error":"Invalid bridge message"}""".toByteArray(Charsets.UTF_8)
+            exchange.sendResponseHeaders(400, errBytes.size.toLong())
+            exchange.responseBody.use { it.write(errBytes) }
+        }
+    }
+
+    override fun reload() {
+        if (currentUrlState.isNotBlank() && currentUrlState != "about:blank") {
+            PlatformUpdateStrategy.openUrl(currentUrlState)
+        }
+    }
+
+    override fun goBack(): Boolean = false
+    override fun canGoBack(): Boolean = false
+    override fun setDevToolsEnabled(enabled: Boolean) = Unit
+
+    override fun executeScript(jsCode: String) {
+        val fullBrowserScript = buildDesktopBrowserImportScript(jsCode, bridgePort)
+        generatedBrowserScript = fullBrowserScript
+        if (copyToClipboard(fullBrowserScript)) {
+            appendLog("已生成并复制浏览器导入脚本到剪贴板（长度: ${fullBrowserScript.length} 字符）")
+            ToastManager.show("导入脚本已复制到剪贴板！请切换到浏览器按 F12 在控制台粘贴执行。")
+        } else {
+            appendLog("已生成浏览器导入脚本，请点击下方按钮手动复制")
+        }
+    }
+
+    override fun evaluateJavascript(script: String, callback: ((String?) -> Unit)?) {
+        val parsed = parseNativeCallbackScript(script)
+        if (parsed != null) {
+            val (callbackId, isSuccess, resultRawJs) = parsed
+            pendingCallbacks[callbackId]?.complete(BridgeCallbackResponse(isSuccess, resultRawJs))
+        }
+        // 对于 showPrompt 校验器函数调用，默认放行校验并在浏览器端做前置校验
+        callback?.invoke("false")
+    }
+
+    internal fun appendLog(msg: String) {
+        if (bridgeLogs.size >= 20) {
+            bridgeLogs.removeAt(0)
+        }
+        bridgeLogs.add(msg)
+    }
+
+    companion object {
+        /**
+         * 解析 buildJsCallbackScript 生成的回调脚本：
+         * window._shiguangNativeCallback('cb_1_...', true, ...);
+         */
+        internal fun parseNativeCallbackScript(script: String): Triple<String, Boolean, String>? {
+            val prefix = "window._shiguangNativeCallback('"
+            if (!script.startsWith(prefix)) return null
+            val afterPrefix = script.removePrefix(prefix)
+            val idEnd = afterPrefix.indexOf("'")
+            if (idEnd < 0) return null
+            val callbackId = afterPrefix.substring(0, idEnd)
+            val rest = afterPrefix.substring(idEnd + 1).trimStart().removePrefix(",").trimStart()
+            val isSuccess: Boolean
+            val afterSuccess: String
+            when {
+                rest.startsWith("true") -> {
+                    isSuccess = true
+                    afterSuccess = rest.removePrefix("true").trimStart().removePrefix(",").trimStart()
+                }
+                rest.startsWith("false") -> {
+                    isSuccess = false
+                    afterSuccess = rest.removePrefix("false").trimStart().removePrefix(",").trimStart()
+                }
+                else -> return null
+            }
+            val resultRawJs = afterSuccess.removeSuffix(");").trim()
+            return Triple(callbackId, isSuccess, resultRawJs)
+        }
+
+        internal fun buildDesktopBrowserImportScript(wrappedAdapterJs: String, port: Int): String {
+            val endpoint = if (port > 0) "http://127.0.0.1:$port/bridge" else ""
+            return """
+(function() {
+    var BRIDGE_ENDPOINT = "$endpoint";
+    var callbackCounter = 0;
+    var exportedBundle = {};
+
+    function sendToDesktop(action, payload, needCallback) {
+        var callbackId = needCallback ? ('cb_' + (++callbackCounter) + '_' + Date.now()) : null;
+        var msgObj = {
+            action: action,
+            callbackId: callbackId,
+            payload: payload ? JSON.stringify(payload) : null
+        };
+        if (!BRIDGE_ENDPOINT) {
+            return Promise.reject(new Error("Local bridge endpoint unavailable"));
+        }
+        return fetch(BRIDGE_ENDPOINT, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(msgObj)
+        }).then(function(res) { return res.json(); }).then(function(data) {
+            if (data && data.ok) return data.result;
+            throw new Error((data && data.error) || String(data && data.result) || "Bridge rejected");
+        });
     }
 
     var shiguangBridgePromise = {
         showAlert: function(titleText, contentText, confirmText) {
-            return new Promise(function(resolve) {
-                var text = (titleText ? "【" + titleText + "】\n\n" : "") + (contentText || "");
-                var confirmed = window.confirm(text);
-                resolve(confirmed);
+            return sendToDesktop('showAlert', {
+                titleText: titleText || '',
+                contentText: contentText || '',
+                confirmText: confirmText || null
+            }, true).catch(function() {
+                return window.confirm((titleText ? (titleText + "\n\n") : "") + (contentText || ""));
             });
         },
         showPrompt: function(titleText, tipText, defaultText, validatorJsFunction) {
-            return new Promise(function(resolve) {
-                var promptLabel = (titleText ? "【" + titleText + "】\n" : "") + (tipText || "");
-                var currentDefault = defaultText || "";
-                while (true) {
-                    var input = window.prompt(promptLabel, currentDefault);
-                    if (input === null) {
-                        resolve(null);
-                        return;
-                    }
-                    if (validatorJsFunction && typeof window[validatorJsFunction] === "function") {
-                        try {
-                            var err = window[validatorJsFunction](input);
-                            if (err && String(err) !== "false") {
-                                window.alert(String(err));
-                                currentDefault = input;
-                                continue;
-                            }
-                        } catch (e) {
-                            console.warn("[ShiguangDesktopBridge] 校验函数异常:", e);
-                        }
-                    }
-                    resolve(input);
-                    return;
-                }
+            return sendToDesktop('showPrompt', {
+                titleText: titleText || '',
+                tipText: tipText || '',
+                defaultText: defaultText || '',
+                validatorJsFunction: validatorJsFunction || ''
+            }, true).catch(function() {
+                var val = window.prompt((titleText || "") + (tipText ? ("\n" + tipText) : ""), defaultText || "");
+                return val;
             });
         },
         showSingleSelection: function(titleText, items, defaultSelectedIndex) {
-            return new Promise(function(resolve) {
-                var list = [];
-                try {
-                    list = (typeof items === "string") ? JSON.parse(items) : (items || []);
-                } catch (_) {
-                    list = [];
-                }
-                var optionsText = list.map(function(item, idx) {
-                    return idx + ": " + item;
-                }).join("\n");
-                var defIdx = (typeof defaultSelectedIndex === "number" && defaultSelectedIndex >= 0) ? String(defaultSelectedIndex) : "0";
-                var input = window.prompt((titleText || "请选择序号") + "\n\n" + optionsText, defIdx);
-                if (input === null) {
-                    resolve(null);
-                    return;
-                }
-                var parsed = parseInt(input.trim(), 10);
-                if (!isNaN(parsed) && parsed >= 0 && parsed < list.length) {
-                    resolve(parsed);
-                } else {
-                    resolve(0);
-                }
+            var itemsArr = (typeof items === 'string') ? JSON.parse(items || '[]') : (items || []);
+            var itemsJson = (typeof items === 'string') ? items : JSON.stringify(itemsArr);
+            return sendToDesktop('showSingleSelection', {
+                titleText: titleText || '',
+                itemsJsonString: itemsJson,
+                defaultSelectedIndex: defaultSelectedIndex !== undefined ? defaultSelectedIndex : -1
+            }, true).catch(function() {
+                var listText = itemsArr.map(function(it, idx) { return idx + ": " + it; }).join("\n");
+                var defIdx = (defaultSelectedIndex !== undefined && defaultSelectedIndex >= 0) ? String(defaultSelectedIndex) : "0";
+                var picked = window.prompt((titleText || "请选择序号") + "\n" + listText, defIdx);
+                return picked !== null ? parseInt(picked, 10) : null;
             });
         },
         saveImportedCourses: function(coursesJsonString) {
-            var str = (typeof coursesJsonString === "string") ? coursesJsonString : JSON.stringify(coursesJsonString || []);
-            return sendBridgeMessage("saveImportedCourses", { coursesJsonString: str });
+            var str = (typeof coursesJsonString === 'string') ? coursesJsonString : JSON.stringify(coursesJsonString || []);
+            exportedBundle.courses = JSON.parse(str);
+            return sendToDesktop('saveImportedCourses', { coursesJsonString: str }, true).catch(function() {
+                console.log("[ShiguangDesktopFallback] 请复制以下 JSON 到拾光课程表桌面端粘贴导入:");
+                console.log(JSON.stringify(exportedBundle));
+                return true;
+            });
         },
         saveCourseConfig: function(configJsonString) {
-            var str = (typeof configJsonString === "string") ? configJsonString : JSON.stringify(configJsonString || {});
-            return sendBridgeMessage("saveCourseConfig", { configJsonString: str });
+            var str = (typeof configJsonString === 'string') ? configJsonString : JSON.stringify(configJsonString || {});
+            exportedBundle.config = JSON.parse(str);
+            return sendToDesktop('saveCourseConfig', { configJsonString: str }, true).catch(function() {
+                return true;
+            });
         },
         savePresetTimeSlots: function(timeSlotsJsonString) {
-            var str = (typeof timeSlotsJsonString === "string") ? timeSlotsJsonString : JSON.stringify(timeSlotsJsonString || []);
-            return sendBridgeMessage("savePresetTimeSlots", { timeSlotsJsonString: str });
+            var str = (typeof timeSlotsJsonString === 'string') ? timeSlotsJsonString : JSON.stringify(timeSlotsJsonString || []);
+            exportedBundle.timeSlots = JSON.parse(str);
+            return sendToDesktop('savePresetTimeSlots', { timeSlotsJsonString: str }, true).catch(function() {
+                return true;
+            });
         },
         saveComboSchedule: function(comboScheduleJsonString) {
-            var str = (typeof comboScheduleJsonString === "string") ? comboScheduleJsonString : JSON.stringify(comboScheduleJsonString || {});
-            return sendBridgeMessage("saveComboSchedule", { comboScheduleJsonString: str });
+            var str = (typeof comboScheduleJsonString === 'string') ? comboScheduleJsonString : JSON.stringify(comboScheduleJsonString || {});
+            exportedBundle.comboSchedule = JSON.parse(str);
+            return sendToDesktop('saveComboSchedule', { comboScheduleJsonString: str }, true).catch(function() {
+                return true;
+            });
         }
     };
 
     var shiguangBridge = {
         showToast: function(message) {
-            console.log("[ShiguangToast]", message);
-            sendBridgeMessage("showToast", { message: String(message || "") });
+            console.log("[拾光课程表] " + message);
+            sendToDesktop('showToast', { message: String(message || '') }, false).catch(function() {});
         },
         notifyTaskCompletion: function() {
-            sendBridgeMessage("notifyTaskCompletion", null).then(function() {
-                exportFallbackBundleIfNeeded();
+            sendToDesktop('notifyTaskCompletion', null, false).catch(function() {
+                var fallbackJson = JSON.stringify(exportedBundle);
+                console.log("====== 拾光课程表导出数据 (若未自动同步请复制下行 JSON 到桌面端粘贴) ======");
+                console.log(fallbackJson);
             });
         }
     };
@@ -297,122 +359,25 @@ object DesktopBridgePayloadParser {
     window.AndroidBridgePromise = shiguangBridgePromise;
     window.AndroidBridge = shiguangBridge;
 })();
-$wrappedAdapterScript
-        """.trimIndent()
-    }
-}
-
-/**
- * 轻量级本地回环 HTTP 桥接服务（仅监听 127.0.0.1 随机空闲端口），
- * 接收系统浏览器控制台脚本发回的 JsBridgeMessage 并路由至 WebBridgeHandler。
- */
-internal class DesktopWebBridgeServer(
-    private val onMessageReceived: (String) -> Unit,
-    private val onRequestCountChanged: (Int) -> Unit
-) {
-    private var server: HttpServer? = null
-    private var receivedCount = 0
-
-    var port: Int = 0
-        private set
-
-    val endpointUrl: String
-        get() = "http://127.0.0.1:$port/bridge"
-
-    fun start() {
-        if (server != null) return
-        try {
-            val loopback = InetAddress.getLoopbackAddress()
-            val httpServer = HttpServer.create(InetSocketAddress(loopback, 0), 0)
-            httpServer.executor = Executors.newSingleThreadExecutor { runnable ->
-                Thread(runnable, "shiguang-desktop-web-bridge").apply { isDaemon = true }
-            }
-            httpServer.createContext("/bridge") { exchange ->
-                handleBridgeExchange(exchange)
-            }
-            httpServer.start()
-            server = httpServer
-            port = httpServer.address.port
-        } catch (e: Exception) {
-            e.printStackTrace()
+$wrappedAdapterJs
+            """.trimIndent()
         }
-    }
 
-    private fun handleBridgeExchange(exchange: HttpExchange) {
-        try {
-            exchange.responseHeaders.add("Access-Control-Allow-Origin", "*")
-            exchange.responseHeaders.add("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
-            exchange.responseHeaders.add("Access-Control-Allow-Headers", "Content-Type, Accept")
-            exchange.responseHeaders.add("Access-Control-Allow-Private-Network", "true")
-            exchange.responseHeaders.add("Content-Type", "application/json; charset=utf-8")
-
-            when (exchange.requestMethod.uppercase()) {
-                "OPTIONS" -> {
-                    exchange.sendResponseHeaders(204, -1)
-                }
-                "POST" -> {
-                    val body = exchange.requestBody.bufferedReader(Charsets.UTF_8).use { it.readText() }
-                    val messages = DesktopBridgePayloadParser.extractBridgeMessages(body)
-                    messages.forEach { msg ->
-                        onMessageReceived(msg)
-                        receivedCount++
-                    }
-                    if (messages.isNotEmpty()) {
-                        onRequestCountChanged(receivedCount)
-                    }
-                    val respBytes = """{"ok":true,"dispatched":${messages.size}}""".toByteArray(Charsets.UTF_8)
-                    exchange.sendResponseHeaders(200, respBytes.size.toLong())
-                    exchange.responseBody.use { it.write(respBytes) }
-                }
-                else -> {
-                    val respBytes = """{"status":"ready","port":$port}""".toByteArray(Charsets.UTF_8)
-                    exchange.sendResponseHeaders(200, respBytes.size.toLong())
-                    exchange.responseBody.use { it.write(respBytes) }
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            try {
-                exchange.sendResponseHeaders(500, -1)
+        internal fun copyToClipboard(text: String): Boolean {
+            return try {
+                val clipboard = Toolkit.getDefaultToolkit().systemClipboard
+                clipboard.setContents(StringSelection(text), null)
+                true
             } catch (_: Exception) {
+                false
             }
-        } finally {
-            exchange.close()
-        }
-    }
-
-    fun stop() {
-        try {
-            server?.stop(0)
-        } catch (_: Exception) {
-        } finally {
-            server = null
         }
     }
 }
 
-private fun copyTextToClipboard(text: String): Boolean {
-    return try {
-        val clipboard = Toolkit.getDefaultToolkit().systemClipboard
-        clipboard.setContents(StringSelection(text), null)
-        true
-    } catch (e: Exception) {
-        e.printStackTrace()
-        false
-    }
-}
-
-private fun readTextFromClipboard(): String? {
-    return try {
-        val clipboard = Toolkit.getDefaultToolkit().systemClipboard
-        if (clipboard.isDataFlavorAvailable(DataFlavor.stringFlavor)) {
-            clipboard.getData(DataFlavor.stringFlavor) as? String
-        } else {
-            null
-        }
-    } catch (_: Exception) {
-        null
-    }
+@Composable
+actual fun rememberWebViewController(): WebViewController {
+    return remember { DesktopWebViewController() }
 }
 
 @Composable
@@ -429,339 +394,201 @@ actual fun PlatformWebView(
     onSslError: (failingUrl: String, onProceed: () -> Unit, onCancel: () -> Unit) -> Unit
 ) {
     val desktopController = controller as? DesktopWebViewController
-    var bridgePort by remember { mutableIntStateOf(0) }
-    var bridgeReceivedCount by remember { mutableIntStateOf(0) }
     var manualJsonInput by remember { mutableStateOf("") }
-    var isScriptCopied by remember { mutableStateOf(false) }
-
-    val bridgeServer = remember(bridgeHandler) {
-        DesktopWebBridgeServer(
-            onMessageReceived = { msg -> bridgeHandler.onMessageReceived(msg) },
-            onRequestCountChanged = { count -> bridgeReceivedCount = count }
-        )
-    }
-
-    DisposableEffect(bridgeServer) {
-        bridgeServer.start()
-        bridgePort = bridgeServer.port
-        onDispose {
-            bridgeServer.stop()
-        }
-    }
 
     LaunchedEffect(url) {
-        desktopController?.updateCurrentUrl(url)
+        desktopController?.currentUrlState = url
         onProgressChange(1.0f)
-        val displayTitle = try {
-            val host = URI(url).host
-            if (!host.isNullOrBlank()) "桌面端教务导入助手 ($host)" else "桌面端教务导入助手"
-        } catch (_: Exception) {
-            "桌面端教务导入助手"
-        }
-        onTitleChange(displayTitle)
-    }
-
-    // 当用户点击底栏“执行导入”并选择目标课表后，WebViewScreen 会调用 controller.executeScript(wrappedJsScript)
-    val scriptExecCount = desktopController?.scriptExecutionCount ?: 0
-    val latestScript = desktopController?.latestInjectedScript
-    LaunchedEffect(scriptExecCount, latestScript, bridgePort) {
-        if (scriptExecCount > 0 && !latestScript.isNullOrBlank() && bridgePort > 0) {
-            val fullConsoleScript = DesktopBridgePayloadParser.buildBrowserConsoleBridgeScript(
-                endpointUrl = bridgeServer.endpointUrl,
-                wrappedAdapterScript = latestScript
-            )
-            if (copyTextToClipboard(fullConsoleScript)) {
-                isScriptCopied = true
-                ToastManager.show("已生成并复制浏览器导入脚本，请切换到浏览器按 F12 在 Console 粘贴执行")
-            }
+        if (url.isNotBlank() && url != "about:blank") {
+            onTitleChange(url)
         }
     }
 
-    val validExternalUrl = remember(url) {
-        url.isNotBlank() && url != "about:blank" && (url.startsWith("http://") || url.startsWith("https://"))
+    DisposableEffect(desktopController, bridgeHandler) {
+        desktopController?.activeBridgeHandler = bridgeHandler
+        desktopController?.startLocalBridgeServer()
+        onDispose {
+            desktopController?.stopLocalBridgeServer()
+        }
     }
 
-    Box(
+    Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp, vertical = 16.dp),
-        contentAlignment = Alignment.TopCenter
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .widthIn(max = 760.dp)
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+            )
         ) {
-            // 顶部状态卡片
-            ElevatedCard(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.elevatedCardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                )
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
+                Text(
+                    text = "电脑端教务系统浏览器桥接导入",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Text(
+                    text = "为保持极小安装包体积并直接复用系统浏览器登录态，电脑端通过本地回环桥接服务 (127.0.0.1:${desktopController?.bridgePort ?: 0}) 与系统浏览器联动完成课表导入。",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
+                )
+            }
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "步骤 1：在系统浏览器中打开并登录教务系统",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = if (url.isNotBlank() && url != "about:blank") "目标网址：$url" else "您可在顶部地址栏输入教务系统网址，或直接打开学校教务系统网页。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(
+                        onClick = {
+                            val target = if (url.isNotBlank() && url != "about:blank") url else "https://"
+                            PlatformUpdateStrategy.openUrl(target)
+                            desktopController?.appendLog("已在系统浏览器打开: $target")
+                        },
+                        enabled = url.isNotBlank() && url != "about:blank"
+                    ) {
+                        Text("在系统浏览器中打开教务网页")
+                    }
+                }
+            }
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "步骤 2：生成导入脚本并在浏览器控制台执行",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "1. 点击本页面底部右下角的「执行导入」按钮并选择要导入的目标课表（系统会自动将适配脚本复制到剪贴板）。\n" +
+                            "2. 切换到浏览器已登录的课表页面，按 F12 打开开发者工具 -> 切换到 Console（控制台）面板。\n" +
+                            "3. 按 Ctrl+V 粘贴脚本并按回车执行，课表数据将通过本地桥接自动同步回拾光课程表！",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                val script = desktopController?.generatedBrowserScript
+                if (!script.isNullOrBlank()) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text(
-                            text = "桌面端教务系统浏览器桥接导入",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Surface(
-                            shape = RoundedCornerShape(16.dp),
-                            color = if (bridgePort > 0) {
-                                MaterialTheme.colorScheme.primaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.errorContainer
+                        OutlinedButton(
+                            onClick = {
+                                if (DesktopWebViewController.copyToClipboard(script)) {
+                                    ToastManager.show("导入脚本已重新复制到剪贴板")
+                                }
                             }
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(8.dp)
-                                        .background(
-                                            color = if (bridgePort > 0) {
-                                                MaterialTheme.colorScheme.primary
-                                            } else {
-                                                MaterialTheme.colorScheme.error
-                                            },
-                                            shape = CircleShape
-                                        )
-                                )
-                                Spacer(Modifier.width(6.dp))
-                                Text(
-                                    text = if (bridgePort > 0) {
-                                        "本地桥接已就绪 (127.0.0.1:$bridgePort)"
-                                    } else {
-                                        "本地桥接未启动"
-                                    },
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = if (bridgePort > 0) {
-                                        MaterialTheme.colorScheme.onPrimaryContainer
-                                    } else {
-                                        MaterialTheme.colorScheme.onErrorContainer
-                                    }
-                                )
-                            }
+                            Text("重新复制浏览器导入脚本")
                         }
-                    }
-
-                    Text(
-                        text = "为保持桌面版轻量与高性能，桌面端通过系统默认浏览器（Edge / Chrome / Firefox）配合本地回环桥接服务完成教务课表抓取，无需内置百兆级 Chromium 内核。",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    if (bridgeReceivedCount > 0) {
                         Text(
-                            text = "已接收来自浏览器的桥接消息：$bridgeReceivedCount 条",
-                            style = MaterialTheme.typography.labelLarge,
+                            text = "脚本已就绪 (${script.length} 字符)",
+                            style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
             }
+        }
 
-            // 步骤引导卡片
-            OutlinedCard(
-                modifier = Modifier.fillMaxWidth()
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                Text(
+                    text = "备用通道：手动粘贴课程 JSON 数据直接导入",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "若部分高校教务网站启用了严格的浏览器安全策略阻止本地回环连接，您可将控制台输出的课程 JSON 粘贴至下方直接导入：",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OutlinedTextField(
+                    value = manualJsonInput,
+                    onValueChange = { manualJsonInput = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    maxLines = 4,
+                    placeholder = { Text("粘贴课程数组 JSON ([{...}]) 或导出包 JSON") }
+                )
+                Button(
+                    onClick = {
+                        val trimmed = manualJsonInput.trim()
+                        if (trimmed.isNotBlank()) {
+                            if (trimmed.startsWith("[")) {
+                                bridgeHandler.saveImportedCourses(trimmed)
+                                bridgeHandler.notifyTaskCompletion()
+                            } else {
+                                bridgeHandler.onMessageReceived(trimmed)
+                            }
+                        }
+                    },
+                    enabled = manualJsonInput.isNotBlank()
                 ) {
+                    Text("解析并导入粘贴的 JSON")
+                }
+            }
+        }
+
+        if (desktopController != null && desktopController.bridgeLogs.isNotEmpty()) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHighest
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
                     Text(
-                        text = "操作步骤",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
+                        text = "桥接状态日志",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
-
-                    // 步骤 1
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Spacer(Modifier.height(6.dp))
+                    desktopController.bridgeLogs.forEach { logLine ->
                         Text(
-                            text = "第一步：在系统浏览器中打开教务网页并登录到课表页面",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = if (validExternalUrl) "当前教务地址：$url" else "当前未指定初始网址，可在顶部地址栏输入教务网址或在浏览器中自行打开教务系统。",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Button(
-                                onClick = {
-                                    if (validExternalUrl) {
-                                        PlatformUpdateStrategy.openUrl(url)
-                                    } else {
-                                        ToastManager.show("请先在顶部输入有效的教务系统网址")
-                                    }
-                                },
-                                enabled = validExternalUrl
-                            ) {
-                                Text("在系统浏览器中打开教务网页")
-                            }
-                            if (validExternalUrl) {
-                                OutlinedButton(
-                                    onClick = {
-                                        if (copyTextToClipboard(url)) {
-                                            ToastManager.show("教务网址已复制到剪贴板")
-                                        }
-                                    }
-                                ) {
-                                    Text("复制网址")
-                                }
-                            }
-                        }
-                    }
-
-                    HorizontalDivider()
-
-                    // 步骤 2
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            text = "第二步：点击右下角【执行导入】选择目标课表并生成桥接脚本",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = "点击右下角【执行导入】按钮并选择要导入到的课表后，应用会自动将包含本地桥接通道的适配脚本复制到剪贴板。",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        if (!latestScript.isNullOrBlank() && bridgePort > 0) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                FilledTonalButton(
-                                    onClick = {
-                                        val fullConsoleScript = DesktopBridgePayloadParser.buildBrowserConsoleBridgeScript(
-                                            endpointUrl = bridgeServer.endpointUrl,
-                                            wrappedAdapterScript = latestScript
-                                        )
-                                        if (copyTextToClipboard(fullConsoleScript)) {
-                                            isScriptCopied = true
-                                            ToastManager.show("导入脚本已重新复制到剪贴板")
-                                        }
-                                    }
-                                ) {
-                                    Text(if (isScriptCopied) "重新复制浏览器导入脚本" else "复制浏览器导入脚本")
-                                }
-                                Text(
-                                    text = "目标课表已绑定，脚本已就绪",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-                    }
-
-                    HorizontalDivider()
-
-                    // 步骤 3
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(
-                            text = "第三步：在浏览器控制台 (Console) 粘贴并回车执行",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = "在浏览器课表页面按下 F12（或 Ctrl+Shift+I）打开开发者工具，切换到 Console（控制台）面板，粘贴刚复制的脚本并按 Enter 回车。脚本会自动将课程与作息数据回传至本应用并跳转回课表页。",
-                            style = MaterialTheme.typography.bodySmall,
+                            text = "• $logLine",
+                            style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
             }
-
-            // 备用手动粘贴/剪贴板导入卡片
-            OutlinedCard(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = "备用方案：剪贴板 / JSON 数据直接导入",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = "若部分高校 HTTPS 教务网启用了严格的浏览器安全策略拦截本地回环请求，请先点击右下角【执行导入】绑定课表，再粘贴控制台输出的 JSON 数据或课程数组完成导入：",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    OutlinedTextField(
-                        value = manualJsonInput,
-                        onValueChange = { manualJsonInput = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(120.dp),
-                        placeholder = {
-                            Text(
-                                text = "在此粘贴桥接 JSON 数据包或课程 JSON 数组...",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        },
-                        textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace)
-                    )
-
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        FilledTonalButton(
-                            onClick = {
-                                val clipText = readTextFromClipboard()?.trim()
-                                if (clipText.isNullOrEmpty()) {
-                                    ToastManager.show("剪贴板为空")
-                                } else {
-                                    manualJsonInput = clipText
-                                    val messages = DesktopBridgePayloadParser.extractBridgeMessages(clipText)
-                                    if (messages.isEmpty()) {
-                                        ToastManager.show("剪贴板内容不是有效的课表导入 JSON 数据")
-                                    } else {
-                                        messages.forEach { bridgeHandler.onMessageReceived(it) }
-                                    }
-                                }
-                            }
-                        ) {
-                            Text("从剪贴板读取并导入")
-                        }
-
-                        Button(
-                            onClick = {
-                                val messages = DesktopBridgePayloadParser.extractBridgeMessages(manualJsonInput)
-                                if (messages.isEmpty()) {
-                                    ToastManager.show("未识别到有效的桥接 JSON 或课程列表格式")
-                                } else {
-                                    messages.forEach { bridgeHandler.onMessageReceived(it) }
-                                }
-                            },
-                            enabled = manualJsonInput.isNotBlank()
-                        ) {
-                            Text("立即解析导入")
-                        }
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(8.dp))
         }
     }
 }
