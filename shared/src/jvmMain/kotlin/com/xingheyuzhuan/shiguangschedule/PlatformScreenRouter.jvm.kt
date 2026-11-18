@@ -17,7 +17,6 @@ actual object PlatformScreenRouter {
                         NotificationSettingsScreen(onBack = onBack)
                         true
                     }
-                    else -> false
                 }
             }
             else -> false

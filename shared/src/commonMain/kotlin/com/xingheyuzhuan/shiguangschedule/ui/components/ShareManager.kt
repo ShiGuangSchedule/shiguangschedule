@@ -27,7 +27,7 @@ fun ShareDialog(
     mimeType: String,
     onDismiss: () -> Unit
 ) {
-    if (!isPlatformSupported(TargetPlatform.mobile)) return
+    if (!isPlatformSupported(TargetPlatform.mobile) && !isPlatformSupported(TargetPlatform.desktop)) return
 
     AlertDialog(
         onDismissRequest = onDismiss,
