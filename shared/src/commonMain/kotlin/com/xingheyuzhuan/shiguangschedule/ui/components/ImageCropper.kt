@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
@@ -56,10 +57,10 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
- * 是否启用裁剪预览窗口开关
+ * 是否启用裁剪预览窗口开关（同时支持移动端与桌面端）
  */
 val isCropWindowEnabled: Boolean
-    get() = isPlatformSupported(TargetPlatform.mobile)
+    get() = isPlatformSupported(TargetPlatform.mobile) || isPlatformSupported(TargetPlatform.desktop)
 
 /**
  * 跨平台通用图片裁剪组件
@@ -166,9 +167,27 @@ fun ImageCropper(
                         detectTransformGestures { _, pan, zoom, _ ->
                             if (!isCropping) {
                                 val minScale = max(cropWidth / imageBitmap.width, cropHeight / imageBitmap.height)
-                                val newScale = (scale * zoom).coerceAtLeast(minScale)
+                                val newScale = (scale * zoom).coerceIn(minScale, minScale * 8f)
                                 scale = newScale
                                 offset = constrainOffset(offset + pan, newScale)
+                            }
+                        }
+                    }
+                    .pointerInput(cropWidth, cropHeight, imageBitmap) {
+                        awaitPointerEventScope {
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                if (event.type == PointerEventType.Scroll && !isCropping) {
+                                    val scrollDeltaY = event.changes.firstOrNull()?.scrollDelta?.y ?: 0f
+                                    if (scrollDeltaY != 0f) {
+                                        val zoomFactor = if (scrollDeltaY < 0f) 1.1f else 0.9f
+                                        val minScale = max(cropWidth / imageBitmap.width, cropHeight / imageBitmap.height)
+                                        val newScale = (scale * zoomFactor).coerceIn(minScale, minScale * 8f)
+                                        scale = newScale
+                                        offset = constrainOffset(offset, newScale)
+                                        event.changes.forEach { it.consume() }
+                                    }
+                                }
                             }
                         }
                     }
