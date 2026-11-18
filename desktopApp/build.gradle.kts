@@ -1,6 +1,11 @@
 import dev.nucleusframework.desktop.application.dsl.NativeImageOptimization
 import dev.nucleusframework.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.io.FileOutputStream
+import java.util.zip.Deflater
+import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
+import java.util.zip.ZipOutputStream
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
@@ -36,7 +41,7 @@ dependencies {
     implementation(compose.desktop.currentOs)
     implementation(libs.kotlinx.coroutines.swing)
     implementation(libs.compose.material3)
-    implementation(libs.compose.ui.tooling.preview)
+    compileOnly(libs.compose.ui.tooling.preview)
     implementation(libs.nucleus.core.runtime)
     implementation(libs.nucleus.application)
     implementation(libs.nucleus.decorated.window.core)
@@ -66,7 +71,11 @@ nucleus.application {
     }
 
     buildTypes.release.proguard {
-        isEnabled.set(false)
+        version.set("7.7.0")
+        isEnabled.set(project.findProperty("enableProguard")?.toString()?.toBoolean() ?: false)
+        optimize.set(false)
+        obfuscate.set(false)
+        configurationFiles.from(project.file("proguard-rules.pro"))
     }
 
     nativeDistributions {
@@ -91,9 +100,25 @@ nucleus.application {
         homepage = "https://github.com/ShiGuangSchedule/shiguangschedule"
         artifactName = "\${name}-v\${version}-\${os}-\${arch}.\${ext}"
 
+        // 移除体积庞大的 jdk.localedata (~30MB)，仅保留实际需要的最小模块集
         modules(
-            "jdk.unsupported",
-            "jdk.localedata"
+            "java.prefs",
+            "java.logging",
+            "jdk.crypto.ec",
+            "jdk.httpserver",
+            "jdk.unsupported"
+        )
+
+        jvmArgs(
+            "-Dfile.encoding=UTF-8",
+            "-Dsun.stdout.encoding=UTF-8",
+            "-Dsun.stderr.encoding=UTF-8",
+            "-XX:+UseG1GC",
+            "-XX:+UseStringDeduplication",
+            "-XX:MinHeapFreeRatio=15",
+            "-XX:MaxHeapFreeRatio=30",
+            "-Xms32m",
+            "-Xmx256m"
         )
 
         macOS {
@@ -125,4 +150,203 @@ tasks.withType<JavaExec>().configureEach {
     systemProperty("file.encoding", "UTF-8")
     systemProperty("sun.stdout.encoding", "UTF-8")
     systemProperty("sun.stderr.encoding", "UTF-8")
+}
+
+/**
+ * 辅助函数：对分发目录执行原生库裁剪、JRE 运行时重压缩与冗余文件清理
+ */
+fun slimDistributionDirectory(distDir: File, logger: org.gradle.api.logging.Logger) {
+    if (!distDir.isDirectory) return
+
+    val osName = System.getProperty("os.name").lowercase()
+    val osArch = System.getProperty("os.arch").lowercase()
+    val currentOsPrefix = when {
+        osName.contains("win") -> "windows"
+        osName.contains("mac") -> "osx"
+        else -> "linux"
+    }
+    val currentArchSuffix = when {
+        osArch.contains("aarch64") || osArch.contains("arm64") -> "arm64"
+        else -> "x64"
+    }
+    val keepNativeDirPrefix = "natives/${currentOsPrefix}_${currentArchSuffix}/"
+
+    val appDir = distDir.resolve("app")
+    if (appDir.isDirectory) {
+        appDir.listFiles { f -> f.isFile && f.extension.equals("jar", ignoreCase = true) }?.forEach { jarFile ->
+            var hasForeignNatives = false
+            ZipFile(jarFile).use { zip ->
+                val entries = zip.entries()
+                while (entries.hasMoreElements()) {
+                    val entry = entries.nextElement()
+                    if (entry.name.startsWith("natives/") && !entry.name.startsWith(keepNativeDirPrefix) && !entry.isDirectory) {
+                        hasForeignNatives = true
+                        break
+                    }
+                }
+            }
+            if (hasForeignNatives) {
+                val tempJar = File(jarFile.parentFile, "${jarFile.name}.slim.tmp")
+                ZipFile(jarFile).use { zipIn ->
+                    ZipOutputStream(FileOutputStream(tempJar)).use { zipOut ->
+                        zipOut.setLevel(Deflater.BEST_COMPRESSION)
+                        val entries = zipIn.entries()
+                        while (entries.hasMoreElements()) {
+                            val entry = entries.nextElement()
+                            if (entry.name.startsWith("natives/") && !entry.name.startsWith(keepNativeDirPrefix)) {
+                                continue
+                            }
+                            val newEntry = ZipEntry(entry.name)
+                            newEntry.time = entry.time
+                            zipOut.putNextEntry(newEntry)
+                            if (!entry.isDirectory) {
+                                zipIn.getInputStream(entry).use { it.copyTo(zipOut) }
+                            }
+                            zipOut.closeEntry()
+                        }
+                    }
+                }
+                if (jarFile.delete()) {
+                    tempJar.renameTo(jarFile)
+                    logger.lifecycle("已剔除非当前平台($keepNativeDirPrefix)原生库: ${jarFile.name}")
+                } else {
+                    tempJar.delete()
+                }
+            }
+        }
+    }
+
+    val runtimeDir = distDir.resolve("runtime")
+    if (runtimeDir.isDirectory) {
+        // 查找本机带 jmods 的完整 JDK，用 jlink --compress=zip-6 --strip-debug 重建精简运行时
+        val candidateJdks = listOfNotNull(
+            System.getenv("JDK_HOME")?.let(::File),
+            System.getenv("JAVA_HOME")?.let(::File),
+            File("D:/appdata/jdk-27.0.1")
+        )
+        val jdkWithJmods = candidateJdks.firstOrNull {
+            it.resolve("jmods").isDirectory &&
+                    (it.resolve("bin/jlink.exe").isFile || it.resolve("bin/jlink").isFile)
+        }
+        if (jdkWithJmods != null) {
+            val jlinkExe = if (osName.contains("win")) jdkWithJmods.resolve("bin/jlink.exe") else jdkWithJmods.resolve("bin/jlink")
+            val jmodsDir = jdkWithJmods.resolve("jmods")
+            val tempRuntime = File(distDir, "runtime_slim_tmp")
+            if (tempRuntime.exists()) tempRuntime.deleteRecursively()
+
+            val modulesList = "java.base,java.datatransfer,java.desktop,java.logging,java.prefs,jdk.crypto.ec,jdk.httpserver,jdk.unsupported"
+            val proc = ProcessBuilder(
+                jlinkExe.absolutePath,
+                "--module-path", jmodsDir.absolutePath,
+                "--add-modules", modulesList,
+                "--strip-debug",
+                "--no-man-pages",
+                "--no-header-files",
+                "--compress=zip-6",
+                "--output", tempRuntime.absolutePath
+            ).redirectErrorStream(true).start()
+            val output = proc.inputStream.bufferedReader().readText()
+            if (proc.waitFor() == 0 && tempRuntime.isDirectory) {
+                runtimeDir.deleteRecursively()
+                tempRuntime.renameTo(runtimeDir)
+                logger.lifecycle("已使用 jlink (zip-6 + strip-debug) 重建精简运行时: ${runtimeDir.absolutePath}")
+            } else {
+                tempRuntime.deleteRecursively()
+                logger.warn("jlink 精简跳过: $output")
+            }
+        }
+
+        // 清理运行时中的静态导入库、调试符号和冗余许可目录
+        runtimeDir.resolve("lib/jvm.lib").takeIf { it.exists() }?.delete()
+        runtimeDir.resolve("legal").takeIf { it.exists() }?.deleteRecursively()
+        runtimeDir.walkTopDown().filter { it.isFile && (it.extension == "pdb" || it.extension == "diz") }.forEach { it.delete() }
+    }
+}
+
+val slimDesktopDistributable = tasks.register("slimDesktopDistributable") {
+    group = "nucleus"
+    description = "裁剪桌面端分发目录中的跨平台冗余原生库并压缩 JRE 运行时体积"
+    mustRunAfter("createDistributable", "createReleaseDistributable")
+
+    doLast {
+        val binariesDir = layout.buildDirectory.dir("compose/binaries").get().asFile
+        if (!binariesDir.isDirectory) return@doLast
+        binariesDir.walkTopDown()
+            .maxDepth(4)
+            .filter { it.isDirectory && it.resolve("app").isDirectory && it.resolve("runtime").isDirectory }
+            .forEach { distRoot ->
+                val beforeBytes = distRoot.walkTopDown().filter { it.isFile }.sumOf { it.length() }
+                slimDistributionDirectory(distRoot, logger)
+                val afterBytes = distRoot.walkTopDown().filter { it.isFile }.sumOf { it.length() }
+                logger.lifecycle(
+                    "精简完成 [${distRoot.name}]: %.2f MB -> %.2f MB (减少 %.2f MB)".format(
+                        beforeBytes / 1048576.0,
+                        afterBytes / 1048576.0,
+                        (beforeBytes - afterBytes) / 1048576.0
+                    )
+                )
+            }
+    }
+}
+
+tasks.matching { it.name == "createDistributable" || it.name == "createReleaseDistributable" }.configureEach {
+    finalizedBy(slimDesktopDistributable)
+}
+
+tasks.register("packageCompactDesktop") {
+    group = "nucleus"
+    description = "构建并生成极致精简的桌面端便携压缩包 (.zip)"
+    dependsOn("createDistributable", slimDesktopDistributable)
+
+    doLast {
+        val binariesDir = layout.buildDirectory.dir("compose/binaries").get().asFile
+        val distRoot = binariesDir.walkTopDown()
+            .maxDepth(4)
+            .firstOrNull { it.isDirectory && it.resolve("app").isDirectory && it.resolve("runtime").isDirectory }
+            ?: error("未找到已生成的桌面端分发目录，请确认 createDistributable 是否成功。")
+
+        val osName = System.getProperty("os.name").lowercase()
+        val osArch = System.getProperty("os.arch").lowercase()
+        val osTag = when {
+            osName.contains("win") -> "windows"
+            osName.contains("mac") -> "macos"
+            else -> "linux"
+        }
+        val archTag = if (osArch.contains("aarch64") || osArch.contains("arm64")) "arm64" else "x64"
+
+        val compactDir = layout.buildDirectory.dir("compact").get().asFile.apply { mkdirs() }
+        val zipFile = compactDir.resolve("shiguangschedule-v${appVersion}-${osTag}-${archTag}-compact.zip")
+        if (zipFile.exists()) zipFile.delete()
+
+        ZipOutputStream(FileOutputStream(zipFile)).use { zipOut ->
+            zipOut.setLevel(Deflater.BEST_COMPRESSION)
+            distRoot.walkTopDown().filter { it.isFile }.forEach { file ->
+                val relPath = "ShiguangSchedule/" + file.relativeTo(distRoot).invariantSeparatorsPath
+                val entry = ZipEntry(relPath)
+                entry.time = file.lastModified()
+                zipOut.putNextEntry(entry)
+                file.inputStream().use { it.copyTo(zipOut) }
+                zipOut.closeEntry()
+            }
+        }
+
+        val unpackedMb = distRoot.walkTopDown().filter { it.isFile }.sumOf { it.length() } / 1048576.0
+        val zipMb = zipFile.length() / 1048576.0
+        logger.lifecycle("==========================================================")
+        logger.lifecycle("精简桌面端打包完成:")
+        logger.lifecycle("  解压后总目录体积: %.2f MB (原版基准: 142.42 MB)".format(unpackedMb))
+        logger.lifecycle("  便携安装包体积  : %.2f MB -> ${zipFile.absolutePath}".format(zipMb))
+        logger.lifecycle("==========================================================")
+    }
+}
+
+tasks.register("renameDesktopPackage") {
+    group = "nucleus"
+    description = "CI 兼容打包与产物重命名任务"
+    val osName = System.getProperty("os.name").lowercase()
+    when {
+        osName.contains("win") -> dependsOn("packageReleaseNsis", "packageReleasePortable")
+        osName.contains("mac") -> dependsOn("packageReleaseDmg", "packageReleasePkg")
+        osName.contains("linux") -> dependsOn("packageReleaseDeb", "packageReleaseRpm", "packageReleaseAppImage")
+    }
 }
