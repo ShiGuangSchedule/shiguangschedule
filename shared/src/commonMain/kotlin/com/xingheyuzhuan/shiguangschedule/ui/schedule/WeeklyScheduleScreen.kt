@@ -51,6 +51,8 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -319,7 +321,33 @@ private fun WeeklyScheduleContentLoaded(
                     title = {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.pointerInput(Unit) {
+                                awaitPointerEventScope {
+                                    while (true) {
+                                        val event = awaitPointerEvent()
+                                        if (event.type == PointerEventType.Scroll && !pagerState.isScrollInProgress) {
+                                            val delta = event.changes.firstOrNull()?.scrollDelta
+                                            val primaryDelta = if (delta != null && kotlin.math.abs(delta.x) > kotlin.math.abs(delta.y)) {
+                                                delta.x
+                                            } else {
+                                                delta?.y ?: 0f
+                                            }
+                                            if (kotlin.math.abs(primaryDelta) > 0.1f) {
+                                                val targetPage = if (primaryDelta > 0f) {
+                                                    pagerState.currentPage + 1
+                                                } else {
+                                                    (pagerState.currentPage - 1).coerceAtLeast(0)
+                                                }
+                                                coroutineScope.launch {
+                                                    pagerState.animateScrollToPage(targetPage)
+                                                }
+                                                event.changes.forEach { it.consume() }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         ) {
                             IconButton(
                                 onClick = {

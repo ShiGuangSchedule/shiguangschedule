@@ -81,9 +81,9 @@ fun FloatingCourseBar(
                 IconButton(
                     onClick = onCancelClick,
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(44.dp)
                         .background(
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f),
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.12f),
                             shape = CircleShape
                         )
                 ) {
@@ -91,7 +91,7 @@ fun FloatingCourseBar(
                         imageVector = vectorResource(Res.drawable.close_24px),
                         contentDescription = stringResource(Res.string.action_cancel),
                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
