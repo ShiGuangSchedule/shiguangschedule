@@ -113,6 +113,9 @@ nucleus.application {
             "-Dfile.encoding=UTF-8",
             "-Dsun.stdout.encoding=UTF-8",
             "-Dsun.stderr.encoding=UTF-8",
+            "-XX:+IgnoreUnrecognizedVMOptions",
+            "-XX:+UseCompactObjectHeaders",
+            "-Xshare:auto",
             "-XX:+UseG1GC",
             "-XX:+UseStringDeduplication",
             "-XX:MinHeapFreeRatio=15",
@@ -153,6 +156,51 @@ tasks.withType<JavaExec>().configureEach {
 }
 
 /**
+ * 判断 JAR 中的条目是否为非当前平台或非当前 CPU 架构的冗余原生动态库
+ */
+fun isForeignNativeJarEntry(
+    entryName: String,
+    isDirectory: Boolean,
+    currentOsPrefix: String,
+    currentArchSuffix: String
+): Boolean {
+    if (isDirectory) return false
+    val normalized = entryName.lowercase()
+    val keepNativeDirPrefix = "natives/${currentOsPrefix}_${currentArchSuffix}/"
+    if (normalized.startsWith("natives/")) {
+        return !normalized.startsWith(keepNativeDirPrefix)
+    }
+    val isNativeBinary = normalized.endsWith(".dll") ||
+            normalized.endsWith(".dylib") ||
+            normalized.endsWith(".jnilib") ||
+            normalized.endsWith(".so")
+    if (!isNativeBinary) return false
+
+    val expectedExt = when (currentOsPrefix) {
+        "windows" -> ".dll"
+        "osx" -> ".dylib"
+        else -> ".so"
+    }
+    if (!normalized.endsWith(expectedExt) && !(currentOsPrefix == "osx" && normalized.endsWith(".jnilib"))) {
+        return true
+    }
+
+    val foreignOsTokens = when (currentOsPrefix) {
+        "windows" -> listOf("/osx", "/macos", "/darwin", "/linux", "/android", "osx_", "macos_", "linux_", "android_")
+        "osx" -> listOf("/windows", "/win32", "/linux", "/android", "windows_", "win32_", "linux_", "android_")
+        else -> listOf("/windows", "/win32", "/osx", "/macos", "/darwin", "/android", "windows_", "win32_", "osx_", "macos_", "android_")
+    }
+    if (foreignOsTokens.any { normalized.contains(it) }) return true
+
+    val foreignArchTokens = if (currentArchSuffix == "arm64") {
+        listOf("x86_64", "amd64", "_x64", "-x64", "/x64/", "/x86/")
+    } else {
+        listOf("aarch64", "arm64", "armv7", "/x86/")
+    }
+    return foreignArchTokens.any { normalized.contains(it) }
+}
+
+/**
  * 辅助函数：对分发目录执行原生库裁剪、JRE 运行时重压缩与冗余文件清理
  */
 fun slimDistributionDirectory(distDir: File, logger: org.gradle.api.logging.Logger) {
@@ -179,7 +227,7 @@ fun slimDistributionDirectory(distDir: File, logger: org.gradle.api.logging.Logg
                 val entries = zip.entries()
                 while (entries.hasMoreElements()) {
                     val entry = entries.nextElement()
-                    if (entry.name.startsWith("natives/") && !entry.name.startsWith(keepNativeDirPrefix) && !entry.isDirectory) {
+                    if (isForeignNativeJarEntry(entry.name, entry.isDirectory, currentOsPrefix, currentArchSuffix)) {
                         hasForeignNatives = true
                         break
                     }
@@ -193,7 +241,7 @@ fun slimDistributionDirectory(distDir: File, logger: org.gradle.api.logging.Logg
                         val entries = zipIn.entries()
                         while (entries.hasMoreElements()) {
                             val entry = entries.nextElement()
-                            if (entry.name.startsWith("natives/") && !entry.name.startsWith(keepNativeDirPrefix)) {
+                            if (isForeignNativeJarEntry(entry.name, entry.isDirectory, currentOsPrefix, currentArchSuffix)) {
                                 continue
                             }
                             val newEntry = ZipEntry(entry.name)
@@ -220,6 +268,7 @@ fun slimDistributionDirectory(distDir: File, logger: org.gradle.api.logging.Logg
     if (runtimeDir.isDirectory) {
         // 查找本机带 jmods 的完整 JDK，用 jlink --compress=zip-6 --strip-debug 重建精简运行时
         val candidateJdks = listOfNotNull(
+            System.getProperty("java.home")?.let(::File),
             System.getenv("JDK_HOME")?.let(::File),
             System.getenv("JAVA_HOME")?.let(::File),
             File("D:/appdata/jdk-27.0.1")
