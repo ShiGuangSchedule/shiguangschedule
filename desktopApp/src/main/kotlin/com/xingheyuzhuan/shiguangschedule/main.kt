@@ -1,7 +1,5 @@
 package com.xingheyuzhuan.shiguangschedule
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.draganddrop.dragAndDropTarget
@@ -11,13 +9,16 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,8 +48,6 @@ import com.xingheyuzhuan.shiguangschedule.data.di.isPlatformSupported
 import com.xingheyuzhuan.shiguangschedule.service.DesktopAppController
 import com.xingheyuzhuan.shiguangschedule.ui.settings.SettingsViewModel
 import com.xingheyuzhuan.shiguangschedule.ui.settings.additional.PlatformLocaleManager
-import com.xingheyuzhuan.shiguangschedule.ui.theme.DeveloperIconBgColor
-import com.xingheyuzhuan.shiguangschedule.ui.theme.NormalIconBgColor
 import com.xingheyuzhuan.shiguangschedule.ui.theme.ShiguangScheduleTheme
 import com.xingheyuzhuan.shiguangschedule.ui.theme.rememberSystemDark
 import dev.nucleusframework.application.DecoratedWindow
@@ -64,6 +63,7 @@ import dev.nucleusframework.window.windowDragArea
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.ComponentScan
 import org.koin.core.annotation.Configuration
@@ -73,8 +73,8 @@ import org.koin.core.context.GlobalContext
 import org.koin.plugin.module.dsl.startKoin
 import shiguangschedule.shared.generated.resources.Res
 import shiguangschedule.shared.generated.resources.app_name
-import shiguangschedule.shared.generated.resources.ic_launcher
-import shiguangschedule.shared.generated.resources.ic_menu_logo
+import shiguangschedule.shared.generated.resources.build_24px
+import shiguangschedule.shared.generated.resources.ic_launcher_foreground
 import java.io.PrintStream
 import java.io.PrintWriter
 import java.io.StringWriter
@@ -165,7 +165,7 @@ fun main(args: Array<String>) {
                 },
                 state = mainWindowState,
                 title = stringResource(Res.string.app_name),
-                icon = painterResource(Res.drawable.ic_launcher)
+                icon = painterResource(Res.drawable.ic_launcher_foreground)
             ) {
                 DesktopWindowThemeWrapper {
                     val isDark = rememberSystemDark()
@@ -184,13 +184,6 @@ fun main(args: Array<String>) {
                             val state by viewModel.uiState.collectAsState()
                             val isDevMode = state.appSettings.developerModeEnabled
 
-                            val targetColor =
-                                if (isDevMode) DeveloperIconBgColor else NormalIconBgColor
-                            val animatedIconBgColor by animateColorAsState(
-                                targetValue = targetColor,
-                                animationSpec = tween(durationMillis = 400)
-                            )
-
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -204,21 +197,38 @@ fun main(args: Array<String>) {
                                         .padding(start = 12.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(24.dp)
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .background(animatedIconBgColor),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Image(
-                                            painter = painterResource(Res.drawable.ic_menu_logo),
-                                            contentDescription = null,
+                                    Box(modifier = Modifier.size(24.dp)) {
+                                        Box(
                                             modifier = Modifier
                                                 .fillMaxSize()
-                                                .padding(3.dp),
-                                            contentScale = ContentScale.Fit
-                                        )
+                                                .clip(RoundedCornerShape(6.dp)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Image(
+                                                painter = painterResource(Res.drawable.ic_launcher_foreground),
+                                                contentDescription = null,
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentScale = ContentScale.Fit
+                                            )
+                                        }
+                                        if (isDevMode) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .align(Alignment.TopEnd)
+                                                    .offset(x = 3.dp, y = (-3).dp)
+                                                    .size(14.dp)
+                                                    .clip(CircleShape)
+                                                    .background(MaterialTheme.colorScheme.primary),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = vectorResource(Res.drawable.build_24px),
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                                    modifier = Modifier.size(10.dp)
+                                                )
+                                            }
+                                        }
                                     }
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
