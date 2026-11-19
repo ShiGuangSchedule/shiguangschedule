@@ -291,10 +291,17 @@ private fun WeeklyScheduleContentLoaded(
                             } else false
                         }
                         Key.Escape -> {
-                            if (floatingCourse != null) {
-                                viewModel.exitFloatingMode()
-                                true
-                            } else false
+                            when {
+                                floatingCourse != null -> {
+                                    viewModel.exitFloatingMode()
+                                    true
+                                }
+                                isGridHolding -> {
+                                    isGridHolding = false
+                                    true
+                                }
+                                else -> false
+                            }
                         }
                         else -> false
                     }
@@ -485,6 +492,11 @@ private fun WeeklyScheduleContentLoaded(
 
                 val pageCourses = uiState.courseCache[pageMondayDate.toString()] ?: emptyList()
                 val gridState = rememberScheduleGridState(gridScrollState = gridScrollState)
+                LaunchedEffect(isGridHolding) {
+                    if (!isGridHolding && gridState.expandedItem != null) {
+                        gridState.resetAllStates()
+                    }
+                }
 
                 val weekIndex = uiState.weekIndexInPager
                 val totalWeeks = uiState.totalWeeks

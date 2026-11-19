@@ -25,6 +25,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
@@ -118,6 +121,26 @@ fun <T> NativeNumberPicker(
         modifier = modifier
             .height(itemHeight * visibleItemsCount)
             .clipToBounds()
+            .pointerInput(values.size) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        if (event.type == PointerEventType.Scroll && values.isNotEmpty() && !listState.isScrollInProgress) {
+                            val deltaY = event.changes.firstOrNull()?.scrollDelta?.y ?: 0f
+                            if (abs(deltaY) > 0.05f) {
+                                val step = if (deltaY > 0f) 1 else -1
+                                val targetIndex = (centerIndex + step).coerceIn(0, values.lastIndex)
+                                if (targetIndex != centerIndex) {
+                                    coroutineScope.launch {
+                                        listState.animateScrollToItem(targetIndex)
+                                    }
+                                }
+                                event.changes.forEach { it.consume() }
+                            }
+                        }
+                    }
+                }
+            }
     ) {
         // 计算分隔线位置
         Box(
