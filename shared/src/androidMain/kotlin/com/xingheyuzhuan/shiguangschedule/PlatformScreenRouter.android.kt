@@ -10,17 +10,14 @@ actual object PlatformScreenRouter {
         onNavigate: (Destination) -> Unit,
         onBack: () -> Unit
     ): Boolean {
-        return when (destination) {
-            is Destination.AndroidDestination -> {
-                when (destination) {
-                    Destination.AndroidNotificationSettings -> {
-                        NotificationSettingsScreen(onBack = onBack)
-                        true
-                    }
-                    else -> false
-                }
+        if (destination !is Destination.AndroidDestination) return false
+
+        val content: @Composable () -> Unit = when (destination) {
+            Destination.AndroidNotificationSettings -> {
+                { NotificationSettingsScreen(onBack = onBack) }
             }
-            else -> false
         }
+        content()
+        return true
     }
 }

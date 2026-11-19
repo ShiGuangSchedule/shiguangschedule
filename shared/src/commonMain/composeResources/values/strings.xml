@@ -345,6 +345,33 @@
     <string name="desc_sync_to_system_calendar">将当前课表一键同步至手机系统日历</string>
     <string name="toast_sync_calendar_success">同步成功</string>
     <string name="error_sync_calendar_failed">同步失败，请检查日历权限</string>
+    <string name="item_browser_extension_bridge">浏览器插件桥接</string>
+    <string name="desc_browser_extension_bridge">配置本地桥接端口与插件握手密钥</string>
+
+    <!-- 浏览器插件配置页 -->
+    <string name="section_bridge_service">桥接服务</string>
+    <string name="label_listen_port">监听端口</string>
+    <string name="label_handshake_key">握手密钥</string>
+    <string name="a11y_copy_key">复制密钥</string>
+    <string name="toast_key_copied">密钥已复制到剪贴板</string>
+    <string name="title_set_port">设置监听端口</string>
+    <string name="label_port">端口</string>
+    <string name="error_input_port">请输入端口号</string>
+    <string name="desc_port_range">端口范围</string>
+    <string name="desc_bridge_restart_on_change">修改后桥接服务会立即重启</string>
+    <string name="action_reset_default_port">重置为默认端口</string>
+    <string name="title_set_api_key">设置握手密钥</string>
+    <string name="label_key">密钥</string>
+    <string name="error_key_empty">密钥不能为空</string>
+    <string name="desc_key_requirement">浏览器插件需要使用相同密钥才能连接</string>
+    <string name="action_generate_random_key">随机生成密钥</string>
+    <string name="action_push_to_extension">推送到浏览器插件</string>
+    <string name="toast_adapter_not_found">未找到对应的适配器</string>
+    <string name="toast_server_not_running">桥接服务未运行，请检查端口配置</string>
+    <string name="toast_no_plugin_connected">未检测到已连接的浏览器插件，请先安装并连接插件</string>
+    <string name="toast_code_not_found">适配代码不存在，请先更新学校仓库</string>
+    <string name="toast_push_success_format">已推送给 %1$d 个浏览器插件</string>
+    <string name="toast_push_failed_format">推送失败：%1$s</string>
 
     <!-- 更多设置 -->
     <string name="title_more_options">更多</string>

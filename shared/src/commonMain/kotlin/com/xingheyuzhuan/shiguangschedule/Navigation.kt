@@ -100,6 +100,12 @@ sealed interface Destination : NavKey {
 
     // Desktop 平台专属页面
     @Serializable data object DesktopNotificationSettings : DesktopDestination
+
+    @Serializable
+    data class DesktopExtensionBridgeSettings(
+        val schoolId: String? = null,
+        val adapterId: String? = null
+    ) : DesktopDestination
 }
 
 val Destination.isMainScreen: Boolean
@@ -151,6 +157,7 @@ val navSerializersModule = SerializersModule {
 
         // Desktop 平台专属页面
         subclass(Destination.DesktopNotificationSettings::class)
+        subclass(Destination.DesktopExtensionBridgeSettings::class)
     }
 }
 

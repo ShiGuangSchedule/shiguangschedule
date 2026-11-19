@@ -1,6 +1,7 @@
 package com.xingheyuzhuan.shiguangschedule
 
 import androidx.compose.runtime.Composable
+import com.xingheyuzhuan.shiguangschedule.ui.schoolselection.extension.ExtensionBridgeSettingsScreen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.notification.NotificationSettingsScreen
 
 actual object PlatformScreenRouter {
@@ -10,16 +11,23 @@ actual object PlatformScreenRouter {
         onNavigate: (Destination) -> Unit,
         onBack: () -> Unit
     ): Boolean {
-        return when (destination) {
-            is Destination.DesktopDestination -> {
-                when (destination) {
-                    Destination.DesktopNotificationSettings -> {
-                        NotificationSettingsScreen(onBack = onBack)
-                        true
-                    }
+        if (destination !is Destination.DesktopDestination) return false
+
+        val content: @Composable () -> Unit = when (destination) {
+            is Destination.DesktopNotificationSettings -> {
+                { NotificationSettingsScreen(onBack = onBack) }
+            }
+            is Destination.DesktopExtensionBridgeSettings -> {
+                {
+                    ExtensionBridgeSettingsScreen(
+                        onBack = onBack,
+                        schoolId = destination.schoolId,
+                        adapterId = destination.adapterId
+                    )
                 }
             }
-            else -> false
         }
+        content()
+        return true
     }
 }

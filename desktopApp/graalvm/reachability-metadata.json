@@ -171,6 +171,29 @@
                     ]
                 }
             ]
+        },
+        {
+            "type": "com.sun.crypto.provider.PBES2Parameters$General",
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "kotlin.Any"
+        },
+        {
+            "type": "kotlin.Boolean"
+        },
+        {
+            "type": "kotlin.Cloneable"
+        },
+        {
+            "type": "kotlin.collections.List"
         }
     ],
     "resources": [

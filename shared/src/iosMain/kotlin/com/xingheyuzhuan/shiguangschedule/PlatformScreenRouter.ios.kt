@@ -9,14 +9,9 @@ actual object PlatformScreenRouter {
         onNavigate: (Destination) -> Unit,
         onBack: () -> Unit
     ): Boolean {
-        return when (destination) {
-            is Destination.IosDestination -> {
-                when (destination) {
-                    // TODO: iOS专属页面在这里实现
-                    else -> false
-                }
-            }
-            else -> false
-        }
+        if (destination !is Destination.IosDestination) return false
+
+        // TODO: iOS专属页面在这里实现
+        return false
     }
 }
