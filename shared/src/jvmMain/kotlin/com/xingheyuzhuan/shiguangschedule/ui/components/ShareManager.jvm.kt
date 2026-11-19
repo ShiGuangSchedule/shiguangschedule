@@ -1,10 +1,25 @@
 package com.xingheyuzhuan.shiguangschedule.ui.components
 
+import com.xingheyuzhuan.shiguangschedule.tool.DesktopExportTracker
 import java.awt.Desktop
 import java.io.File
 
+internal fun resolveDesktopShareTargetFile(filePath: String): File {
+    val normalized = filePath.replace('\\', '/')
+    if (normalized.contains("/share_temp/")) {
+        val exportedPath = DesktopExportTracker.lastExportedFilePath
+        if (!exportedPath.isNullOrBlank()) {
+            val exportedFile = File(exportedPath)
+            if (exportedFile.exists()) {
+                return exportedFile
+            }
+        }
+    }
+    return File(filePath)
+}
+
 actual fun platformShareFile(filePath: String, mimeType: String) {
-    val file = File(filePath)
+    val file = resolveDesktopShareTargetFile(filePath)
     val targetFile = if (file.exists()) file else file.parentFile ?: return
 
     try {

@@ -16,6 +16,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.skia.Image
 
+internal object DesktopExportTracker {
+    @Volatile
+    var lastExportedFilePath: String? = null
+}
+
 class FileKitManager(
     private val pickImageLauncher: () -> Unit,
     private val importFileLauncher: (List<String>) -> Unit,
@@ -82,6 +87,7 @@ actual fun rememberFileManager(callbacks: FileManagerCallbacks): FileManager {
                     if (file != null) {
                         try {
                             file.write(bytes)
+                            DesktopExportTracker.lastExportedFilePath = file.file.absolutePath
                             success = true
                         } catch (e: Exception) {
                             e.printStackTrace()

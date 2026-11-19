@@ -30,19 +30,23 @@ actual object PlatformUpdateStrategy {
 
         val preferredExtensions: List<String>
         val osKeywords: List<String>
+        val foreignOsKeywords: List<String>
 
         when {
             normalizedOs.contains("win") -> {
                 preferredExtensions = listOf(".exe", ".msi", ".zip")
                 osKeywords = listOf("windows", "win")
+                foreignOsKeywords = listOf("macos", "mac", "osx", "darwin", "linux", "ubuntu", "debian", "android", "ios")
             }
             normalizedOs.contains("mac") || normalizedOs.contains("darwin") -> {
                 preferredExtensions = listOf(".dmg", ".pkg")
                 osKeywords = listOf("macos", "mac", "osx", "darwin")
+                foreignOsKeywords = listOf("windows", "win", "linux", "ubuntu", "debian", "android", "ios")
             }
             normalizedOs.contains("linux") -> {
                 preferredExtensions = listOf(".deb", ".appimage", ".rpm")
                 osKeywords = listOf("linux", "ubuntu", "debian")
+                foreignOsKeywords = listOf("windows", "win", "macos", "mac", "osx", "darwin", "android", "ios")
             }
             else -> return null
         }
@@ -60,11 +64,24 @@ actual object PlatformUpdateStrategy {
 
         val osCandidates = assets.filter { asset ->
             val lower = asset.name.lowercase()
-            !lower.endsWith(".apk") && preferredExtensions.any { lower.endsWith(it) }
+            !lower.endsWith(".apk") &&
+                    preferredExtensions.any { lower.endsWith(it) } &&
+                    foreignOsKeywords.none { lower.contains(it) }
         }
         if (osCandidates.isEmpty()) return null
 
-        // 优先匹配：扩展名优先级 + 架构精准匹配 + OS 关键字匹配
+        // 优先匹配：扩展名优先级 + OS 关键字匹配 + 架构精准匹配
+        for (ext in preferredExtensions) {
+            val exactOsAndArchMatch = osCandidates.firstOrNull { asset ->
+                val lower = asset.name.lowercase()
+                lower.endsWith(ext) &&
+                        osKeywords.any { lower.contains(it) } &&
+                        archKeywords.any { lower.contains(it) }
+            }
+            if (exactOsAndArchMatch != null) return exactOsAndArchMatch.downloadUrl
+        }
+
+        // 次优匹配 1：扩展名优先级 + 架构精准匹配
         for (ext in preferredExtensions) {
             val exactArchMatch = osCandidates.firstOrNull { asset ->
                 val lower = asset.name.lowercase()
@@ -73,18 +90,21 @@ actual object PlatformUpdateStrategy {
             if (exactArchMatch != null) return exactArchMatch.downloadUrl
         }
 
-        // 次优匹配：扩展名匹配且不包含相反架构关键字
+        // 次优匹配 2：扩展名匹配 + OS 关键字匹配且不包含相反架构关键字
         for (ext in preferredExtensions) {
             val compatibleMatch = osCandidates.firstOrNull { asset ->
                 val lower = asset.name.lowercase()
                 lower.endsWith(ext) &&
                         oppositeArchKeywords.none { lower.contains(it) } &&
-                        (osKeywords.any { lower.contains(it) } || true)
+                        osKeywords.any { lower.contains(it) }
             }
             if (compatibleMatch != null) return compatibleMatch.downloadUrl
         }
 
-        return osCandidates.first().downloadUrl
+        return osCandidates.firstOrNull { asset ->
+            val lower = asset.name.lowercase()
+            oppositeArchKeywords.none { lower.contains(it) }
+        }?.downloadUrl ?: osCandidates.first().downloadUrl
     }
 
     /**
