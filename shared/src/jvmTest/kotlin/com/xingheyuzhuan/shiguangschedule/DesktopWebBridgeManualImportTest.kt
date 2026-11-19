@@ -1,5 +1,6 @@
 package com.xingheyuzhuan.shiguangschedule
 
+import com.xingheyuzhuan.shiguangschedule.tool.ExternalFileManager
 import com.xingheyuzhuan.shiguangschedule.ui.schoolselection.web.DesktopWebViewController
 import com.xingheyuzhuan.shiguangschedule.ui.schoolselection.web.SaveComboSchedulePayload
 import com.xingheyuzhuan.shiguangschedule.ui.schoolselection.web.SaveConfigPayload
@@ -10,6 +11,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class DesktopWebBridgeManualImportTest {
@@ -123,5 +125,25 @@ class DesktopWebBridgeManualImportTest {
         assertFailsWith<IllegalArgumentException> {
             DesktopWebViewController.parseManualImportPayload("""{"foo":"bar"}""")
         }
+    }
+
+    @Test
+    fun testExternalFileManagerRoutesJsonAndClearsOnConsume() {
+        ExternalFileManager.consumeFile() // 确保初始为空
+        val payloadBytes = """{"courses":[]}""".encodeToByteArray()
+
+        ExternalFileManager.onFileReceived("backup_schedule.JSON", payloadBytes)
+        val received = ExternalFileManager.consumeFile()
+        assertNotNull(received)
+        assertEquals("backup_schedule.JSON", received.fileName)
+        assertEquals(Destination.CourseTableConversion, received.targetDestination)
+        assertTrue(received.bytes.contentEquals(payloadBytes))
+        assertNull(ExternalFileManager.consumeFile())
+
+        // 非 json 后缀文件 targetDestination 应为 null
+        ExternalFileManager.onFileReceived("notes.txt", payloadBytes)
+        val nonJson = ExternalFileManager.consumeFile()
+        assertNotNull(nonJson)
+        assertNull(nonJson.targetDestination)
     }
 }
