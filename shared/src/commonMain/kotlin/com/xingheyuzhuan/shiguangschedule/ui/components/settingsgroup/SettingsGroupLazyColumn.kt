@@ -1,10 +1,13 @@
 package com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -14,10 +17,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 /**
- * 通用分组数据模型（用于长列表，如语言选择、城市选择等）。
+ * 通用分组数据模型。
  *
- * @param title 分组标题（可空，若为 null 则该分组不显示头部 Header）
- * @param items 该组下的子项数据列表
+ * @param title 分组标题，为 null 时不显示分组头
+ * @param items 分组内的子项
  */
 data class SettingsGroup<T>(
     val title: String? = null,
@@ -40,18 +43,25 @@ private sealed interface FlatUiItem<T> {
 }
 
 /**
- * 高性能长列表分组容器（底层使用单根 LazyColumn）。
- * 自动处理数据扁平化、字母分组头、以及组内首尾非对称圆角。
- * 内部基于顺序索引管理 Item Key，完全不受业务数据重复或同名标题影响。
+ * 高性能长列表分组容器（单根 LazyColumn）。
+ * 负责数据扁平化、分组头渲染与组内首尾非对称圆角。
  *
- * @param groups 分组数据列表
- * @param title 整个长列表的顶层可选大标题（可空）
+ * @param groups 分组数据
+ * @param state 滚动状态，供外部控制跳转
+ * @param contentPadding 列表内边距
+ * @param leadingContent 所有分组之前的可选内容
+ * @param trailingContent 所有分组之后的可选内容
+ * @param title 顶层可选大标题
  * @param headerContent 自定义分组标题渲染
  */
 @Composable
 fun <T> SettingsGroupLazyColumn(
     groups: List<SettingsGroup<T>>,
     modifier: Modifier = Modifier,
+    state: LazyListState = rememberLazyListState(),
+    contentPadding: PaddingValues = PaddingValues(),
+    leadingContent: (@Composable () -> Unit)? = null,
+    trailingContent: (@Composable () -> Unit)? = null,
     title: String? = null,
     headerContent: @Composable (title: String) -> Unit = { titleText ->
         Text(
@@ -68,8 +78,16 @@ fun <T> SettingsGroupLazyColumn(
 
     LazyColumn(
         modifier = modifier.fillMaxWidth(),
+        state = state,
+        contentPadding = contentPadding,
         verticalArrangement = Arrangement.spacedBy(SettingsDefaults.CardSpacing)
     ) {
+        leadingContent?.let { leading ->
+            item(key = Triple(-2, -1, -1)) {
+                leading()
+            }
+        }
+
         if (!title.isNullOrBlank()) {
             item(key = Triple(-1, -1, -1)) {
                 headerContent(title)
@@ -79,7 +97,7 @@ fun <T> SettingsGroupLazyColumn(
         items(
             items = flatItems,
             key = { flatItem ->
-                // 纯内部顺序索引作为唯一键：(类型标记, 分组序号, 组内序号)
+                // (类型标记, 分组序号, 组内序号)
                 when (flatItem) {
                     is FlatUiItem.Header -> Triple(0, flatItem.groupIndex, -1)
                     is FlatUiItem.RowItem -> Triple(1, flatItem.groupIndex, flatItem.itemIndex)
@@ -118,6 +136,12 @@ fun <T> SettingsGroupLazyColumn(
 
                     content(flatItem.data, shape)
                 }
+            }
+        }
+
+        trailingContent?.let { trailing ->
+            item(key = Triple(-3, -1, -1)) {
+                trailing()
             }
         }
     }
