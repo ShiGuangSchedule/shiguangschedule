@@ -155,160 +155,162 @@ tasks.withType<JavaExec>().configureEach {
     systemProperty("sun.stderr.encoding", "UTF-8")
 }
 
-/**
- * 判断 JAR 中的条目是否为非当前平台或非当前 CPU 架构的冗余原生动态库
- */
-fun isForeignNativeJarEntry(
-    entryName: String,
-    isDirectory: Boolean,
-    currentOsPrefix: String,
-    currentArchSuffix: String
-): Boolean {
-    if (isDirectory) return false
-    val normalized = entryName.lowercase()
-    val keepNativeDirPrefix = "natives/${currentOsPrefix}_${currentArchSuffix}/"
-    if (normalized.startsWith("natives/")) {
-        return !normalized.startsWith(keepNativeDirPrefix)
-    }
-    val isNativeBinary = normalized.endsWith(".dll") ||
-            normalized.endsWith(".dylib") ||
-            normalized.endsWith(".jnilib") ||
-            normalized.endsWith(".so")
-    if (!isNativeBinary) return false
+object DesktopDistributionSlimmer {
+    /**
+     * 判断 JAR 中的条目是否为非当前平台或非当前 CPU 架构的冗余原生动态库
+     */
+    fun isForeignNativeJarEntry(
+        entryName: String,
+        isDirectory: Boolean,
+        currentOsPrefix: String,
+        currentArchSuffix: String
+    ): Boolean {
+        if (isDirectory) return false
+        val normalized = entryName.lowercase()
+        val keepNativeDirPrefix = "natives/${currentOsPrefix}_${currentArchSuffix}/"
+        if (normalized.startsWith("natives/")) {
+            return !normalized.startsWith(keepNativeDirPrefix)
+        }
+        val isNativeBinary = normalized.endsWith(".dll") ||
+                normalized.endsWith(".dylib") ||
+                normalized.endsWith(".jnilib") ||
+                normalized.endsWith(".so")
+        if (!isNativeBinary) return false
 
-    val expectedExt = when (currentOsPrefix) {
-        "windows" -> ".dll"
-        "osx" -> ".dylib"
-        else -> ".so"
-    }
-    if (!normalized.endsWith(expectedExt) && !(currentOsPrefix == "osx" && normalized.endsWith(".jnilib"))) {
-        return true
+        val expectedExt = when (currentOsPrefix) {
+            "windows" -> ".dll"
+            "osx" -> ".dylib"
+            else -> ".so"
+        }
+        if (!normalized.endsWith(expectedExt) && !(currentOsPrefix == "osx" && normalized.endsWith(".jnilib"))) {
+            return true
+        }
+
+        val foreignOsTokens = when (currentOsPrefix) {
+            "windows" -> listOf("/osx", "/macos", "/darwin", "/linux", "/android", "osx_", "macos_", "linux_", "android_")
+            "osx" -> listOf("/windows", "/win32", "/linux", "/android", "windows_", "win32_", "linux_", "android_")
+            else -> listOf("/windows", "/win32", "/osx", "/macos", "/darwin", "/android", "windows_", "win32_", "osx_", "macos_", "android_")
+        }
+        if (foreignOsTokens.any { normalized.contains(it) }) return true
+
+        val foreignArchTokens = if (currentArchSuffix == "arm64") {
+            listOf("x86_64", "amd64", "_x64", "-x64", "/x64/", "/x86/")
+        } else {
+            listOf("aarch64", "arm64", "armv7", "/x86/")
+        }
+        return foreignArchTokens.any { normalized.contains(it) }
     }
 
-    val foreignOsTokens = when (currentOsPrefix) {
-        "windows" -> listOf("/osx", "/macos", "/darwin", "/linux", "/android", "osx_", "macos_", "linux_", "android_")
-        "osx" -> listOf("/windows", "/win32", "/linux", "/android", "windows_", "win32_", "linux_", "android_")
-        else -> listOf("/windows", "/win32", "/osx", "/macos", "/darwin", "/android", "windows_", "win32_", "osx_", "macos_", "android_")
-    }
-    if (foreignOsTokens.any { normalized.contains(it) }) return true
+    /**
+     * 对分发目录执行原生库裁剪、JRE 运行时重压缩与冗余文件清理
+     */
+    fun slimDistributionDirectory(distDir: File, logger: org.gradle.api.logging.Logger) {
+        if (!distDir.isDirectory) return
 
-    val foreignArchTokens = if (currentArchSuffix == "arm64") {
-        listOf("x86_64", "amd64", "_x64", "-x64", "/x64/", "/x86/")
-    } else {
-        listOf("aarch64", "arm64", "armv7", "/x86/")
-    }
-    return foreignArchTokens.any { normalized.contains(it) }
-}
+        val osName = System.getProperty("os.name").lowercase()
+        val osArch = System.getProperty("os.arch").lowercase()
+        val currentOsPrefix = when {
+            osName.contains("win") -> "windows"
+            osName.contains("mac") -> "osx"
+            else -> "linux"
+        }
+        val currentArchSuffix = when {
+            osArch.contains("aarch64") || osArch.contains("arm64") -> "arm64"
+            else -> "x64"
+        }
+        val keepNativeDirPrefix = "natives/${currentOsPrefix}_${currentArchSuffix}/"
 
-/**
- * 辅助函数：对分发目录执行原生库裁剪、JRE 运行时重压缩与冗余文件清理
- */
-fun slimDistributionDirectory(distDir: File, logger: org.gradle.api.logging.Logger) {
-    if (!distDir.isDirectory) return
-
-    val osName = System.getProperty("os.name").lowercase()
-    val osArch = System.getProperty("os.arch").lowercase()
-    val currentOsPrefix = when {
-        osName.contains("win") -> "windows"
-        osName.contains("mac") -> "osx"
-        else -> "linux"
-    }
-    val currentArchSuffix = when {
-        osArch.contains("aarch64") || osArch.contains("arm64") -> "arm64"
-        else -> "x64"
-    }
-    val keepNativeDirPrefix = "natives/${currentOsPrefix}_${currentArchSuffix}/"
-
-    val appDir = distDir.resolve("app")
-    if (appDir.isDirectory) {
-        appDir.listFiles { f -> f.isFile && f.extension.equals("jar", ignoreCase = true) }?.forEach { jarFile ->
-            var hasForeignNatives = false
-            ZipFile(jarFile).use { zip ->
-                val entries = zip.entries()
-                while (entries.hasMoreElements()) {
-                    val entry = entries.nextElement()
-                    if (isForeignNativeJarEntry(entry.name, entry.isDirectory, currentOsPrefix, currentArchSuffix)) {
-                        hasForeignNatives = true
-                        break
-                    }
-                }
-            }
-            if (hasForeignNatives) {
-                val tempJar = File(jarFile.parentFile, "${jarFile.name}.slim.tmp")
-                ZipFile(jarFile).use { zipIn ->
-                    ZipOutputStream(FileOutputStream(tempJar)).use { zipOut ->
-                        zipOut.setLevel(Deflater.BEST_COMPRESSION)
-                        val entries = zipIn.entries()
-                        while (entries.hasMoreElements()) {
-                            val entry = entries.nextElement()
-                            if (isForeignNativeJarEntry(entry.name, entry.isDirectory, currentOsPrefix, currentArchSuffix)) {
-                                continue
-                            }
-                            val newEntry = ZipEntry(entry.name)
-                            newEntry.time = entry.time
-                            zipOut.putNextEntry(newEntry)
-                            if (!entry.isDirectory) {
-                                zipIn.getInputStream(entry).use { it.copyTo(zipOut) }
-                            }
-                            zipOut.closeEntry()
+        val appDir = distDir.resolve("app")
+        if (appDir.isDirectory) {
+            appDir.listFiles { f -> f.isFile && f.extension.equals("jar", ignoreCase = true) }?.forEach { jarFile ->
+                var hasForeignNatives = false
+                ZipFile(jarFile).use { zip ->
+                    val entries = zip.entries()
+                    while (entries.hasMoreElements()) {
+                        val entry = entries.nextElement()
+                        if (isForeignNativeJarEntry(entry.name, entry.isDirectory, currentOsPrefix, currentArchSuffix)) {
+                            hasForeignNatives = true
+                            break
                         }
                     }
                 }
-                if (jarFile.delete()) {
-                    tempJar.renameTo(jarFile)
-                    logger.lifecycle("已剔除非当前平台($keepNativeDirPrefix)原生库: ${jarFile.name}")
-                } else {
-                    tempJar.delete()
+                if (hasForeignNatives) {
+                    val tempJar = File(jarFile.parentFile, "${jarFile.name}.slim.tmp")
+                    ZipFile(jarFile).use { zipIn ->
+                        ZipOutputStream(FileOutputStream(tempJar)).use { zipOut ->
+                            zipOut.setLevel(Deflater.BEST_COMPRESSION)
+                            val entries = zipIn.entries()
+                            while (entries.hasMoreElements()) {
+                                val entry = entries.nextElement()
+                                if (isForeignNativeJarEntry(entry.name, entry.isDirectory, currentOsPrefix, currentArchSuffix)) {
+                                    continue
+                                }
+                                val newEntry = ZipEntry(entry.name)
+                                newEntry.time = entry.time
+                                zipOut.putNextEntry(newEntry)
+                                if (!entry.isDirectory) {
+                                    zipIn.getInputStream(entry).use { it.copyTo(zipOut) }
+                                }
+                                zipOut.closeEntry()
+                            }
+                        }
+                    }
+                    if (jarFile.delete()) {
+                        tempJar.renameTo(jarFile)
+                        logger.lifecycle("已剔除非当前平台($keepNativeDirPrefix)原生库: ${jarFile.name}")
+                    } else {
+                        tempJar.delete()
+                    }
                 }
             }
         }
-    }
 
-    val runtimeDir = distDir.resolve("runtime")
-    if (runtimeDir.isDirectory) {
-        // 查找本机带 jmods 的完整 JDK，用 jlink --compress=zip-6 --strip-debug 重建精简运行时
-        val candidateJdks = listOfNotNull(
-            System.getProperty("java.home")?.let(::File),
-            System.getenv("JDK_HOME")?.let(::File),
-            System.getenv("JAVA_HOME")?.let(::File),
-            File("D:/appdata/jdk-27.0.1")
-        )
-        val jdkWithJmods = candidateJdks.firstOrNull {
-            it.resolve("jmods").isDirectory &&
-                    (it.resolve("bin/jlink.exe").isFile || it.resolve("bin/jlink").isFile)
-        }
-        if (jdkWithJmods != null) {
-            val jlinkExe = if (osName.contains("win")) jdkWithJmods.resolve("bin/jlink.exe") else jdkWithJmods.resolve("bin/jlink")
-            val jmodsDir = jdkWithJmods.resolve("jmods")
-            val tempRuntime = File(distDir, "runtime_slim_tmp")
-            if (tempRuntime.exists()) tempRuntime.deleteRecursively()
-
-            val modulesList = "java.base,java.datatransfer,java.desktop,java.logging,java.prefs,jdk.crypto.ec,jdk.httpserver,jdk.unsupported"
-            val proc = ProcessBuilder(
-                jlinkExe.absolutePath,
-                "--module-path", jmodsDir.absolutePath,
-                "--add-modules", modulesList,
-                "--strip-debug",
-                "--no-man-pages",
-                "--no-header-files",
-                "--compress=zip-6",
-                "--output", tempRuntime.absolutePath
-            ).redirectErrorStream(true).start()
-            val output = proc.inputStream.bufferedReader().readText()
-            if (proc.waitFor() == 0 && tempRuntime.isDirectory) {
-                runtimeDir.deleteRecursively()
-                tempRuntime.renameTo(runtimeDir)
-                logger.lifecycle("已使用 jlink (zip-6 + strip-debug) 重建精简运行时: ${runtimeDir.absolutePath}")
-            } else {
-                tempRuntime.deleteRecursively()
-                logger.warn("jlink 精简跳过: $output")
+        val runtimeDir = distDir.resolve("runtime")
+        if (runtimeDir.isDirectory) {
+            // 查找本机带 jmods 的完整 JDK，用 jlink --compress=zip-6 --strip-debug 重建精简运行时
+            val candidateJdks = listOfNotNull(
+                System.getProperty("java.home")?.let(::File),
+                System.getenv("JDK_HOME")?.let(::File),
+                System.getenv("JAVA_HOME")?.let(::File),
+                File("D:/appdata/jdk-27.0.1")
+            )
+            val jdkWithJmods = candidateJdks.firstOrNull {
+                it.resolve("jmods").isDirectory &&
+                        (it.resolve("bin/jlink.exe").isFile || it.resolve("bin/jlink").isFile)
             }
-        }
+            if (jdkWithJmods != null) {
+                val jlinkExe = if (osName.contains("win")) jdkWithJmods.resolve("bin/jlink.exe") else jdkWithJmods.resolve("bin/jlink")
+                val jmodsDir = jdkWithJmods.resolve("jmods")
+                val tempRuntime = File(distDir, "runtime_slim_tmp")
+                if (tempRuntime.exists()) tempRuntime.deleteRecursively()
 
-        // 清理运行时中的静态导入库、调试符号和冗余许可目录
-        runtimeDir.resolve("lib/jvm.lib").takeIf { it.exists() }?.delete()
-        runtimeDir.resolve("legal").takeIf { it.exists() }?.deleteRecursively()
-        runtimeDir.walkTopDown().filter { it.isFile && (it.extension == "pdb" || it.extension == "diz") }.forEach { it.delete() }
+                val modulesList = "java.base,java.datatransfer,java.desktop,java.logging,java.prefs,jdk.crypto.ec,jdk.httpserver,jdk.unsupported"
+                val proc = ProcessBuilder(
+                    jlinkExe.absolutePath,
+                    "--module-path", jmodsDir.absolutePath,
+                    "--add-modules", modulesList,
+                    "--strip-debug",
+                    "--no-man-pages",
+                    "--no-header-files",
+                    "--compress=zip-6",
+                    "--output", tempRuntime.absolutePath
+                ).redirectErrorStream(true).start()
+                val output = proc.inputStream.bufferedReader().readText()
+                if (proc.waitFor() == 0 && tempRuntime.isDirectory) {
+                    runtimeDir.deleteRecursively()
+                    tempRuntime.renameTo(runtimeDir)
+                    logger.lifecycle("已使用 jlink (zip-6 + strip-debug) 重建精简运行时: ${runtimeDir.absolutePath}")
+                } else {
+                    tempRuntime.deleteRecursively()
+                    logger.warn("jlink 精简跳过: $output")
+                }
+            }
+
+            // 清理运行时中的静态导入库、调试符号和冗余许可目录
+            runtimeDir.resolve("lib/jvm.lib").takeIf { it.exists() }?.delete()
+            runtimeDir.resolve("legal").takeIf { it.exists() }?.deleteRecursively()
+            runtimeDir.walkTopDown().filter { it.isFile && (it.extension == "pdb" || it.extension == "diz") }.forEach { it.delete() }
+        }
     }
 }
 
@@ -316,18 +318,20 @@ val slimDesktopDistributable = tasks.register("slimDesktopDistributable") {
     group = "nucleus"
     description = "裁剪桌面端分发目录中的跨平台冗余原生库并压缩 JRE 运行时体积"
     mustRunAfter("createDistributable", "createReleaseDistributable")
+    val binariesDirProvider = layout.buildDirectory.dir("compose/binaries")
 
     doLast {
-        val binariesDir = layout.buildDirectory.dir("compose/binaries").get().asFile
+        val log = org.gradle.api.logging.Logging.getLogger("slimDesktopDistributable")
+        val binariesDir = binariesDirProvider.get().asFile
         if (!binariesDir.isDirectory) return@doLast
         binariesDir.walkTopDown()
             .maxDepth(4)
             .filter { it.isDirectory && it.resolve("app").isDirectory && it.resolve("runtime").isDirectory }
             .forEach { distRoot ->
                 val beforeBytes = distRoot.walkTopDown().filter { it.isFile }.sumOf { it.length() }
-                slimDistributionDirectory(distRoot, logger)
+                DesktopDistributionSlimmer.slimDistributionDirectory(distRoot, log)
                 val afterBytes = distRoot.walkTopDown().filter { it.isFile }.sumOf { it.length() }
-                logger.lifecycle(
+                log.lifecycle(
                     "精简完成 [${distRoot.name}]: %.2f MB -> %.2f MB (减少 %.2f MB)".format(
                         beforeBytes / 1048576.0,
                         afterBytes / 1048576.0,
@@ -346,9 +350,13 @@ tasks.register("packageCompactDesktop") {
     group = "nucleus"
     description = "构建并生成极致精简的桌面端便携压缩包 (.zip)"
     dependsOn("createDistributable", slimDesktopDistributable)
+    val binariesDirProvider = layout.buildDirectory.dir("compose/binaries")
+    val compactDirProvider = layout.buildDirectory.dir("compact")
+    val targetVersion = appVersion
 
     doLast {
-        val binariesDir = layout.buildDirectory.dir("compose/binaries").get().asFile
+        val log = org.gradle.api.logging.Logging.getLogger("packageCompactDesktop")
+        val binariesDir = binariesDirProvider.get().asFile
         val distRoot = binariesDir.walkTopDown()
             .maxDepth(4)
             .firstOrNull { it.isDirectory && it.resolve("app").isDirectory && it.resolve("runtime").isDirectory }
@@ -363,8 +371,8 @@ tasks.register("packageCompactDesktop") {
         }
         val archTag = if (osArch.contains("aarch64") || osArch.contains("arm64")) "arm64" else "x64"
 
-        val compactDir = layout.buildDirectory.dir("compact").get().asFile.apply { mkdirs() }
-        val zipFile = compactDir.resolve("shiguangschedule-v${appVersion}-${osTag}-${archTag}-compact.zip")
+        val compactDir = compactDirProvider.get().asFile.apply { mkdirs() }
+        val zipFile = compactDir.resolve("shiguangschedule-v${targetVersion}-${osTag}-${archTag}-compact.zip")
         if (zipFile.exists()) zipFile.delete()
 
         ZipOutputStream(FileOutputStream(zipFile)).use { zipOut ->
@@ -381,11 +389,11 @@ tasks.register("packageCompactDesktop") {
 
         val unpackedMb = distRoot.walkTopDown().filter { it.isFile }.sumOf { it.length() } / 1048576.0
         val zipMb = zipFile.length() / 1048576.0
-        logger.lifecycle("==========================================================")
-        logger.lifecycle("精简桌面端打包完成:")
-        logger.lifecycle("  解压后总目录体积: %.2f MB (原版基准: 142.42 MB)".format(unpackedMb))
-        logger.lifecycle("  便携安装包体积  : %.2f MB -> ${zipFile.absolutePath}".format(zipMb))
-        logger.lifecycle("==========================================================")
+        log.lifecycle("==========================================================")
+        log.lifecycle("精简桌面端打包完成:")
+        log.lifecycle("  解压后总目录体积: %.2f MB (原版基准: 142.42 MB)".format(unpackedMb))
+        log.lifecycle("  便携安装包体积  : %.2f MB -> ${zipFile.absolutePath}".format(zipMb))
+        log.lifecycle("==========================================================")
     }
 }
 
