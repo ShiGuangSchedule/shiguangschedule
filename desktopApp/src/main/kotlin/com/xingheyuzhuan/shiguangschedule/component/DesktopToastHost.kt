@@ -26,14 +26,20 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.unit.dp
 import com.xingheyuzhuan.shiguangschedule.ui.components.GlobalToastState
+import java.util.concurrent.atomic.AtomicLong
+
+private val toastIdGenerator = AtomicLong(1L)
 
 // 定义一个 Toast 消息的数据结构
 data class ToastItem(
-    val id: Long = System.currentTimeMillis() + (0..1000).random(),
+    val id: Long = toastIdGenerator.getAndIncrement(),
     val message: String,
     val durationMillis: Long = 3000L
 )
@@ -74,20 +80,28 @@ fun DesktopToastHost() {
     }
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun AnimatedToastItem(
     item: ToastItem,
     onDismiss: () -> Unit
 ) {
     var progress by remember(item.id) { mutableStateOf(1f) }
+    var isHovered by remember(item.id) { mutableStateOf(false) }
 
     LaunchedEffect(item.id) {
-        val startTime = System.currentTimeMillis()
-        val duration = item.durationMillis.toFloat()
+        var accumulatedElapsed = 0L
+        var lastTick = System.currentTimeMillis()
+        val duration = item.durationMillis.toFloat().coerceAtLeast(1f)
 
         while (true) {
-            val elapsed = System.currentTimeMillis() - startTime
-            val currentProgress = (1f - (elapsed / duration)).coerceIn(0f, 1f)
+            val now = System.currentTimeMillis()
+            if (!isHovered) {
+                accumulatedElapsed += (now - lastTick).coerceAtLeast(0L)
+            }
+            lastTick = now
+
+            val currentProgress = (1f - (accumulatedElapsed / duration)).coerceIn(0f, 1f)
             progress = currentProgress
 
             if (currentProgress <= 0f) {
@@ -104,11 +118,15 @@ fun AnimatedToastItem(
         exit = fadeOut() + slideOutVertically(targetOffsetY = { it })
     ) {
         Surface(
+            onClick = onDismiss,
             shape = RoundedCornerShape(12.dp),
             color = MaterialTheme.colorScheme.inverseSurface,
             tonalElevation = 6.dp,
             shadowElevation = 6.dp,
-            modifier = Modifier.widthIn(min = 200.dp, max = 320.dp)
+            modifier = Modifier
+                .widthIn(min = 200.dp, max = 320.dp)
+                .onPointerEvent(PointerEventType.Enter) { isHovered = true }
+                .onPointerEvent(PointerEventType.Exit) { isHovered = false }
         ) {
             Column(
                 modifier = Modifier

@@ -46,6 +46,7 @@ import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.window.rememberWindowState
 import com.xingheyuzhuan.shiguangschedule.component.DesktopToastHost
 import com.xingheyuzhuan.shiguangschedule.component.DesktopTray
+import com.xingheyuzhuan.shiguangschedule.component.importJsonFilesFromArgs
 import com.xingheyuzhuan.shiguangschedule.component.rememberDesktopFileDropState
 import com.xingheyuzhuan.shiguangschedule.data.di.AppStorage
 import com.xingheyuzhuan.shiguangschedule.data.di.TargetPlatform
@@ -112,6 +113,7 @@ fun main(args: Array<String>) {
     rootLogger.info("应用启动，日志系统已就绪")
 
     PlatformLocaleManager.initialize()
+    importJsonFilesFromArgs(args)
 
     val startedAtLogin = AutoLaunch.wasStartedAtLogin(args)
 
