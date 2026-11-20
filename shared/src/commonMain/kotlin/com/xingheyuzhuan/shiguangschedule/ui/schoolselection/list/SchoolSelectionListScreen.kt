@@ -2,10 +2,11 @@ package com.xingheyuzhuan.shiguangschedule.ui.schoolselection.list
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
@@ -14,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.clearText
@@ -309,17 +309,21 @@ private fun SchoolIndexedList(
         null
     }
 
+    val navigationBarBottom = WindowInsets.navigationBars
+        .asPaddingValues()
+        .calculateBottomPadding()
+
     Box(modifier = Modifier.fillMaxSize()) {
         SettingsGroupLazyColumn(
             groups = groups,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(start = ListHorizontalPadding, end = AlphabetIndexBarWidth),
+            modifier = Modifier.fillMaxSize(),
             state = lazyListState,
-            leadingContent = recentLeading,
-            trailingContent = {
-                Spacer(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
-            }
+            contentPadding = PaddingValues(
+                start = ListHorizontalPadding,
+                end = AlphabetIndexBarWidth,
+                bottom = navigationBarBottom
+            ),
+            leadingContent = recentLeading
         ) { school, shape ->
             SchoolSettingsRow(
                 school = school,
