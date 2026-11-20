@@ -3,28 +3,22 @@ package com.xingheyuzhuan.shiguangschedule.ui.settings.backup
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
@@ -49,6 +43,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.xingheyuzhuan.shiguangschedule.tool.FileManagerCallbacks
 import com.xingheyuzhuan.shiguangschedule.tool.rememberFileManager
+import com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup.SettingsGroupCard
+import com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup.items.SettingsIcon
+import com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup.items.SettingsRow
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
@@ -66,6 +63,7 @@ import shiguangschedule.shared.generated.resources.action_reset
 import shiguangschedule.shared.generated.resources.arrow_back_24px
 import shiguangschedule.shared.generated.resources.backup_target_local_zip
 import shiguangschedule.shared.generated.resources.backup_target_webdav
+import shiguangschedule.shared.generated.resources.chevron_right_24px
 import shiguangschedule.shared.generated.resources.cloud_24px
 import shiguangschedule.shared.generated.resources.desc_backup_data
 import shiguangschedule.shared.generated.resources.desc_restore_data
@@ -103,12 +101,13 @@ enum class BackupTarget(val stringRes: StringResource) {
     LOCAL_ZIP(Res.string.backup_target_local_zip)
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BackupScreen(
     onBack: () -> Unit,
     viewModel: BackupViewModel = koinViewModel()
 ) {
+    val settingPadding = 16.dp
+
     val state by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -166,65 +165,79 @@ fun BackupScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(Res.string.item_backup_restore)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = vectorResource(Res.drawable.arrow_back_24px),
-                            contentDescription = stringResource(Res.string.a11y_back)
-                        )
+            Column {
+                TopAppBar(
+                    title = { Text(stringResource(Res.string.item_backup_restore)) },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = vectorResource(Res.drawable.arrow_back_24px),
+                                contentDescription = stringResource(Res.string.a11y_back)
+                            )
+                        }
                     }
+                )
+                if (state.isBusy || state.isTesting) {
+                    LinearProgressIndicator(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
                 }
-            )
+            }
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
-    ) { padding ->
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                .verticalScroll(rememberScrollState())
+                .padding(innerPadding)
+                .padding(horizontal = settingPadding),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            if (state.isBusy || state.isTesting) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            SettingsGroupCard(
+                modifier = Modifier.padding(top = 8.dp),
+                title = stringResource(Res.string.section_data_maintenance)
+            ) {
+                item {
+                    SettingsRow(
+                        title = stringResource(Res.string.item_backup_data),
+                        subtitle = stringResource(Res.string.desc_backup_data),
+                        leading = { SettingsIcon(imageVector = vectorResource(Res.drawable.upload_24px)) },
+                        trailing = { SettingsIcon(imageVector = vectorResource(Res.drawable.chevron_right_24px)) },
+                        enabled = !state.isBusy,
+                        onClick = { showBackupTargetDialog = true }
+                    )
+                }
+                item {
+                    SettingsRow(
+                        title = stringResource(Res.string.item_restore_data),
+                        subtitle = stringResource(Res.string.desc_restore_data),
+                        leading = { SettingsIcon(imageVector = vectorResource(Res.drawable.download_24px)) },
+                        trailing = { SettingsIcon(imageVector = vectorResource(Res.drawable.chevron_right_24px)) },
+                        enabled = !state.isBusy,
+                        onClick = { showRestoreTargetDialog = true }
+                    )
+                }
             }
 
-            CardGroup(title = stringResource(Res.string.section_data_maintenance)) {
-                MenuActionItem(
-                    title = stringResource(Res.string.item_backup_data),
-                    subtitle = stringResource(Res.string.desc_backup_data),
-                    icon = vectorResource(Res.drawable.upload_24px),
-                    enabled = !state.isBusy,
-                    onClick = { showBackupTargetDialog = true }
-                )
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-                )
-                MenuActionItem(
-                    title = stringResource(Res.string.item_restore_data),
-                    subtitle = stringResource(Res.string.desc_restore_data),
-                    icon = vectorResource(Res.drawable.download_24px),
-                    enabled = !state.isBusy,
-                    onClick = { showRestoreTargetDialog = true }
-                )
+            SettingsGroupCard(title = stringResource(Res.string.section_service_config)) {
+                item {
+                    SettingsRow(
+                        title = stringResource(Res.string.item_webdav_config),
+                        subtitle = if (state.baseUrl.isBlank()) {
+                            stringResource(Res.string.desc_webdav_unconfigured)
+                        } else {
+                            stringResource(Res.string.desc_webdav_connected, state.baseUrl)
+                        },
+                        leading = { SettingsIcon(imageVector = vectorResource(Res.drawable.cloud_24px)) },
+                        trailing = { SettingsIcon(imageVector = vectorResource(Res.drawable.chevron_right_24px)) },
+                        onClick = { showConfigDialog = true }
+                    )
+                }
             }
-
-            CardGroup(title = stringResource(Res.string.section_service_config)) {
-                MenuActionItem(
-                    title = stringResource(Res.string.item_webdav_config),
-                    subtitle = if (state.baseUrl.isBlank()) {
-                        stringResource(Res.string.desc_webdav_unconfigured)
-                    } else {
-                        stringResource(Res.string.desc_webdav_connected, state.baseUrl)
-                    },
-                    icon = vectorResource(Res.drawable.cloud_24px),
-                    onClick = { showConfigDialog = true }
-                )
-            }
+            Spacer(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
         }
     }
 
@@ -304,61 +317,6 @@ fun BackupScreen(
             }
         )
     }
-}
-
-@Composable
-fun CardGroup(
-    title: String,
-    content: @Composable ColumnScope.() -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(PaddingValues(start = 4.dp))
-        )
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.large,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            )
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                content = content
-            )
-        }
-    }
-}
-
-@Composable
-fun MenuActionItem(
-    title: String,
-    subtitle: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    enabled: Boolean = true,
-    onClick: () -> Unit
-) {
-    ListItem(
-        headlineContent = { Text(title, style = MaterialTheme.typography.titleMedium) },
-        supportingContent = { Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) },
-        leadingContent = {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
-            )
-        },
-        colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(vertical = 4.dp)
-    )
 }
 
 @Composable

@@ -8,7 +8,7 @@ import androidx.compose.ui.unit.dp
 object SettingsDefaults {
 
     /** 卡片与卡片之间的极小垂直间距 */
-    val CardSpacing = 2.dp
+    val CardSpacing = 3.dp
 
     /** 外侧大圆角（首尾两端的圆角大小：16.dp） */
     val OuterCornerRadius = 16.dp
