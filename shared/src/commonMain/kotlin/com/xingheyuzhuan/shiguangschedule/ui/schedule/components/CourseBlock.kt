@@ -33,6 +33,7 @@ import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWithWeeks
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.BorderTypeProto
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleModeProto
+import com.xingheyuzhuan.shiguangschedule.ui.schedule.model.EXAM_NAME_PREFIX
 import com.xingheyuzhuan.shiguangschedule.ui.theme.LocalIsDarkTheme
 
 @Composable
@@ -90,12 +91,22 @@ fun CourseBlock(
     }
 
     // 边框样式配置
-    val borderColor = if (isFloating) Color(0xFF2196F3) else MaterialTheme.colorScheme.outline
-    val borderWidth = if (isFloating) 2.dp else 1.dp
+    // 考试块（课程名带 【考】 前缀）固定使用虚线边框，和普通课程一眼可分
+    val isExamBlock = course.name.startsWith(EXAM_NAME_PREFIX)
+    val borderColor = if (isFloating) {
+        Color(0xFF2196F3)
+    } else if (isExamBlock) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.outline
+    }
+    val borderWidth = if (isFloating) 2.dp else if (isExamBlock) 1.5.dp else 1.dp
     val borderAlpha = if (isFloating) 1.0f else style.courseBlockAlpha
     val shape = RoundedCornerShape(style.courseBlockCornerRadius)
 
-    val borderModifier = when (style.borderType) {
+    val effectiveBorderType = if (isExamBlock) BorderTypeProto.BORDER_TYPE_DASHED else style.borderType
+
+    val borderModifier = when (effectiveBorderType) {
         BorderTypeProto.BORDER_TYPE_SOLID -> {
             Modifier.border(borderWidth, borderColor.copy(alpha = borderAlpha), shape)
         }

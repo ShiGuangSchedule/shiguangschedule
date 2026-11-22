@@ -2,6 +2,8 @@ package com.xingheyuzhuan.shiguangschedule.ui.schedule
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.xingheyuzhuan.shiguangschedule.ui.schedule.model.ExamEntry
+import com.xingheyuzhuan.shiguangschedule.ui.schedule.model.buildExamEntries
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWithWeeks
 import com.xingheyuzhuan.shiguangschedule.data.model.ScheduleGridStyle
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleModeProto
@@ -20,8 +22,10 @@ import com.xingheyuzhuan.shiguangschedule.ui.schedule.util.getTodayLocalDate
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.util.startOfWeek
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
@@ -74,6 +78,36 @@ class WeeklyScheduleViewModel(
             flowOf(null)
         }
     }
+
+    /**
+     * 考试日程：把当前课表里带 【考】 前缀的课程块换算成带日期的列表。
+     *
+     * 只在课表页的「考试」面板打开时被订阅（WhileSubscribed），
+     * 没有考试数据时为空列表，不影响课表主流程。
+     */
+    val examEntries: StateFlow<List<ExamEntry>> = combine(
+        appSettingsFlow.flatMapLatest { settings ->
+            val tableId = settings.currentCourseTableId
+            if (tableId.isEmpty()) {
+                flowOf(emptyList())
+            } else {
+                courseTableRepository.getCoursesWithWeeksByTableId(tableId)
+            }
+        },
+        courseTableConfigFlow
+    ) { courses, config ->
+        buildExamEntries(
+            courses = courses,
+            semesterStartDate = config?.semesterStartDate?.let {
+                runCatching { LocalDate.parse(it) }.getOrNull()
+            },
+            firstDayOfWeek = config?.firstDayOfWeek ?: DayOfWeek.MONDAY.isoDayNumber
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = emptyList()
+    )
 
     // 侧边栏时间/节次流
     private val timeSlotsFlow = combine(

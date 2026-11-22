@@ -7,6 +7,7 @@ import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTableConfig
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTimeBinding
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWeek
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWeekDao
+import com.xingheyuzhuan.shiguangschedule.ui.schedule.model.EXAM_NAME_PREFIX
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlot
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlotDao
 import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeTable
@@ -193,7 +194,9 @@ class CourseConversionRepository(
                     customEndTime = jsonCourse.customEndTime,
                     colorInt = courseIndex,
                     remark = jsonCourse.remark?.take(300),
-                    credit = jsonCourse.credit
+                    credit = jsonCourse.credit,
+                    // 显式字段优先；旧脚本没有 isExam 时按课程名前缀兜底，保证历史导入也能识别
+                    isExam = jsonCourse.isExam ?: jsonCourse.name.startsWith(EXAM_NAME_PREFIX)
                 )
             )
 
@@ -400,7 +403,8 @@ class CourseConversionRepository(
                 customStartTime = course.customStartTime,
                 customEndTime = course.customEndTime,
                 remark = course.remark,
-                credit = course.credit
+                credit = course.credit,
+                isExam = course.isExam
             )
         }
 

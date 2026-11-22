@@ -1,5 +1,6 @@
 package com.xingheyuzhuan.shiguangschedule.data.db.main
 
+import androidx.room3.ColumnInfo
 import androidx.room3.Entity
 import androidx.room3.ForeignKey
 import androidx.room3.Index
@@ -40,4 +41,8 @@ data class Course(
     val colorInt: Int, // 课程卡片的颜色索引
     val remark: String? = null, // 课程备注信息，限 300 字以内
     val credit: Float? = null, // 课程学分
+    // 是否为考试日程块（由适配脚本导入，用于课表区分与考试列表面板）
+    // defaultValue 是 Room 自动迁移 7→8 生成 ALTER TABLE 的依据，勿删
+    @ColumnInfo(defaultValue = "0")
+    val isExam: Boolean = false,
 )

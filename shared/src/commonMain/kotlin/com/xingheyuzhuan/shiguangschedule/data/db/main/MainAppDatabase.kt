@@ -21,11 +21,13 @@ import com.xingheyuzhuan.shiguangschedule.data.di.AppStorage
         TimeTableCombo::class,
         TimeTableComboRule::class
     ],
-    version = 7,
+    version = 8,
     autoMigrations = [
         AutoMigration(from = 3, to = 4),
         AutoMigration(from = 4, to = 5, spec = MainAppDatabase.RemoveAppSettingsSpec::class),
-        AutoMigration(from = 6, to = 7)
+        AutoMigration(from = 6, to = 7),
+        // 7 → 8：courses 表新增 isExam 列（考试日程标记），带默认值，自动迁移即可
+        AutoMigration(from = 7, to = 8)
     ],
     exportSchema = true
 )

@@ -45,6 +45,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ExamScheduleSheet
 import coil3.compose.AsyncImage
 import com.xingheyuzhuan.shiguangschedule.Destination
 import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTable
@@ -82,6 +83,7 @@ import shiguangschedule.shared.generated.resources.arrow_drop_down_24px
 import shiguangschedule.shared.generated.resources.format_week_display
 import shiguangschedule.shared.generated.resources.ic_launcher_foreground
 import shiguangschedule.shared.generated.resources.snackbar_add_course_within_semester
+import shiguangschedule.shared.generated.resources.list_alt_24px
 import shiguangschedule.shared.generated.resources.swap_horiz_24px
 import shiguangschedule.shared.generated.resources.title_current_week
 import shiguangschedule.shared.generated.resources.title_semester_not_set
@@ -181,8 +183,12 @@ private fun WeeklyScheduleContentLoaded(
 
     var showWeekSelector by remember { mutableStateOf(false) }
     var showTableSwitcher by remember { mutableStateOf(false) }
+    var showExamSheet by remember { mutableStateOf(false) }
     var isGridHolding by remember { mutableStateOf(false) }
     var selectedBlockForDetail by remember { mutableStateOf<MergedCourseBlock?>(null) }
+
+    // 当前课表的考试日程（只在面板打开时才会真正订阅数据）
+    val examEntries by viewModel.examEntries.collectAsStateWithLifecycle()
 
     val composedStyle by remember(uiState.style) {
         derivedStateOf { with(ScheduleGridStyleComposed) { uiState.style.toComposedStyle() } }
@@ -286,6 +292,13 @@ private fun WeeklyScheduleContentLoaded(
                         }
                     },
                     actions = {
+                        IconButton(onClick = { showExamSheet = true }) {
+                            Icon(
+                                imageVector = vectorResource(Res.drawable.list_alt_24px),
+                                contentDescription = "考试日程",
+                                tint = customTextColor
+                            )
+                        }
                         IconButton(onClick = { showTableSwitcher = true }) {
                             Icon(
                                 imageVector = vectorResource(Res.drawable.swap_horiz_24px),
@@ -541,6 +554,14 @@ private fun WeeklyScheduleContentLoaded(
     }
 
     // 课表切换弹窗
+    // 考试日程面板
+    if (showExamSheet) {
+        ExamScheduleSheet(
+            entries = examEntries,
+            onDismiss = { showExamSheet = false }
+        )
+    }
+
     if (showTableSwitcher) {
         CourseTablePickerDialog(
             title = stringResource(Res.string.action_select_table),

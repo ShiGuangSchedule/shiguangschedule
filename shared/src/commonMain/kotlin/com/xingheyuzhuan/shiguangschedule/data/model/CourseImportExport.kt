@@ -106,7 +106,9 @@ object CourseImportExport {
         val customEndTime: String? = null,
         val color: Int? = null,
         val remark: String? = null,
-        val credit: Float? = null
+        val credit: Float? = null,
+        /** 考试日程块标记；不传时由 App 按课程名前缀（【考】）兜底判断 */
+        val isExam: Boolean? = null
     )
 
     // 导出时使用的 JSON 模型
@@ -132,7 +134,8 @@ object CourseImportExport {
         val customEndTime: String? = null,
         val color: Int,
         val remark: String? = null,
-        val credit: Float? = null
+        val credit: Float? = null,
+        val isExam: Boolean = false
     )
 
     // 导入和导出都通用的时间段模型
