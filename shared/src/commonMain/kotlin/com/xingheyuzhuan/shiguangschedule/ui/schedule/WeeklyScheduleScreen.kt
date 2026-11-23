@@ -240,6 +240,8 @@ private fun WeeklyScheduleContentLoaded(
     val dynamicBottomOffset = systemNavigationBarInset + (88.dp * (1f - navHideFraction))
 
     Box(modifier = Modifier.fillMaxSize()) {
+        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {}
+
         uiState.wallpaperPath?.let { path ->
             AsyncImage(
                 model = path,
