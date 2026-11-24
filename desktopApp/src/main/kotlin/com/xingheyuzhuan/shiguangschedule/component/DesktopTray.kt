@@ -20,7 +20,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import shiguangschedule.shared.generated.resources.Res
 import shiguangschedule.shared.generated.resources.app_name
-import shiguangschedule.shared.generated.resources.shiguang_logo_24px
+import shiguangschedule.shared.generated.resources.ic_launcher_foreground
 import shiguangschedule.shared.generated.resources.tray_auto_launch
 import shiguangschedule.shared.generated.resources.tray_auto_launch_disabled
 import shiguangschedule.shared.generated.resources.tray_close_app
@@ -46,7 +46,7 @@ fun DesktopTray() {
 
     key(langVersion) {
         Tray(
-            icon = painterResource(Res.drawable.shiguang_logo_24px),
+            icon = painterResource(Res.drawable.ic_launcher_foreground),
             tooltip = stringResource(Res.string.app_name),
             primaryAction = {
                 appController.requestShowWindow()
