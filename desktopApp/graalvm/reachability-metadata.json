@@ -184,16 +184,29 @@
             ]
         },
         {
-            "type": "kotlin.Any"
+            "type": "sun.awt.shell.Win32ShellFolderManager2",
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        
+                    ]
+                }
+            ]
         },
         {
-            "type": "kotlin.Boolean"
+            "type": "sun.awt.shell.ShellFolderManager",
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        
+                    ]
+                }
+            ]
         },
         {
-            "type": "kotlin.Cloneable"
-        },
-        {
-            "type": "kotlin.collections.List"
+            "type": "sun.awt.shell.Win32ShellFolder2"
         }
     ],
     "resources": [

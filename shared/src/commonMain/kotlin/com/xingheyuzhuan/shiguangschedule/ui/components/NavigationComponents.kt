@@ -1,65 +1,67 @@
 package com.xingheyuzhuan.shiguangschedule.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBarDefaults
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuite
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldLayout
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
+import androidx.compose.material3.adaptive.navigationsuite.rememberNavigationSuiteScaffoldState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.xingheyuzhuan.shiguangschedule.Destination
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import shiguangschedule.shared.generated.resources.Res
@@ -72,37 +74,35 @@ import shiguangschedule.shared.generated.resources.view_agenda_24px
 import shiguangschedule.shared.generated.resources.view_agenda_filled_24px
 import shiguangschedule.shared.generated.resources.view_week_24px
 import shiguangschedule.shared.generated.resources.view_week_filled_24px
+import kotlin.math.roundToInt
 
-@Immutable
 private data class NavItemData(
     val label: String,
     val destination: Destination,
     val selectedIcon: ImageVector,
-    val unselectedIcon: ImageVector
+    val unselectedIcon: ImageVector,
 )
 
-/**
- * 定义一个 Local 用于在组件树中隐式传递 Scaffold 的 PaddingValues，
- */
+/** 导航栏占用的底部高度，供页面计算滚动内容留白。 */
 val LocalScaffoldPadding = compositionLocalOf { PaddingValues(0.dp) }
 
-/**
- * 底部悬浮导航栏自身固定的内容高度
- */
-val BottomNavContentHeight = 64.dp
+/** 页面可请求隐藏导航栏，用于浮层与导航栏冲突的场景。 */
+object NavigationBarController {
+    var isHiddenRequested by mutableStateOf(false)
+        private set
 
-/**
- * 自适应导航栏组件
- */
+    fun requestHidden(hidden: Boolean) {
+        isHiddenRequested = hidden
+    }
+}
+
+/** 自适应导航脚手架：窄屏使用悬浮胶囊栏，中/大屏使用 Material3 官方导航组件。 */
 @Composable
 fun AdaptiveNavigationScaffold(
     currentDestination: Destination,
+    currentTopLevel: Destination.MainDestination,
     onTabSelected: (Destination) -> Unit,
-    modifier: Modifier = Modifier,
-    showNavigation: Boolean = true,
-    navHideFractionProvider: () -> Float = { 0f },
-    navigationModifier: Modifier = Modifier,
-    content: @Composable (PaddingValues) -> Unit
+    content: @Composable (PaddingValues) -> Unit,
 ) {
     val todayLabel = stringResource(Res.string.nav_today_schedule)
     val courseLabel = stringResource(Res.string.nav_course_schedule)
@@ -119,315 +119,275 @@ fun AdaptiveNavigationScaffold(
         todayLabel, courseLabel, settingsLabel,
         todaySelectedIcon, todayUnselectedIcon,
         courseSelectedIcon, courseUnselectedIcon,
-        settingsSelectedIcon, settingsUnselectedIcon
+        settingsSelectedIcon, settingsUnselectedIcon,
     ) {
         listOf(
             NavItemData(
                 label = todayLabel,
                 destination = Destination.TodaySchedule,
                 selectedIcon = todaySelectedIcon,
-                unselectedIcon = todayUnselectedIcon
+                unselectedIcon = todayUnselectedIcon,
             ),
             NavItemData(
                 label = courseLabel,
                 destination = Destination.CourseSchedule,
                 selectedIcon = courseSelectedIcon,
-                unselectedIcon = courseUnselectedIcon
+                unselectedIcon = courseUnselectedIcon,
             ),
             NavItemData(
                 label = settingsLabel,
                 destination = Destination.Settings,
                 selectedIcon = settingsSelectedIcon,
-                unselectedIcon = settingsUnselectedIcon
-            )
+                unselectedIcon = settingsUnselectedIcon,
+            ),
         )
     }
 
-    val layoutType = NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfoV2())
+    val layoutType = NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(
+        currentWindowAdaptiveInfoV2()
+    )
 
-    // 获取系统的安全区高度
-    val systemBottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    LaunchedEffect(currentDestination) {
+        NavigationBarController.requestHidden(false)
+    }
 
-    Box(modifier = modifier.fillMaxSize()) {
-        when (layoutType) {
-            NavigationSuiteType.NavigationRail -> {
-                Row(modifier = Modifier.fillMaxSize()) {
-                    AnimatedVisibility(
-                        visible = showNavigation,
-                        enter = slideInHorizontally(initialOffsetX = { -it }) + fadeIn(tween(300)),
-                        exit = slideOutHorizontally(targetOffsetX = { -it }) + fadeOut(tween(300))
-                    ) {
-                        NavigationRail(
-                            containerColor = NavigationBarDefaults.containerColor,
-                            modifier = Modifier.fillMaxHeight()
-                        ) {
-                            navItems.forEach { item ->
-                                key(item.destination) {
-                                    val isSelected = currentDestination::class == item.destination::class
-                                    NavigationRailItem(
-                                        selected = isSelected,
-                                        onClick = { if (!isSelected) onTabSelected(item.destination) },
-                                        icon = {
-                                            Icon(
-                                                imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
-                                                contentDescription = item.label,
-                                                modifier = Modifier.size(24.dp)
-                                            )
-                                        },
-                                        label = { Text(item.label, fontSize = 12.sp) }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    Box(modifier = Modifier.weight(1f)) {
-                        content(
-                            PaddingValues(
-                                top = statusBarTop,
-                                bottom = systemBottomInset
-                            )
-                        )
-                    }
-                }
+    if (layoutType == NavigationSuiteType.NavigationBar) {
+        CompactNavigation(
+            navItems = navItems,
+            currentDestination = currentDestination,
+            currentTopLevel = currentTopLevel,
+            onTabSelected = onTabSelected,
+            content = content,
+        )
+    } else {
+        ExpandedNavigation(
+            navItems = navItems,
+            currentTopLevel = currentTopLevel,
+            onTabSelected = onTabSelected,
+            layoutType = layoutType,
+            content = content,
+        )
+    }
+}
+
+/** 窄屏布局：内容铺满，导航栏悬浮于底部。 */
+@Composable
+private fun CompactNavigation(
+    navItems: List<NavItemData>,
+    currentDestination: Destination,
+    currentTopLevel: Destination.MainDestination,
+    onTabSelected: (Destination) -> Unit,
+    content: @Composable (PaddingValues) -> Unit,
+) {
+    val density = LocalDensity.current
+    var barHeightPx by remember { mutableIntStateOf(0) }
+    val clearance = with(density) { barHeightPx.toDp() }
+
+    val showNavigation = !NavigationBarController.isHiddenRequested &&
+        currentDestination is Destination.MainDestination
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        CompositionLocalProvider(
+            LocalScaffoldPadding provides
+                if (showNavigation) PaddingValues(bottom = clearance) else PaddingValues(0.dp),
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                content(PaddingValues(0.dp))
             }
+        }
 
-            NavigationSuiteType.NavigationBar -> {
-                val density = LocalDensity.current
-
-                val verticalPadding = 24.dp
-                val totalNavBarHeight = BottomNavContentHeight + verticalPadding + systemBottomInset
-                val navBarTotalHeightPx = with(density) { totalNavBarHeight.toPx() }
-
-                Box(modifier = Modifier.fillMaxSize()) {
-                    val calculatedPadding = PaddingValues(
-                        top = statusBarTop,
-                        bottom = totalNavBarHeight
+        AnimatedVisibility(
+            visible = showNavigation,
+            modifier = Modifier.align(Alignment.BottomCenter),
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onSizeChanged { barHeightPx = it.height }
+                    .windowInsetsPadding(
+                        WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
                     )
-
-                    content(calculatedPadding)
-
-                    AnimatedVisibility(
-                        visible = showNavigation,
-                        enter = slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = tween(300)) + fadeIn(tween(300)),
-                        exit = slideOutHorizontally(targetOffsetX = { -it / 3 }, animationSpec = tween(300)) + fadeOut(tween(300)),
-                        modifier = Modifier.align(Alignment.BottomCenter)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .wrapContentSize()
-                                .then(navigationModifier)
-                                .graphicsLayer {
-                                    val fraction = navHideFractionProvider()
-                                    translationY = navBarTotalHeightPx * fraction
-                                    alpha = (1f - fraction).coerceIn(0f, 1f)
-                                }
-                                .windowInsetsPadding(WindowInsets.navigationBars)
-                                .padding(vertical = 12.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = NavigationBarDefaults.containerColor,
-                                shadowElevation = 0.dp,
-                                tonalElevation = 3.dp
-                            ) {
-                                FixedWidthNavBarContainer(
-                                    navItems = navItems,
-                                    currentDestination = currentDestination,
-                                    onTabSelected = onTabSelected,
-                                    minSpacing = 8.dp,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            else -> {
-                content(
-                    PaddingValues(
-                        top = statusBarTop,
-                        bottom = systemBottomInset
-                    )
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                CapsuleNavigationBar(
+                    items = navItems,
+                    selectedIndex = navItems.indexOfFirst { it.destination == currentTopLevel },
+                    onSelect = { item -> onTabSelected(item.destination) },
                 )
             }
         }
     }
 }
 
-/**
- * 保持总宽度固定的导航栏容器布局
- */
+/** 中/大屏布局：使用官方 NavigationSuite 侧边导航。 */
 @Composable
-private fun FixedWidthNavBarContainer(
+private fun ExpandedNavigation(
     navItems: List<NavItemData>,
-    currentDestination: Destination,
+    currentTopLevel: Destination.MainDestination,
     onTabSelected: (Destination) -> Unit,
-    modifier: Modifier = Modifier,
-    minSpacing: Dp = 8.dp
+    layoutType: NavigationSuiteType,
+    content: @Composable (PaddingValues) -> Unit,
 ) {
-    SubcomposeLayout(modifier = modifier) { constraints ->
-        val minSpacingPx = minSpacing.roundToPx()
-
-        // 测量各 Tab 处于未选中状态时的宽度
-        val unselectedWidths = navItems.mapIndexed { index, item ->
-            val position = index + 1
-            subcompose(position) {
-                TabContent(item = item, isSelected = false, textAlpha = 0f)
-            }.first().measure(constraints).width
-        }
-
-        // 测量各 Tab 处于选中状态时的宽度
-        val selectedWidths = navItems.mapIndexed { index, item ->
-            val position = index + 1
-            subcompose(position + 100) {
-                TabContent(item = item, isSelected = true, textAlpha = 1f)
-            }.first().measure(constraints).width
-        }
-
-        // 计算容器最大所需宽度
-        var maxCapsuleWidth = 0
-        navItems.indices.forEach { selectedIndex ->
-            val comboWidth = navItems.indices.sumOf { i ->
-                if (i == selectedIndex) selectedWidths[i] else unselectedWidths[i]
-            } + (navItems.size - 1) * minSpacingPx
-
-            if (comboWidth > maxCapsuleWidth) {
-                maxCapsuleWidth = comboWidth
+    val navigationState = rememberNavigationSuiteScaffoldState()
+    NavigationSuiteScaffoldLayout(
+        navigationSuiteType = layoutType,
+        state = navigationState,
+        navigationSuite = {
+            NavigationSuite(
+                layoutType = layoutType,
+                content = {
+                    navItems.forEach { item ->
+                        val selected = currentTopLevel == item.destination
+                        item(
+                            selected = selected,
+                            onClick = { if (!selected) onTabSelected(item.destination) },
+                            icon = {
+                                Icon(
+                                    imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
+                                    contentDescription = item.label,
+                                )
+                            },
+                            label = { Text(item.label) },
+                        )
+                    }
+                },
+            )
+        },
+        content = {
+            CompositionLocalProvider(LocalScaffoldPadding provides PaddingValues(0.dp)) {
+                content(PaddingValues())
             }
-        }
-
-        // 测量实际渲染的 Tab 节点
-        val placeables = navItems.mapIndexed { index, item ->
-            val position = index + 1
-            val isSelected = currentDestination::class == item.destination::class
-            subcompose(position + 200) {
-                key(item.destination) {
-                    AnimatedTabItem(
-                        item = item,
-                        isSelected = isSelected,
-                        collapsedWidth = with(this@SubcomposeLayout) { unselectedWidths[index].toDp() },
-                        expandedWidth = with(this@SubcomposeLayout) { selectedWidths[index].toDp() },
-                        onSelect = { onTabSelected(item.destination) }
-                    )
-                }
-            }.first().measure(constraints)
-        }
-
-        val maxHeight = placeables.maxOfOrNull { it.height } ?: 0
-
-        // 均匀分配合适的间距，保证两端对齐
-        val sumTabWidths = placeables.sumOf { it.width }
-        val remainingSpace = maxCapsuleWidth - sumTabWidths
-        val gapCount = (placeables.size - 1).coerceAtLeast(1)
-        val dynamicGap = remainingSpace.toFloat() / gapCount
-
-        layout(maxCapsuleWidth, maxHeight) {
-            var xCursor = 0f
-            placeables.forEachIndexed { _, placeable ->
-                placeable.placeRelative(xCursor.toInt(), 0)
-                xCursor += placeable.width + dynamicGap
-            }
-        }
-    }
+        },
+    )
 }
 
-/**
- * 动画 Tab 项容器
- */
+/** 胶囊导航栏：滑块指示器，支持点击与拖动切换。 */
 @Composable
-private fun AnimatedTabItem(
-    item: NavItemData,
-    isSelected: Boolean,
-    collapsedWidth: Dp,
-    expandedWidth: Dp,
-    onSelect: () -> Unit
+private fun CapsuleNavigationBar(
+    items: List<NavItemData>,
+    selectedIndex: Int,
+    onSelect: (NavItemData) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    val animatedWidth by animateDpAsState(
-        targetValue = if (isSelected) expandedWidth else collapsedWidth,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessMediumLow
-        )
-    )
+    val density = LocalDensity.current
+    var measuredWidthPx by remember { mutableIntStateOf(0) }
+    val itemCount = items.size.coerceAtLeast(1)
+    val slotWidthPx = measuredWidthPx.toFloat() / itemCount
 
-    // 根据当前的宽度计算动画展开进度 (0f ~ 1f)
-    val totalDelta = (expandedWidth - collapsedWidth).value
-    val currentDelta = (animatedWidth - collapsedWidth).value
-    val progress = if (totalDelta > 0f) {
-        (currentDelta / totalDelta).coerceIn(0f, 1f)
-    } else {
-        if (isSelected) 1f else 0f
+    val safeSelected = selectedIndex.coerceAtLeast(0)
+    val latestOnSelect = rememberUpdatedState(onSelect)
+
+    var indicatorX by remember { mutableFloatStateOf(0f) }
+    var initialized by remember { mutableStateOf(false) }
+    var dragging by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(slotWidthPx, safeSelected) {
+        if (slotWidthPx <= 0f) return@LaunchedEffect
+        val target = slotWidthPx * safeSelected
+        if (!initialized) {
+            indicatorX = target
+            initialized = true
+        } else if (!dragging) {
+            Animatable(indicatorX).animateTo(target, animationSpec = spring()) {
+                indicatorX = value
+            }
+        }
     }
 
-    val pillBgColor = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
+    val currentOffset = indicatorX
+
+    val indicatorColor = MaterialTheme.colorScheme.secondaryContainer
+    val activeContentColor = MaterialTheme.colorScheme.onSecondaryContainer
+    val inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+
+    val dragModifier = Modifier.pointerInput(itemCount, slotWidthPx) {
+        val maxOffset = slotWidthPx * (itemCount - 1)
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false)
+            down.consume()
+            dragging = true
+            val pointerId = down.id
+            indicatorX = (down.position.x - slotWidthPx / 2f).coerceIn(0f, maxOffset)
+
+            while (true) {
+                val event = awaitPointerEvent()
+                val change = event.changes.firstOrNull { it.id == pointerId }
+                if (change == null || !change.pressed) break
+                change.consume()
+                indicatorX = (change.position.x - slotWidthPx / 2f).coerceIn(0f, maxOffset)
+            }
+
+            dragging = false
+            val committed = (indicatorX / slotWidthPx.coerceAtLeast(1f))
+                .roundToInt().coerceIn(0, items.lastIndex)
+            val target = slotWidthPx * committed
+            coroutineScope.launch {
+                Animatable(indicatorX).animateTo(target, animationSpec = spring()) {
+                    indicatorX = value
+                }
+            }
+            items.getOrNull(committed)?.let { latestOnSelect.value(it) }
+        }
+    }
 
     Box(
-        modifier = Modifier
-            .width(animatedWidth)
-            .height(40.dp)
+        modifier = modifier
+            .width((itemCount * 96).dp)
+            .height(64.dp)
+            .onSizeChanged { measuredWidthPx = it.width }
+            .then(dragModifier)
+            .shadow(6.dp, CircleShape, clip = false)
             .clip(CircleShape)
-            .background(pillBgColor)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null
-            ) { if (!isSelected) onSelect() },
-        contentAlignment = Alignment.CenterStart
+            .background(NavigationBarDefaults.containerColor),
+        contentAlignment = Alignment.CenterStart,
     ) {
-        TabContent(
-            item = item,
-            isSelected = isSelected,
-            textAlpha = progress
-        )
-    }
-}
-
-/**
- * Tab 内部图标和文本组件
- */
-@Composable
-private fun TabContent(
-    item: NavItemData,
-    isSelected: Boolean,
-    textAlpha: Float
-) {
-    val contentColor = if (isSelected) {
-        MaterialTheme.colorScheme.onSecondaryContainer
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
-    }
-
-    Row(
-        modifier = Modifier.padding(horizontal = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Start
-    ) {
-        Icon(
-            imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
-            contentDescription = item.label,
-            tint = Color.Unspecified,
-            modifier = Modifier
-                .size(24.dp)
-                .graphicsLayer {
-                    colorFilter = ColorFilter.tint(contentColor)
-                }
-        )
-
-        if (textAlpha > 0f) {
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = item.label,
-                color = contentColor,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                softWrap = false,
-                modifier = Modifier.graphicsLayer {
-                    alpha = textAlpha
-                }
+        if (slotWidthPx > 0f) {
+            Box(
+                modifier = Modifier
+                    .offset { IntOffset(indicatorX.roundToInt(), 0) }
+                    .width(with(density) { slotWidthPx.toDp() })
+                    .fillMaxSize()
+                    .clip(CircleShape)
+                    .background(indicatorColor),
             )
+        }
+
+        Row(modifier = Modifier.fillMaxSize()) {
+            items.forEachIndexed { index, item ->
+                val start = slotWidthPx * index
+                val overlap = (
+                    minOf(start + slotWidthPx, currentOffset + slotWidthPx) -
+                        maxOf(start, currentOffset)
+                    ).coerceAtLeast(0f)
+                val coverage = (overlap / slotWidthPx.coerceAtLeast(1f)).coerceIn(0f, 1f)
+                val active = coverage > 0.5f
+                val tint = if (active) activeContentColor else inactiveContentColor
+                val icon = if (active) item.selectedIcon else item.unselectedIcon
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = item.label,
+                        tint = tint,
+                    )
+                    Text(
+                        text = item.label,
+                        color = tint,
+                        fontSize = 11.sp,
+                        maxLines = 1,
+                    )
+                }
+            }
         }
     }
 }

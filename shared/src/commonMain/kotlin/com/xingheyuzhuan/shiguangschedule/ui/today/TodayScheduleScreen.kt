@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -21,7 +23,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -33,12 +34,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.xingheyuzhuan.shiguangschedule.Destination
 import com.xingheyuzhuan.shiguangschedule.data.model.ScheduleGridStyle
+import com.xingheyuzhuan.shiguangschedule.ui.components.LocalScaffoldPadding
 import com.xingheyuzhuan.shiguangschedule.ui.theme.LocalIsDarkTheme
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
@@ -71,7 +74,6 @@ private const val EMPTY_TIME_PLACEHOLDER = "--:--"
 private const val DEFAULT_DAYS_ZERO = "0"
 private const val DEFAULT_OVERDUE_DAYS = 1
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TodayScheduleScreen(
     onNavigate: (Destination) -> Unit,
@@ -96,16 +98,10 @@ fun TodayScheduleScreen(
             )
         }
     ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            when (val state = uiState) {
-                is TodayUiState.Loading -> { /* 可放置圆圈加载 */ }
-                is TodayUiState.Success -> {
-                    TodayContent(state, gridStyle, isDark)
-                }
+        when (val state = uiState) {
+            is TodayUiState.Loading -> { /* 可放置圆圈加载 */ }
+            is TodayUiState.Success -> {
+                TodayContent(state, gridStyle, isDark, innerPadding = innerPadding)
             }
         }
     }
@@ -116,6 +112,7 @@ fun TodayContent(
     state: TodayUiState.Success,
     gridStyle: ScheduleGridStyle,
     isDark: Boolean,
+    innerPadding: PaddingValues = PaddingValues(),
     modifier: Modifier = Modifier
 ) {
     val currentTime = remember { Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).time }
@@ -140,10 +137,15 @@ fun TodayContent(
         initialFirstVisibleItemIndex = targetScrollIndex
     )
 
+    val layoutDirection = LocalLayoutDirection.current
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp)
+            .padding(
+                start = 16.dp + innerPadding.calculateStartPadding(layoutDirection),
+                end = 16.dp + innerPadding.calculateEndPadding(layoutDirection),
+                top = innerPadding.calculateTopPadding()
+            )
     ) {
         val weekDays = stringArrayResource(Res.array.week_days_full_names)
 
@@ -197,19 +199,18 @@ fun TodayContent(
         if (state.courses.isEmpty()) {
             EmptyStateView()
         } else {
+            val scaffoldPadding = LocalScaffoldPadding.current
             LazyColumn(
                 state = scrollState,
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(
-                    bottom = 88.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp
+                    bottom = scaffoldPadding.calculateBottomPadding() +
+                        WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp
                 ),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
                 itemsIndexed(state.courses) { _, model ->
                     CourseTimelineItem(model, gridStyle, isDark)
-                }
-                item {
-                    Spacer(modifier = Modifier.height(32.dp))
                 }
             }
         }

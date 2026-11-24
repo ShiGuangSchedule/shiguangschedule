@@ -39,23 +39,19 @@ class NavigationState(
                 entryProvider = entryProvider
             )
         }
-        return getTopLevelRoutesInUse().flatMap { decoratedEntries[it] ?: emptyList() }
+        // 仅渲染当前栈，一级页面无前置 entry，系统返回可自然退出。
+        return decoratedEntries.getValue(currentTopLevel)
     }
-
-    /** 当前参与渲染的一级栈：start 栈在前，当前 tab 栈在后，保证栈顶是当前页面。 */
-    private fun getTopLevelRoutesInUse(): List<Destination.MainDestination> =
-        if (currentTopLevel == startRoute) {
-            listOf(startRoute)
-        } else {
-            listOf(startRoute, currentTopLevel)
-        }
 }
 
 /** 导航操作器：负责修改 [NavigationState]，自身不保存可变状态。 */
 class Navigator(private val state: NavigationState) {
-    /** 普通导航：一级页面切换 tab，二级页面压入当前栈。 */
+    /** 切 tab 时清理来源栈；二级页面压入当前栈。 */
     fun navigate(route: Destination) {
         if (route is Destination.MainDestination) {
+            if (state.currentTopLevel != route) {
+                clearCurrentStack()
+            }
             state.currentTopLevel = route
         } else {
             val stack = state.currentBackStack
@@ -70,17 +66,19 @@ class Navigator(private val state: NavigationState) {
         if (stack.lastOrNull() != route) stack.add(route)
     }
 
-    /** 返回：当前栈可退则退；退到栈底时回到起始 tab（exit through home）。 */
+    /** 只弹当前栈的二级页面；栈底交由系统返回退出。 */
     fun goBack() {
         val stack = state.currentBackStack
         val top = stack.lastOrNull() ?: return
-        if (top == state.currentTopLevel) {
-            if (state.currentTopLevel != state.startRoute) {
-                state.currentTopLevel = state.startRoute
-            }
-        } else {
+        if (top != state.currentTopLevel) {
             stack.removeLastOrNull()
         }
+    }
+
+    /** 清空当前栈的二级页面，保留栈底一级页面。 */
+    fun clearCurrentStack() {
+        val stack = state.currentBackStack
+        while (stack.size > 1) stack.removeLastOrNull()
     }
 
     /** 当前真正显示的页面（当前栈顶）。 */

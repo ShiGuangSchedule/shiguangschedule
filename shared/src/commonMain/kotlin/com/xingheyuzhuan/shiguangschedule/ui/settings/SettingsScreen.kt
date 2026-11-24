@@ -1,12 +1,16 @@
 package com.xingheyuzhuan.shiguangschedule.ui.settings
 
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.AlertDialog
@@ -23,6 +27,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -32,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import com.xingheyuzhuan.shiguangschedule.Destination
@@ -114,10 +120,22 @@ fun SettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    val appBarState = rememberTopAppBarState()
+    var availableHeightPx by remember { mutableIntStateOf(0) }
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(
+        state = appBarState,
+        canScroll = { availableHeightPx > 0 },
+        snapAnimationSpec = spring(dampingRatio = 0.8f, stiffness = 400f),
+    )
+    LaunchedEffect(availableHeightPx) {
+        appBarState.heightOffset = 0f
+        appBarState.contentOffset = 0f
+    }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        modifier = Modifier
+            .nestedScroll(scrollBehavior.nestedScrollConnection)
+            .onSizeChanged { availableHeightPx = it.height },
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text(stringResource(Res.string.title_schedule_settings)) },
@@ -169,7 +187,8 @@ fun SettingsScreen(
                     start = innerPadding.calculateStartPadding(layoutDirection),
                     top = innerPadding.calculateTopPadding(),
                     end = innerPadding.calculateEndPadding(layoutDirection),
-                    bottom = scaffoldPadding.calculateBottomPadding() + 16.dp
+                    bottom = scaffoldPadding.calculateBottomPadding() +
+                        WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp
                 )
             ) {
                 item {

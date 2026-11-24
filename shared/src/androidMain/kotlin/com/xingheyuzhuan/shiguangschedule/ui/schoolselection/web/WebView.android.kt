@@ -105,7 +105,6 @@ actual fun PlatformWebView(
     bridgeHandler: WebBridgeHandler,
     onProgressChange: (Float) -> Unit,
     onTitleChange: (String) -> Unit,
-    onNavigateToSchedule: () -> Unit,
     onSslError: (failingUrl: String, onProceed: () -> Unit, onCancel: () -> Unit) -> Unit
 ) {
     val androidController = controller as? AndroidWebViewController

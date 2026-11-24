@@ -14,15 +14,12 @@ import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSerializable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.IntOffset
 import androidx.navigation3.runtime.EntryProviderScope
@@ -33,7 +30,6 @@ import androidx.navigation3.ui.NavDisplay
 import com.xingheyuzhuan.shiguangschedule.data.model.StartScreen
 import com.xingheyuzhuan.shiguangschedule.tool.ExternalFileManager
 import com.xingheyuzhuan.shiguangschedule.ui.components.AdaptiveNavigationScaffold
-import com.xingheyuzhuan.shiguangschedule.ui.components.LocalScaffoldPadding
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.WeeklyScheduleScreen
 import com.xingheyuzhuan.shiguangschedule.ui.schoolselection.list.AdapterSelectionScreen
 import com.xingheyuzhuan.shiguangschedule.ui.schoolselection.list.SchoolSelectionListScreen
@@ -117,8 +113,6 @@ fun AppNavigation(startDestination: Destination) {
 
     val currentDestination = navigator.currentRoute()
 
-    var navHideFraction by remember { mutableFloatStateOf(0f) }
-
     val pendingFile by ExternalFileManager.pendingFile.collectAsState()
 
     val onNavigate: (Destination) -> Unit = remember(navigator) {
@@ -140,8 +134,6 @@ fun AppNavigation(startDestination: Destination) {
     // 判断当前是否为移动端窄屏（NavigationBar 模式）
     val layoutType = NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfoV2())
     val isCompact = layoutType == NavigationSuiteType.NavigationBar
-
-    val showNavigation = !isCompact || currentDestination.isMainScreen
 
     // 动画规格定义
     val slideAnimSpec = tween<IntOffset>(300)
@@ -175,47 +167,43 @@ fun AppNavigation(startDestination: Destination) {
 
     AdaptiveNavigationScaffold(
         currentDestination = currentDestination,
+        currentTopLevel = navigationState.currentTopLevel,
         onTabSelected = onNavigate,
-        showNavigation = showNavigation,
-        navHideFractionProvider = { navHideFraction }
-    ) { innerPadding ->
-        CompositionLocalProvider(LocalScaffoldPadding provides innerPadding) {
-            val entryProvider = entryProvider<Destination>(
-                fallback = { key ->
-                    NavEntry(key) {
-                        if (key is Destination.AndroidDestination ||
-                            key is Destination.IosDestination ||
-                            key is Destination.DesktopDestination
-                        ) {
-                            // 平台专属页面但当前平台未实现 → 自动弹回
-                            LaunchedEffect(key) { onBack() }
-                        } else {
-                            // 通用页面漏注册 → 暴露问题
-                            Text("未知页面: $key")
-                        }
+    ) { _ ->
+        val entryProvider = entryProvider<Destination>(
+            fallback = { key ->
+                NavEntry(key) {
+                    if (key is Destination.AndroidDestination ||
+                        key is Destination.IosDestination ||
+                        key is Destination.DesktopDestination
+                    ) {
+                        // 平台专属页面但当前平台未实现 → 自动弹回
+                        LaunchedEffect(key) { onBack() }
+                    } else {
+                        // 通用页面漏注册 → 暴露问题
+                        Text("未知页面: $key")
                     }
                 }
-            ) {
-                commonEntryBuilder(
-                    onNavigate = onNavigate,
-                    onBack = onBack,
-                    onNavHideFractionChanged = { navHideFraction = it }
-                )
-                platformEntryBuilder(
-                    onNavigate = onNavigate,
-                    onBack = onBack
-                )
             }
-
-            NavDisplay(
-                entries = navigationState.toDecoratedEntries(entryProvider),
+        ) {
+            commonEntryBuilder(
+                onNavigate = onNavigate,
                 onBack = onBack,
-                modifier = Modifier.fillMaxSize(),
-                transitionSpec = { transitionSpec },
-                popTransitionSpec = { popTransitionSpec },
-                predictivePopTransitionSpec = { predictivePopTransitionSpec }
+            )
+            platformEntryBuilder(
+                onNavigate = onNavigate,
+                onBack = onBack
             )
         }
+
+        NavDisplay(
+            entries = navigationState.toDecoratedEntries(entryProvider),
+            onBack = onBack,
+            modifier = Modifier.fillMaxSize(),
+            transitionSpec = { transitionSpec },
+            popTransitionSpec = { popTransitionSpec },
+            predictivePopTransitionSpec = { predictivePopTransitionSpec }
+        )
     }
 }
 
@@ -234,13 +222,11 @@ expect fun EntryProviderScope<Destination>.platformEntryBuilder(
 fun EntryProviderScope<Destination>.commonEntryBuilder(
     onNavigate: (Destination) -> Unit,
     onBack: () -> Unit,
-    onNavHideFractionChanged: (Float) -> Unit
 ) {
     entry<Destination.CourseSchedule> {
         WeeklyScheduleScreen(
             onNavigate = onNavigate,
             onBack = onBack,
-            onNavHideFractionChanged = onNavHideFractionChanged
         )
     }
     entry<Destination.Settings> { SettingsScreen(onNavigate, onBack) }
