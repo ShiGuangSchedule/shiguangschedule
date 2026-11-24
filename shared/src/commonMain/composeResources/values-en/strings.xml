@@ -499,8 +499,8 @@
     <string name="theme_dark">Dark Mode</string>
     <string name="theme_settings_title">Theme Settings</string>
     <string name="theme_mode_label">Theme Mode</string>
-    <string name="dynamic_color_title">Dynamic Color (Material You)</string>
-    <string name="dynamic_color_desc">Generate color schemes based on system wallpaper (Android 12+ only)</string>
+    <string name="dynamic_color_title">System dynamic colors</string>
+    <string name="dynamic_color_desc">Generate a color scheme automatically from your current system theme</string>
     <string name="custom_color_title">Custom Primary Color</string>
     <string name="light_primary_color">Light Primary Color</string>
     <string name="dark_primary_color">Dark Primary Color</string>

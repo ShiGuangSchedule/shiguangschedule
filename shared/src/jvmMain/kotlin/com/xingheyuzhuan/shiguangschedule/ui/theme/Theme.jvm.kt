@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import com.xingheyuzhuan.shiguangschedule.data.model.AppThemeMode
 import dev.nucleusframework.darkmodedetector.isSystemInDarkMode
+import dev.nucleusframework.systemcolor.systemAccentColor
 
 @Composable
 actual fun rememberSystemDark(): Boolean {
@@ -18,8 +19,12 @@ actual fun rememberColorScheme(
     customLightPrimary: Color,
     customDarkPrimary: Color
 ): ColorScheme {
-    val seedColor = if (darkTheme) customDarkPrimary else customLightPrimary
-
+    val accent = systemAccentColor()
+    val seedColor = when {
+        dynamicColor && accent != null -> accent
+        darkTheme -> customDarkPrimary
+        else -> customLightPrimary
+    }
     return rememberMaterialKolorScheme(
         darkTheme = darkTheme,
         seedColor = seedColor
@@ -35,5 +40,3 @@ actual fun SetupPlatformThemeEffects(
     // Desktop 端窗口外观交由 Compose Desktop 的 Window 属性控制，此处无需额外处理
     // 如要实现自绘边框需要补充实现
 }
-
-actual val supportsDynamicColor: Boolean = false

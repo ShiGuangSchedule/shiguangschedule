@@ -141,6 +141,7 @@ nucleus-decorated-window-tao = { module = "dev.nucleusframework:nucleus.decorate
 nucleus-composenativetray = { module = "dev.nucleusframework:composenativetray", version.ref = "nucleus-tray" }
 nucleus-notification-common = { module = "dev.nucleusframework:nucleus.notification-common", version.ref = "nucleus" }
 nucleus-autolaunch = { module = "dev.nucleusframework:nucleus.autolaunch", version.ref = "nucleus" }
+nucleus-system-color = { module = "dev.nucleusframework:nucleus.system-color", version.ref = "nucleus" }
 
 commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3" }
 

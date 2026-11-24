@@ -118,6 +118,7 @@ kotlin {
             implementation(libs.ktor.server.websockets)
             implementation(libs.nucleus.core.runtime)
             implementation(libs.nucleus.darkmode.detector)
+            implementation(libs.nucleus.system.color)
             implementation(libs.commons.lang3)
             implementation(libs.filekit.dialogs.compose)
         }

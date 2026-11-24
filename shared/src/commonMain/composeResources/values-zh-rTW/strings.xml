@@ -495,8 +495,8 @@
     <string name="theme_dark">深色模式</string>
     <string name="theme_settings_title">主題設置</string>
     <string name="theme_mode_label">主題模式切換</string>
-    <string name="dynamic_color_title">動態取色 (Material You)</string>
-    <string name="dynamic_color_desc">基於系統桌布自動生成配色方案（僅支持 Android 12+）</string>
+    <string name="dynamic_color_title">系統動態取色</string>
+    <string name="dynamic_color_desc">根據當前系統主題自動產生配色方案</string>
     <string name="custom_color_title">自定義主色調</string>
     <string name="light_primary_color">淺色模式主色</string>
     <string name="dark_primary_color">深色模式主色</string>
