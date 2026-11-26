@@ -334,6 +334,7 @@
     <string name="title_tweak_schedule">Schedule adjustment</string>
     <string name="a11y_save_tweak">Save schedule adjustment</string>
     <string name="label_select_tweak_table">Select schedule to adjust</string>
+    <string name="action_return_to_current_week">Return to this week</string>
     <string name="action_select_table">Select schedule</string>
     <string name="label_tweak_from_date">Original date</string>
     <string name="label_tweak_to_date">New date</string>

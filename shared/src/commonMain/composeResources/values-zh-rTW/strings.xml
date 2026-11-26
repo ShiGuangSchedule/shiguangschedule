@@ -330,6 +330,7 @@
     <string name="title_tweak_schedule">調課</string>
     <string name="a11y_save_tweak">儲存調課變更</string>
     <string name="label_select_tweak_table">選擇要調整的課表</string>
+    <string name="action_return_to_current_week">回到本週</string>
     <string name="action_select_table">選擇課表</string>
     <string name="label_tweak_from_date">被調整日期</string>
     <string name="label_tweak_to_date">調整到日期</string>

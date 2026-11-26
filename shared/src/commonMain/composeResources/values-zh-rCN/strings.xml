@@ -409,6 +409,7 @@
     <string name="title_tweak_schedule">调课</string>
     <string name="a11y_save_tweak">保存调课更改</string>
     <string name="label_select_tweak_table">选择要调整的课表</string>
+    <string name="action_return_to_current_week">回到本周</string>
     <string name="action_select_table">选择课表</string>
     <string name="label_tweak_from_date">被调整日期</string>
     <string name="label_tweak_to_date">调整到日期</string>

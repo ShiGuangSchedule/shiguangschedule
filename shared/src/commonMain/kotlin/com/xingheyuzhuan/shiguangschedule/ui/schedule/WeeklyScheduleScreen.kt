@@ -87,8 +87,10 @@ import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
 import shiguangschedule.shared.generated.resources.Res
+import shiguangschedule.shared.generated.resources.action_return_to_current_week
 import shiguangschedule.shared.generated.resources.action_select_table
 import shiguangschedule.shared.generated.resources.arrow_drop_down_24px
+import shiguangschedule.shared.generated.resources.calendar_today_24px
 import shiguangschedule.shared.generated.resources.format_week_display
 import shiguangschedule.shared.generated.resources.ic_launcher_foreground
 import shiguangschedule.shared.generated.resources.snackbar_add_course_within_semester
@@ -154,8 +156,8 @@ private fun WeeklyScheduleContentLoaded(
     LaunchedEffect(isDark) {
         viewModel.updateDarkTheme(isDark)
     }
-    val today = remember {
-        Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+    var today by remember {
+        mutableStateOf(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date)
     }
 
     val coroutineScope = rememberCoroutineScope()
@@ -174,7 +176,7 @@ private fun WeeklyScheduleContentLoaded(
         return current
     }
 
-    LaunchedEffect(pagerState.currentPage, uiState.firstDayOfWeek) {
+    LaunchedEffect(pagerState.currentPage, uiState.firstDayOfWeek, today) {
         snapshotFlow { pagerState.currentPage }
             .distinctUntilChanged()
             .collect { pageIndex ->
@@ -310,6 +312,23 @@ private fun WeeklyScheduleContentLoaded(
                             )
                         }
                     },
+                    navigationIcon = {
+                        IconButton(
+                            onClick = {
+                                coroutineScope.launch {
+                                    today = Clock.System.now()
+                                        .toLocalDateTime(TimeZone.currentSystemDefault()).date
+                                    pagerState.scrollToPage(INFINITE_PAGER_CENTER)
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = vectorResource(Res.drawable.calendar_today_24px),
+                                contentDescription = stringResource(Res.string.action_return_to_current_week),
+                                tint = customTextColor
+                            )
+                        }
+                    },
                     actions = {
                         IconButton(onClick = { showTableSwitcher = true }) {
                             Icon(
@@ -347,7 +366,7 @@ private fun WeeklyScheduleContentLoaded(
                 userScrollEnabled = !isGridHolding
             ) { pageIndex ->
 
-                val pageMondayDate = remember(pageIndex, uiState.firstDayOfWeek) {
+                val pageMondayDate = remember(pageIndex, uiState.firstDayOfWeek, today) {
                     val offsetWeeks = (pageIndex - INFINITE_PAGER_CENTER).toLong()
                     val firstDay = DayOfWeek(uiState.firstDayOfWeek)
                     getPreviousOrSameDay(today, firstDay).plus(offsetWeeks * 7, DateTimeUnit.DAY)
@@ -366,7 +385,7 @@ private fun WeeklyScheduleContentLoaded(
                     }
                 }
 
-                val pageTodayIndex = remember(pageMondayDate) {
+                val pageTodayIndex = remember(pageMondayDate, today) {
                     val weekDates = (0..6).map { pageMondayDate.plus(it.toLong(), DateTimeUnit.DAY) }
                     weekDates.indexOf(today)
                 }
