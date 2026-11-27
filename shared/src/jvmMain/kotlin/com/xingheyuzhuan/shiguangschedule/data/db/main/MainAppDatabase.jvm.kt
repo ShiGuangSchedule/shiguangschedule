@@ -2,10 +2,10 @@ package com.xingheyuzhuan.shiguangschedule.data.db.main
 
 import androidx.room3.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
-import com.xingheyuzhuan.shiguangschedule.data.di.AppStorage
+import okio.Path
 
-actual fun createMainDatabase(appStorage: AppStorage): MainAppDatabase {
-    val dbPath = appStorage.getDatabasePath("main_app_database")
+actual fun createMainDatabase(databasesDir: Path): MainAppDatabase {
+    val dbPath = (databasesDir / "main_app_database").toString()
     return Room.databaseBuilder<MainAppDatabase>(
         name = dbPath,
         factory = { MainAppDatabaseConstructor.initialize() }

@@ -4,7 +4,7 @@ import androidx.room3.ConstructedBy
 import androidx.room3.Database
 import androidx.room3.RoomDatabase
 import androidx.room3.RoomDatabaseConstructor
-import com.xingheyuzhuan.shiguangschedule.data.di.AppStorage
+import okio.Path
 
 @Database(
     entities = [WidgetCourse::class, WidgetAppSettings::class],
@@ -18,13 +18,14 @@ abstract class WidgetDatabase : RoomDatabase() {
     abstract fun widgetAppSettingsDao(): WidgetAppSettingsDao
 
     companion object {
-        fun getDatabase(appStorage: AppStorage): WidgetDatabase {
-            return createWidgetDatabase(appStorage)
+        fun getDatabase(databasesDir: Path): WidgetDatabase {
+            return createWidgetDatabase(databasesDir)
         }
     }
 }
 
-expect fun createWidgetDatabase(appStorage: AppStorage): WidgetDatabase
+expect fun createWidgetDatabase(databasesDir: Path): WidgetDatabase
 
-@Suppress("NO_ACTUAL_FOR_EXPECT")
-expect object WidgetDatabaseConstructor : RoomDatabaseConstructor<WidgetDatabase>
+expect object WidgetDatabaseConstructor : RoomDatabaseConstructor<WidgetDatabase> {
+    override fun initialize(): WidgetDatabase
+}

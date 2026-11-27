@@ -4,30 +4,24 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import com.xingheyuzhuan.shiguangschedule.data.di.TargetPlatform
-import com.xingheyuzhuan.shiguangschedule.data.di.isPlatformSupported
+import com.xingheyuzhuan.shiguangschedule.di.platform.ShareFileSupport
 import org.jetbrains.compose.resources.stringResource
+import org.koin.mp.KoinPlatform
 import shiguangschedule.shared.generated.resources.Res
 import shiguangschedule.shared.generated.resources.action_cancel
 import shiguangschedule.shared.generated.resources.action_share
 import shiguangschedule.shared.generated.resources.dialog_text_file_saved_share_prompt
 import shiguangschedule.shared.generated.resources.dialog_title_file_saved
 
-/**
- * 平台底层文件分享执行逻辑
- */
-expect fun platformShareFile(filePath: String, mimeType: String)
-
-/**
- * 文件保存成功后的分享确认弹窗（分享管理器的 UI 组件之一）
- */
+/** 文件保存后的分享确认弹窗 */
 @Composable
 fun ShareDialog(
     filePath: String,
-    mimeType: String,
     onDismiss: () -> Unit
 ) {
-    if (!isPlatformSupported(TargetPlatform.mobile)) return
+    // 未注册分享能力的平台（如桌面端）不弹窗
+    val shareSupport = KoinPlatform.getKoin().getOrNull<ShareFileSupport>() ?: return
+    val shareFile = shareSupport.rememberShareAction()
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -36,7 +30,7 @@ fun ShareDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    platformShareFile(filePath, mimeType)
+                    shareFile(filePath)
                     onDismiss()
                 }
             ) {

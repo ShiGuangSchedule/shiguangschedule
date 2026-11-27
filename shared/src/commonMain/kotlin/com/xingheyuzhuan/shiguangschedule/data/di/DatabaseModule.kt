@@ -1,9 +1,21 @@
 package com.xingheyuzhuan.shiguangschedule.data.di
 
-import com.xingheyuzhuan.shiguangschedule.data.db.main.*
-import com.xingheyuzhuan.shiguangschedule.data.db.widget.*
+import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseDao
+import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTableConfigDao
+import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTableDao
+import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseTimeBindingDao
+import com.xingheyuzhuan.shiguangschedule.data.db.main.CourseWeekDao
+import com.xingheyuzhuan.shiguangschedule.data.db.main.MainAppDatabase
+import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeSlotDao
+import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeTableComboDao
+import com.xingheyuzhuan.shiguangschedule.data.db.main.TimeTableDao
+import com.xingheyuzhuan.shiguangschedule.data.db.widget.WidgetAppSettingsDao
+import com.xingheyuzhuan.shiguangschedule.data.db.widget.WidgetCourseDao
+import com.xingheyuzhuan.shiguangschedule.data.db.widget.WidgetDatabase
+import okio.Path
 import org.koin.core.annotation.Factory
 import org.koin.core.annotation.Module
+import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
 
 @Module
@@ -11,13 +23,13 @@ import org.koin.core.annotation.Single
 class DatabaseModule {
 
     @Single
-    fun provideMainDatabase(appStorage: AppStorage): MainAppDatabase {
-        return MainAppDatabase.getDatabase(appStorage)
+    fun provideMainDatabase(@Named("DatabasesDir") databasesDir: Path): MainAppDatabase {
+        return MainAppDatabase.getDatabase(databasesDir)
     }
 
     @Single
-    fun provideWidgetDatabase(appStorage: AppStorage): WidgetDatabase {
-        return WidgetDatabase.getDatabase(appStorage)
+    fun provideWidgetDatabase(@Named("DatabasesDir") databasesDir: Path): WidgetDatabase {
+        return WidgetDatabase.getDatabase(databasesDir)
     }
 
     @Factory

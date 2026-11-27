@@ -101,7 +101,6 @@ fun CourseTableConversionScreen(
     // 用于暂存导出的缓存路径和触发 ShareDialog 的路径状态
     var pendingShareFilePath by remember { mutableStateOf<String?>(null) }
     var shareFilePath by remember { mutableStateOf<String?>(null) }
-    var shareFileMimeType by remember { mutableStateOf("application/json") }
 
     LaunchedEffect(pendingFile) {
         if (pendingFile?.targetDestination == Destination.CourseTableConversion) {
@@ -151,7 +150,6 @@ fun CourseTableConversionScreen(
                         write(bytes)
                     }
                     pendingShareFilePath = tempFilePath.toString()
-                    shareFileMimeType = "application/json"
                     fileManager.exportFile(fileName, bytes)
                 }
                 is ConversionEvent.LaunchExportIcsFileCreator -> {
@@ -165,7 +163,6 @@ fun CourseTableConversionScreen(
                         write(bytes)
                     }
                     pendingShareFilePath = tempFilePath.toString()
-                    shareFileMimeType = "text/calendar"
 
                     fileManager.exportFile(fileName, bytes)
                 }
@@ -305,7 +302,6 @@ fun CourseTableConversionScreen(
     shareFilePath?.let { path ->
         ShareDialog(
             filePath = path,
-            mimeType = shareFileMimeType,
             onDismiss = {
                 shareFilePath = null
                 pendingShareFilePath = null

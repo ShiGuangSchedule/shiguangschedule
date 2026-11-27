@@ -48,7 +48,6 @@ kgit = "1.0.3"
 # desktop平台专属
 nucleus = "2.5.18"
 nucleus-tray = "2.1.7"
-commons-lang3 = "3.22.0"
 
 [libraries]
 # Compose Multiplatform 跨平台核心 UI 库
@@ -143,7 +142,6 @@ nucleus-notification-common = { module = "dev.nucleusframework:nucleus.notificat
 nucleus-autolaunch = { module = "dev.nucleusframework:nucleus.autolaunch", version.ref = "nucleus" }
 nucleus-system-color = { module = "dev.nucleusframework:nucleus.system-color", version.ref = "nucleus" }
 
-commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3" }
 
 filekit-dialogs-compose = { module = "io.github.vinceglb:filekit-dialogs-compose", version.ref = "filekit" }
 

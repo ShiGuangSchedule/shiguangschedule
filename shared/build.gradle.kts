@@ -101,6 +101,9 @@ kotlin {
 
                 // Wire Protobuf 运行时
                 implementation(libs.wire.runtime)
+
+                // FileKit
+                implementation(libs.filekit.dialogs.compose)
             }
         }
 
@@ -119,8 +122,6 @@ kotlin {
             implementation(libs.nucleus.core.runtime)
             implementation(libs.nucleus.darkmode.detector)
             implementation(libs.nucleus.system.color)
-            implementation(libs.commons.lang3)
-            implementation(libs.filekit.dialogs.compose)
         }
 
         iosMain.dependencies {

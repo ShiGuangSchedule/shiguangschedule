@@ -1,47 +1,48 @@
 package com.xingheyuzhuan.shiguangschedule.data.di
 
 import dev.nucleusframework.core.runtime.NucleusApp
+import io.github.vinceglb.filekit.FileKit
+import io.github.vinceglb.filekit.cacheDir
+import io.github.vinceglb.filekit.createDirectories
+import io.github.vinceglb.filekit.databasesDir
+import io.github.vinceglb.filekit.filesDir
+import io.github.vinceglb.filekit.path
 import okio.Path
-import okio.Path.Companion.toOkioPath
-import org.apache.commons.lang3.SystemUtils
+import okio.Path.Companion.toPath
 import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
-import java.io.File
 
 /**
  * JVM / 桌面端平台的 PlatformEnvironment 实现
  */
 actual object PlatformEnvironment {
     actual val currentPlatform: TargetPlatform
-        get() = when {
-            SystemUtils.IS_OS_WINDOWS -> TargetPlatform.WINDOWS
-            SystemUtils.IS_OS_MAC -> TargetPlatform.MACOS
-            SystemUtils.IS_OS_LINUX -> TargetPlatform.LINUX
-            else -> throw IllegalStateException("Unsupported operating system: ${System.getProperty("os.name")}")
+        get() {
+            val system = System.getProperty("os.name").lowercase()
+            return when {
+                system.contains("win") -> TargetPlatform.WINDOWS
+                system.contains("nix") || system.contains("nux") || system.contains("aix") -> TargetPlatform.LINUX
+                system.contains("mac") -> TargetPlatform.MACOS
+                else -> TargetPlatform.LINUX
+            }
         }
 }
 
 @Single
 class JvmAppStorage : AppStorage {
-    private val appDir: File by lazy {
-        val userHome = System.getProperty("user.home")
-        val baseDir = when {
-            SystemUtils.IS_OS_WINDOWS -> File(System.getenv("APPDATA") ?: "$userHome/AppData/Roaming")
-            SystemUtils.IS_OS_MAC -> File("$userHome/Library/Application Support")
-            else -> File(System.getenv("XDG_CONFIG_HOME") ?: "$userHome/.config")
-        }
-        File(baseDir, "shiguangschedule").apply { mkdirs() }
+    // JVM 上必须先初始化 FileKit 才能读取应用目录
+    init {
+        FileKit.init("shiguangschedule")
     }
 
     override val filesDir: Path
-        get() = File(appDir, "files").apply { mkdirs() }.toPath().toOkioPath()
+        get() = FileKit.filesDir.path.toPath()
 
     override val cacheDir: Path
-        get() = File(appDir, "cache").apply { mkdirs() }.toPath().toOkioPath()
+        get() = FileKit.cacheDir.path.toPath()
 
-    override fun getDatabasePath(dbName: String): String {
-        return File(File(appDir, "databases").apply { mkdirs() }, dbName).absolutePath
-    }
+    override val databasesDir: Path
+        get() = FileKit.databasesDir.also { it.createDirectories() }.path.toPath()
 }
 
 
