@@ -127,6 +127,7 @@ kotlin {
         iosMain.dependencies {
             implementation(libs.androidx.sqlite.framework)
             implementation(libs.ktor.client.darwin)
+            implementation(libs.kmp.zip)
         }
 
         commonTest.dependencies {

@@ -46,20 +46,26 @@ import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.zIndex
 import com.xingheyuzhuan.shiguangschedule.data.di.TargetPlatform
 import com.xingheyuzhuan.shiguangschedule.data.di.isPlatformSupported
+import io.github.vinceglb.filekit.ImageFormat
+import io.github.vinceglb.filekit.dialogs.compose.util.encodeToByteArray
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
+import org.koin.mp.KoinPlatform
 import shiguangschedule.shared.generated.resources.Res
 import shiguangschedule.shared.generated.resources.action_cancel
 import shiguangschedule.shared.generated.resources.action_confirm_crop
+import shiguangschedule.shared.generated.resources.error_op_failed
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
- * 是否启用裁剪预览窗口开关
+ * 是否启用裁剪预览窗口：移动平台且注册了裁剪能力时才弹出预览窗口。
+ * 其余平台无需裁剪，直接走原图编码写入。
  */
 val isCropWindowEnabled: Boolean
-    get() = isPlatformSupported(TargetPlatform.mobile)
+    get() = isPlatformSupported(TargetPlatform.mobile) &&
+        KoinPlatform.getKoin().getOrNull<ImageCropSupport>() != null
 
 /**
  * 跨平台通用图片裁剪组件
@@ -74,18 +80,31 @@ fun ImageCropper(
     if (imageBitmap == null) return
 
     val coroutineScope = rememberCoroutineScope()
+    var cropError by remember { mutableStateOf<String?>(null) }
+    val cropErrorText = cropError?.let { stringResource(Res.string.error_op_failed, it) }
+    LaunchedEffect(cropErrorText) {
+        cropErrorText?.let {
+            ToastManager.show(it)
+            cropError = null
+        }
+    }
 
     // 若当前平台关闭了预览窗口（如 Desktop），后台异步静默转为 ByteArray 并直接回调
     LaunchedEffect(imageBitmap) {
         if (!isCropWindowEnabled) {
-            val bytes = cropImageBitmapNative(
-                source = imageBitmap,
-                srcLeft = 0,
-                srcTop = 0,
-                cropWidth = imageBitmap.width,
-                cropHeight = imageBitmap.height
-            )
-            onCropConfirmed(bytes)
+            try {
+                val bytes = cropImageBitmapNative(
+                    source = imageBitmap,
+                    srcLeft = 0,
+                    srcTop = 0,
+                    cropWidth = imageBitmap.width,
+                    cropHeight = imageBitmap.height
+                )
+                onCropConfirmed(bytes)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                cropError = e.message ?: ""
+            }
             return@LaunchedEffect
         }
     }
@@ -230,28 +249,32 @@ fun ImageCropper(
                     onClick = {
                         coroutineScope.launch {
                             isCropping = true
+                            try {
+                                val imgW = imageBitmap.width * scale
+                                val imgH = imageBitmap.height * scale
 
-                            val imgW = imageBitmap.width * scale
-                            val imgH = imageBitmap.height * scale
+                                val imgStartX = (cw - imgW) / 2 + offset.x
+                                val imgStartY = (ch - imgH) / 2 + offset.y
 
-                            val imgStartX = (cw - imgW) / 2 + offset.x
-                            val imgStartY = (ch - imgH) / 2 + offset.y
+                                val srcLeft = max(0, ((cropRect.left - imgStartX) / scale).roundToInt())
+                                val srcTop = max(0, ((cropRect.top - imgStartY) / scale).roundToInt())
+                                val srcW = (cropWidth / scale).roundToInt()
+                                val srcH = (cropHeight / scale).roundToInt()
 
-                            val srcLeft = max(0, ((cropRect.left - imgStartX) / scale).roundToInt())
-                            val srcTop = max(0, ((cropRect.top - imgStartY) / scale).roundToInt())
-                            val srcW = (cropWidth / scale).roundToInt()
-                            val srcH = (cropHeight / scale).roundToInt()
-
-                            val croppedBytes = cropImageBitmapNative(
-                                source = imageBitmap,
-                                srcLeft = srcLeft,
-                                srcTop = srcTop,
-                                cropWidth = srcW,
-                                cropHeight = srcH
-                            )
-
-                            isCropping = false
-                            onCropConfirmed(croppedBytes)
+                                val croppedBytes = cropImageBitmapNative(
+                                    source = imageBitmap,
+                                    srcLeft = srcLeft,
+                                    srcTop = srcTop,
+                                    cropWidth = srcW,
+                                    cropHeight = srcH
+                                )
+                                onCropConfirmed(croppedBytes)
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                                cropError = e.message ?: ""
+                            } finally {
+                                isCropping = false
+                            }
                         }
                     },
                     shape = RoundedCornerShape(24.dp)
@@ -272,12 +295,29 @@ fun ImageCropper(
 }
 
 /**
- * Native 裁剪接口直接返回包含图片数据（JPEG/PNG）的 ByteArray
+ * 图片裁剪能力接口。需要裁剪的平台（Android / iOS）注册实现；
+ * 未注册的平台表示无需裁剪，直接走原图编码写入。
  */
-expect suspend fun cropImageBitmapNative(
+interface ImageCropSupport {
+    suspend fun cropImageBitmap(
+        source: ImageBitmap,
+        srcLeft: Int,
+        srcTop: Int,
+        cropWidth: Int,
+        cropHeight: Int
+    ): ByteArray = ByteArray(0)
+}
+
+/**
+ * 通过 Koin 获取平台裁剪实现。未注册时把原图编码后走原有固定路径写入。
+ */
+private suspend fun cropImageBitmapNative(
     source: ImageBitmap,
     srcLeft: Int,
     srcTop: Int,
     cropWidth: Int,
     cropHeight: Int
-): ByteArray
+): ByteArray = KoinPlatform.getKoin().getOrNull<ImageCropSupport>()
+    ?.cropImageBitmap(source, srcLeft, srcTop, cropWidth, cropHeight)
+    // 未注册裁剪能力的平台：不需要裁剪，直接把原图编码后走原有固定路径写入
+    ?: source.encodeToByteArray(format = ImageFormat.JPEG, quality = 90)
