@@ -101,6 +101,9 @@ kotlin {
 
                 // Wire Protobuf 运行时
                 implementation(libs.wire.runtime)
+
+                // FileKit
+                implementation(libs.filekit.dialogs.compose)
             }
         }
 
@@ -113,15 +116,18 @@ kotlin {
         jvmMain.dependencies {
             implementation(libs.androidx.sqlite.bundled)
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.ktor.server.core)
+            implementation(libs.ktor.server.cio)
+            implementation(libs.ktor.server.websockets)
             implementation(libs.nucleus.core.runtime)
             implementation(libs.nucleus.darkmode.detector)
-            implementation(libs.commons.lang3)
-            implementation(libs.filekit.dialogs.compose)
+            implementation(libs.nucleus.system.color)
         }
 
         iosMain.dependencies {
             implementation(libs.androidx.sqlite.framework)
             implementation(libs.ktor.client.darwin)
+            implementation(libs.kmp.zip)
         }
 
         commonTest.dependencies {

@@ -1,13 +1,22 @@
-// shared/src/iosMain/kotlin/com/xingheyuzhuan/shiguangschedule/tool/ZipUtils.ios.kt
 package com.xingheyuzhuan.shiguangschedule.tool
 
+import no.synth.kmpzip.io.ByteArrayOutputStream
+import no.synth.kmpzip.zip.ZipEntry
+import no.synth.kmpzip.zip.ZipOutputStream
+
 /**
- * iOS 端的 Zip 工具类实现
- * 当前为占位符，尚未实现具体逻辑。
- * 如果在 iOS 运行此代码将会触发 NotImplementedError。
+ * iOS 端的 Zip 工具类实现，基于 kmp-zip 在内存中构建 ZIP 归档。
  */
 actual object ZipUtils {
     actual fun createZip(entries: Map<String, ByteArray>): ByteArray {
-        throw NotImplementedError("ZipUtils.createZip is not yet implemented for iOS platform.")
+        val buffer = ByteArrayOutputStream()
+        ZipOutputStream(buffer).use { zip ->
+            entries.forEach { (filename, bytes) ->
+                zip.putNextEntry(ZipEntry(filename))
+                zip.write(bytes)
+                zip.closeEntry()
+            }
+        }
+        return buffer.toByteArray()
     }
 }

@@ -48,5 +48,5 @@ fun isPlatformSupported(vararg allowedValues: Any): Boolean {
 interface AppStorage {
     val filesDir: Path
     val cacheDir: Path
-    fun getDatabasePath(dbName: String): String
+    val databasesDir: Path
 }

@@ -1,19 +1,7 @@
 package com.xingheyuzhuan.shiguangschedule
 
 import androidx.navigation3.runtime.NavKey
-import androidx.navigation3.runtime.NavMetadataKey
-import androidx.savedstate.serialization.SavedStateConfiguration
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.modules.SerializersModule
-import kotlinx.serialization.modules.polymorphic
-import kotlinx.serialization.modules.subclass
-
-/**
- * 导航元数据 Key 定义
- */
-object ShiguangNavMetadata {
-    object IsMainScreenKey : NavMetadataKey<Boolean>
-}
 
 /**
  * 应用所有目的地（页面）的定义
@@ -100,63 +88,13 @@ sealed interface Destination : NavKey {
 
     // Desktop 平台专属页面
     @Serializable data object DesktopNotificationSettings : DesktopDestination
+
+    @Serializable
+    data class DesktopExtensionBridgeSettings(
+        val schoolId: String? = null,
+        val adapterId: String? = null
+    ) : DesktopDestination
 }
 
 val Destination.isMainScreen: Boolean
     get() = this is Destination.MainDestination
-
-/**
- * 配置并生成包含所有 Destination 派生类的 SerializersModule
- */
-val navSerializersModule = SerializersModule {
-    polymorphic(NavKey::class) {
-        // 一级主界面
-        subclass(Destination.CourseSchedule::class)
-        subclass(Destination.Settings::class)
-        subclass(Destination.TodaySchedule::class)
-
-        // 普通功能页面
-        subclass(Destination.TimeScheduleManagement::class)
-        subclass(Destination.ManageCourseTables::class)
-        subclass(Destination.SchoolSelectionListScreen::class)
-        subclass(Destination.CourseTableConversion::class)
-        subclass(Destination.MoreOptions::class)
-        subclass(Destination.OpenSourceLicenses::class)
-        subclass(Destination.UpdateRepo::class)
-        subclass(Destination.QuickActions::class)
-        subclass(Destination.TweakSchedule::class)
-        subclass(Destination.QuickDelete::class)
-        subclass(Destination.ContributionList::class)
-        subclass(Destination.CourseManagementList::class)
-        subclass(Destination.StyleSettings::class)
-        subclass(Destination.ThemeSettings::class)
-        subclass(Destination.BackupAndRestore::class)
-        subclass(Destination.LanguageSettings::class)
-        subclass(Destination.WidgetStyleSettings::class)
-        subclass(Destination.HolidayManagement::class)
-
-        // 带参数据类
-        subclass(Destination.AdapterSelection::class)
-        subclass(Destination.WebView::class)
-        subclass(Destination.AddEditCourse::class)
-        subclass(Destination.CourseManagementDetail::class)
-        subclass(Destination.SingleScheduleEdit::class)
-        subclass(Destination.ComboScheduleEdit::class)
-
-        // Android 平台专属页面
-        subclass(Destination.AndroidNotificationSettings::class)
-
-        // Ios 平台专属页面
-        subclass(Destination.IosNotificationSettings::class)
-
-        // Desktop 平台专属页面
-        subclass(Destination.DesktopNotificationSettings::class)
-    }
-}
-
-/**
- * 使用官方 DSL 构建器创建 SavedStateConfiguration
- */
-val navSavedStateConfig = SavedStateConfiguration {
-    serializersModule = navSerializersModule
-}

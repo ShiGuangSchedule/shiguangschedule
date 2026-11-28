@@ -53,5 +53,3 @@ actual fun SetupPlatformThemeEffects(
         }
     }
 }
-
-actual val supportsDynamicColor: Boolean = false

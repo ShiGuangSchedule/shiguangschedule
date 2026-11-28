@@ -1,23 +1,20 @@
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup.items
 
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.ListItemShapes
+import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup.LocalCardShape
+import androidx.compose.ui.unit.dp
+import com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup.LocalItemShapes
 
-/**
- * 带开关的设置行卡片。
- *
- * @param modifier 修饰符
- * @param title 主标题
- * @param checked 当前开关状态
- * @param onCheckedChange 开关状态变化回调
- * @param subtitle 可选副标题
- * @param leading 可选左侧图标插槽
- * @param enabled 是否启用交互
- * @param shape 默认优先读取上下文 [LocalCardShape]，也支持外部显式传入（如在 LazyColumn 中）
- */
+/** 带开关的设置行，点击整行可切换开关。 */
 @Composable
 fun SettingsSwitchRow(
     modifier: Modifier = Modifier,
@@ -27,22 +24,23 @@ fun SettingsSwitchRow(
     subtitle: String? = null,
     leading: (@Composable () -> Unit)? = null,
     enabled: Boolean = true,
-    shape: RoundedCornerShape = LocalCardShape.current,
+    shapes: ListItemShapes? = null,
 ) {
-    SettingsRow(
-        modifier = modifier,
-        title = title,
-        subtitle = subtitle,
-        leading = leading,
-        enabled = enabled,
-        shape = shape,
+    val itemShapes = shapes ?: LocalItemShapes.current
+        ?: ListItemDefaults.segmentedShapes(index = 0, count = 1)
+    SegmentedListItem(
         onClick = { onCheckedChange(!checked) },
-        trailing = {
-            Switch(
-                checked = checked,
-                onCheckedChange = onCheckedChange,
-                enabled = enabled
-            )
-        }
+        shapes = itemShapes,
+        modifier = modifier,
+        enabled = enabled,
+        leadingContent = leading,
+        trailingContent = {
+            Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
+        },
+        supportingContent = subtitle?.let { { Text(text = it) } },
+        verticalAlignment = Alignment.CenterVertically,
+        colors = ListItemDefaults.segmentedColors(),
+        elevation = ListItemDefaults.elevation(elevation = 2.dp),
+        content = { Text(text = title) }
     )
 }

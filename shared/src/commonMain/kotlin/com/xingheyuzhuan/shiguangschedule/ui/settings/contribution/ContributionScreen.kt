@@ -1,25 +1,27 @@
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package com.xingheyuzhuan.shiguangschedule.ui.settings.contribution
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItemShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
@@ -34,11 +36,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.xingheyuzhuan.shiguangschedule.data.model.ContributionList
-import org.jetbrains.compose.resources.ExperimentalResourceApi
+import com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup.SettingsGroup
+import com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup.SettingsGroupLazyColumn
+import com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup.items.SettingsIcon
+import com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup.items.SettingsRow
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -47,7 +53,7 @@ import shiguangschedule.shared.generated.resources.a11y_back_to_previous
 import shiguangschedule.shared.generated.resources.a11y_contributor_avatar
 import shiguangschedule.shared.generated.resources.action_retry
 import shiguangschedule.shared.generated.resources.arrow_back_24px
-import shiguangschedule.shared.generated.resources.label_github
+import shiguangschedule.shared.generated.resources.github_24px
 import shiguangschedule.shared.generated.resources.tab_adapter_development
 import shiguangschedule.shared.generated.resources.tab_app_development
 import shiguangschedule.shared.generated.resources.text_loading_failed
@@ -60,7 +66,6 @@ import shiguangschedule.shared.generated.resources.title_contribution_list
  * @param onBack 返回上一页回调
  * @param viewModel 状态管理 ViewModel
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContributionScreen(
     onBack: () -> Unit,
@@ -71,6 +76,7 @@ fun ContributionScreen(
     val uriHandler = LocalUriHandler.current
 
     Scaffold(
+        contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(Res.string.title_contribution_list)) },
@@ -85,10 +91,15 @@ fun ContributionScreen(
             )
         }
     ) { paddingValues ->
+        val layoutDirection = LocalLayoutDirection.current
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(
+                    top = paddingValues.calculateTopPadding(),
+                    start = paddingValues.calculateStartPadding(layoutDirection),
+                    end = paddingValues.calculateEndPadding(layoutDirection)
+                )
         ) {
             ContributionTabs(
                 selectedTabIndex = selectedTabIndex,
@@ -97,9 +108,8 @@ fun ContributionScreen(
 
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
-                contentAlignment = Alignment.TopStart
+                    .fillMaxWidth()
+                    .weight(1f)
             ) {
                 when (val state = uiState) {
                     ContributionUiState.Loading -> {
@@ -140,7 +150,6 @@ fun ContributionScreen(
 /**
  * 分类选项卡栏
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContributionTabs(
     selectedTabIndex: Int,
@@ -172,7 +181,7 @@ fun ContributionTabs(
 }
 
 /**
- * 贡献者列表内容
+ * 贡献者列表内容。每位贡献者单独成组，卡片四周均为大圆角。
  */
 @Composable
 fun ContributorListContent(
@@ -182,32 +191,43 @@ fun ContributorListContent(
     if (list.isEmpty()) {
         Text(
             text = stringResource(Res.string.text_no_contributors),
-            modifier = Modifier.padding(top = 16.dp)
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
         )
         return
     }
 
-    LazyColumn(contentPadding = PaddingValues(vertical = 8.dp)) {
-        items(list, key = { it.url }) { contributor ->
-            ContributorCard(
-                contributor = contributor,
-                onContributorClick = onContributorClick
-            )
-        }
+    val navigationBarBottom = WindowInsets.navigationBars
+        .asPaddingValues()
+        .calculateBottomPadding()
+
+    SettingsGroupLazyColumn(
+        groups = list.map { contributor -> SettingsGroup(items = listOf(contributor)) },
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(
+            start = 16.dp,
+            top = 8.dp,
+            end = 16.dp,
+            bottom = navigationBarBottom
+        )
+    ) { contributor, shapes ->
+        ContributorRow(
+            contributor = contributor,
+            shapes = shapes,
+            onContributorClick = onContributorClick
+        )
     }
 }
 
 /**
- * 单个贡献者卡片组件
+ * 单个贡献者行，左右均为图标：左侧头像，右侧 GitHub 图标。
  */
-@OptIn(ExperimentalResourceApi::class)
 @Composable
-fun ContributorCard(
+fun ContributorRow(
     contributor: ContributionList.Contributor,
+    shapes: ListItemShapes,
     onContributorClick: (String) -> Unit
 ) {
     val a11yAvatar = stringResource(Res.string.a11y_contributor_avatar, contributor.name)
-    val labelGithub = stringResource(Res.string.label_github)
 
     val avatarBytes by produceState<ByteArray?>(initialValue = null, contributor.avatar) {
         value = try {
@@ -217,16 +237,9 @@ fun ContributorCard(
         }
     }
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .clickable { onContributorClick(contributor.url) }
-    ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+    SettingsRow(
+        title = contributor.name,
+        leading = {
             AsyncImage(
                 model = avatarBytes,
                 contentDescription = a11yAvatar,
@@ -235,19 +248,13 @@ fun ContributorCard(
                     .size(40.dp)
                     .clip(CircleShape)
             )
-            Spacer(modifier = Modifier.width(16.dp))
-            Text(
-                text = contributor.name,
-                style = MaterialTheme.typography.titleMedium
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            Text(
-                text = labelGithub,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.outline
-            )
-        }
-    }
+        },
+        trailing = {
+            SettingsIcon(imageVector = vectorResource(Res.drawable.github_24px))
+        },
+        onClick = { onContributorClick(contributor.url) },
+        shapes = shapes
+    )
 }
 
 /**

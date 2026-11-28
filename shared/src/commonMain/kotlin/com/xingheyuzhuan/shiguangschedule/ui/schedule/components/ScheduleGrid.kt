@@ -6,6 +6,7 @@ import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -26,6 +27,7 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleModeProto
@@ -43,7 +45,8 @@ fun ScheduleGrid(
     viewState: ScheduleGridViewState,
     actions: ScheduleGridActions,
     style: ScheduleGridStyleComposed,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    bottomContentPadding: Dp = 0.dp,
 ) {
     val currentActions by rememberUpdatedState(actions)
 
@@ -451,6 +454,9 @@ fun ScheduleGrid(
                             placeable.placeRelative(xPosition, yPosition)
                         }
                     }
+                }
+                if (bottomContentPadding > 0.dp) {
+                    Spacer(Modifier.height(totalGridHeight + bottomContentPadding))
                 }
             }
         }

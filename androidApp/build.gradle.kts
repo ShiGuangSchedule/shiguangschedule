@@ -56,6 +56,10 @@ android {
         generateLocaleConfig = true
         localeFilters += listOf("zh", "zh-rCN", "zh-rTW", "en")
     }
+
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
 }
 
 dependencies {

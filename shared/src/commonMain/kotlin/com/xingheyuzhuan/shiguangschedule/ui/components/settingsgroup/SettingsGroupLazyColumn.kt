@@ -1,11 +1,19 @@
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.ListItemDefaults.SegmentedGap
+import androidx.compose.material3.ListItemShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -13,45 +21,37 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
-/**
- * 通用分组数据模型（用于长列表，如语言选择、城市选择等）。
- *
- * @param title 分组标题（可空，若为 null 则该分组不显示头部 Header）
- * @param items 该组下的子项数据列表
- */
+/** 通用分组数据模型。 */
 data class SettingsGroup<T>(
     val title: String? = null,
     val items: List<T>
 )
 
 private sealed interface FlatUiItem<T> {
-    data class Header<T>(
-        val groupIndex: Int,
-        val title: String
-    ) : FlatUiItem<T>
+    data class Header<T>(val groupIndex: Int, val title: String) : FlatUiItem<T>
 
     data class RowItem<T>(
         val groupIndex: Int,
         val itemIndex: Int,
         val data: T,
-        val isFirstInGroup: Boolean,
-        val isLastInGroup: Boolean
+        val groupSize: Int
     ) : FlatUiItem<T>
 }
 
 /**
- * 高性能长列表分组容器（底层使用单根 LazyColumn）。
- * 自动处理数据扁平化、字母分组头、以及组内首尾非对称圆角。
- * 内部基于顺序索引管理 Item Key，完全不受业务数据重复或同名标题影响。
+ * 长列表设置分组容器。
  *
- * @param groups 分组数据列表
- * @param title 整个长列表的顶层可选大标题（可空）
- * @param headerContent 自定义分组标题渲染
+ * @param groups 分组数据
+ * @param content 条目内容，shapes 为当前条目的形状
  */
 @Composable
 fun <T> SettingsGroupLazyColumn(
     groups: List<SettingsGroup<T>>,
     modifier: Modifier = Modifier,
+    state: LazyListState = rememberLazyListState(),
+    contentPadding: PaddingValues = PaddingValues(),
+    leadingContent: (@Composable () -> Unit)? = null,
+    trailingContent: (@Composable () -> Unit)? = null,
     title: String? = null,
     headerContent: @Composable (title: String) -> Unit = { titleText ->
         Text(
@@ -62,24 +62,27 @@ fun <T> SettingsGroupLazyColumn(
             modifier = Modifier.padding(top = 16.dp, bottom = 8.dp, start = 4.dp)
         )
     },
-    content: @Composable (item: T, shape: RoundedCornerShape) -> Unit
+    content: @Composable (item: T, shapes: ListItemShapes) -> Unit
 ) {
     val flatItems = rememberFlattenedItems(groups)
 
     LazyColumn(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(SettingsDefaults.CardSpacing)
+        state = state,
+        contentPadding = contentPadding,
+        verticalArrangement = Arrangement.spacedBy(SegmentedGap)
     ) {
+        leadingContent?.let { leading ->
+            item(key = Triple(-2, -1, -1)) { leading() }
+        }
+
         if (!title.isNullOrBlank()) {
-            item(key = Triple(-1, -1, -1)) {
-                headerContent(title)
-            }
+            item(key = Triple(-1, -1, -1)) { headerContent(title) }
         }
 
         items(
             items = flatItems,
             key = { flatItem ->
-                // 纯内部顺序索引作为唯一键：(类型标记, 分组序号, 组内序号)
                 when (flatItem) {
                     is FlatUiItem.Header -> Triple(0, flatItem.groupIndex, -1)
                     is FlatUiItem.RowItem -> Triple(1, flatItem.groupIndex, flatItem.itemIndex)
@@ -87,38 +90,19 @@ fun <T> SettingsGroupLazyColumn(
             }
         ) { flatItem ->
             when (flatItem) {
-                is FlatUiItem.Header -> {
-                    headerContent(flatItem.title)
-                }
+                is FlatUiItem.Header -> headerContent(flatItem.title)
                 is FlatUiItem.RowItem -> {
-                    val shape = when {
-                        flatItem.isFirstInGroup && flatItem.isLastInGroup -> {
-                            RoundedCornerShape(SettingsDefaults.OuterCornerRadius)
-                        }
-                        flatItem.isFirstInGroup -> {
-                            RoundedCornerShape(
-                                topStart = SettingsDefaults.OuterCornerRadius,
-                                topEnd = SettingsDefaults.OuterCornerRadius,
-                                bottomStart = SettingsDefaults.InnerCornerRadius,
-                                bottomEnd = SettingsDefaults.InnerCornerRadius
-                            )
-                        }
-                        flatItem.isLastInGroup -> {
-                            RoundedCornerShape(
-                                topStart = SettingsDefaults.InnerCornerRadius,
-                                topEnd = SettingsDefaults.InnerCornerRadius,
-                                bottomStart = SettingsDefaults.OuterCornerRadius,
-                                bottomEnd = SettingsDefaults.OuterCornerRadius
-                            )
-                        }
-                        else -> {
-                            RoundedCornerShape(SettingsDefaults.InnerCornerRadius)
-                        }
-                    }
-
-                    content(flatItem.data, shape)
+                    val shapes = ListItemDefaults.segmentedShapes(
+                        index = flatItem.itemIndex,
+                        count = flatItem.groupSize
+                    )
+                    content(flatItem.data, shapes)
                 }
             }
+        }
+
+        trailingContent?.let { trailing ->
+            item(key = Triple(-3, -1, -1)) { trailing() }
         }
     }
 }
@@ -138,8 +122,7 @@ private fun <T> rememberFlattenedItems(groups: List<SettingsGroup<T>>): List<Fla
                     groupIndex = groupIndex,
                     itemIndex = itemIndex,
                     data = item,
-                    isFirstInGroup = (itemIndex == 0),
-                    isLastInGroup = (itemIndex == size - 1)
+                    groupSize = size
                 )
             )
         }

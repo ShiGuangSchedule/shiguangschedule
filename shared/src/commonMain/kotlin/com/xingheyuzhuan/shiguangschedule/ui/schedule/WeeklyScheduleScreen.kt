@@ -1,19 +1,23 @@
 package com.xingheyuzhuan.shiguangschedule.ui.schedule
 
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -28,10 +32,13 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -42,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -52,6 +60,8 @@ import com.xingheyuzhuan.shiguangschedule.data.model.schedule_style.ScheduleMode
 import com.xingheyuzhuan.shiguangschedule.navigation.AddEditCourseChannel
 import com.xingheyuzhuan.shiguangschedule.navigation.PresetCourseData
 import com.xingheyuzhuan.shiguangschedule.ui.components.CourseTablePickerDialog
+import com.xingheyuzhuan.shiguangschedule.ui.components.LocalScaffoldPadding
+import com.xingheyuzhuan.shiguangschedule.ui.components.NavigationBarController
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.CourseDetailBottomSheet
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.FloatingCourseBar
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.components.ScheduleGrid
@@ -95,7 +105,6 @@ private const val INFINITE_PAGER_CENTER = Int.MAX_VALUE / 2
 fun WeeklyScheduleScreen(
     onNavigate: (Destination) -> Unit,
     onBack: () -> Unit,
-    onNavHideFractionChanged: (Float) -> Unit = {},
     viewModel: WeeklyScheduleViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -130,7 +139,6 @@ fun WeeklyScheduleScreen(
                 uiState = uiState,
                 viewModel = viewModel,
                 onNavigate = onNavigate,
-                onNavHideFractionChanged = onNavHideFractionChanged
             )
         }
     }
@@ -141,7 +149,6 @@ private fun WeeklyScheduleContentLoaded(
     uiState: WeeklyScheduleUiState,
     viewModel: WeeklyScheduleViewModel,
     onNavigate: (Destination) -> Unit,
-    onNavHideFractionChanged: (Float) -> Unit
 ) {
     val isDark = LocalIsDarkTheme.current
     LaunchedEffect(isDark) {
@@ -208,7 +215,17 @@ private fun WeeklyScheduleContentLoaded(
     }
 
     val snackbarHostState = remember { SnackbarHostState() }
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val appBarState = rememberTopAppBarState()
+    var availableHeightPx by remember { mutableIntStateOf(0) }
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(
+        state = appBarState,
+        canScroll = { availableHeightPx > 0 },
+        snapAnimationSpec = spring(dampingRatio = 0.8f, stiffness = 400f),
+    )
+    LaunchedEffect(availableHeightPx) {
+        appBarState.heightOffset = 0f
+        appBarState.contentOffset = 0f
+    }
     val gridScrollState = rememberScrollState()
 
     val customTextColor = composedStyle.pageTextColor ?: MaterialTheme.colorScheme.onSurface
@@ -229,17 +246,23 @@ private fun WeeklyScheduleContentLoaded(
         }
     }
 
-    val collapseFraction = scrollBehavior.state.collapsedFraction
-    val navHideFraction = if (floatingCourse != null) 1f else collapseFraction
+    val systemNavigationBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val navigationBarClearance = LocalScaffoldPadding.current.calculateBottomPadding()
+    val dynamicBottomOffset = systemNavigationBarInset + navigationBarClearance
 
-    LaunchedEffect(navHideFraction) {
-        onNavHideFractionChanged(navHideFraction)
+    val floatingVisible = floatingCourse != null
+    DisposableEffect(floatingVisible) {
+        NavigationBarController.requestHidden(floatingVisible)
+        onDispose { NavigationBarController.requestHidden(false) }
     }
 
-    val systemNavigationBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    val dynamicBottomOffset = systemNavigationBarInset + (88.dp * (1f - navHideFraction))
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .onSizeChanged { availableHeightPx = it.height }
+    ) {
+        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {}
 
-    Box(modifier = Modifier.fillMaxSize()) {
         uiState.wallpaperPath?.let { path ->
             AsyncImage(
                 model = path,
@@ -254,7 +277,9 @@ private fun WeeklyScheduleContentLoaded(
                 .fillMaxSize()
                 .nestedScroll(scrollBehavior.nestedScrollConnection),
             containerColor = Color.Transparent,
-            contentWindowInsets = WindowInsets(0, 0, 0, 0),
+            contentWindowInsets = WindowInsets.safeDrawing.only(
+                WindowInsetsSides.Top + WindowInsetsSides.Horizontal
+            ),
             topBar = {
                 CenterAlignedTopAppBar(
                     title = {
@@ -508,7 +533,7 @@ private fun WeeklyScheduleContentLoaded(
                     viewState = gridViewState,
                     actions = gridActions,
                     style = composedStyle,
-                    modifier = Modifier.padding(bottom = systemNavigationBarInset)
+                    bottomContentPadding = systemNavigationBarInset + navigationBarClearance
                 )
             }
         }
@@ -518,7 +543,9 @@ private fun WeeklyScheduleContentLoaded(
             onCancelClick = { viewModel.exitFloatingMode() },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 24.dp + systemNavigationBarInset)
+                .padding(
+                    bottom = 24.dp + systemNavigationBarInset + navigationBarClearance
+                )
         )
     }
 

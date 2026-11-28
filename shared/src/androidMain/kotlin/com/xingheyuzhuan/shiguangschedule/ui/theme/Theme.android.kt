@@ -2,7 +2,7 @@ package com.xingheyuzhuan.shiguangschedule.ui.theme
 
 import android.app.Activity
 import android.os.Build
-import androidx.annotation.ChecksSdkIntAtLeast
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -22,6 +22,7 @@ actual fun rememberSystemDark(): Boolean {
     return isSystemInDarkTheme()
 }
 
+@RequiresApi(Build.VERSION_CODES.S)
 @Composable
 actual fun rememberColorScheme(
     darkTheme: Boolean,
@@ -31,7 +32,7 @@ actual fun rememberColorScheme(
 ): ColorScheme {
     val context = LocalContext.current
     return when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+        dynamicColor && supportsDynamicColor -> {
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
         else -> {
@@ -69,7 +70,3 @@ actual fun SetupPlatformThemeEffects(
         }
     }
 }
-
-@get:ChecksSdkIntAtLeast(api = Build.VERSION_CODES.S)
-actual val supportsDynamicColor: Boolean
-    get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S

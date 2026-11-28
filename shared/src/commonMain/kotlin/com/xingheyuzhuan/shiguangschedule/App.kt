@@ -9,29 +9,29 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSerializable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.IntOffset
-import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.EntryProviderScope
+import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
-import androidx.navigation3.runtime.metadata
-import androidx.navigation3.runtime.rememberNavBackStack
-import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
+import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.xingheyuzhuan.shiguangschedule.data.model.StartScreen
 import com.xingheyuzhuan.shiguangschedule.tool.ExternalFileManager
 import com.xingheyuzhuan.shiguangschedule.ui.components.AdaptiveNavigationScaffold
-import com.xingheyuzhuan.shiguangschedule.ui.components.LocalScaffoldPadding
 import com.xingheyuzhuan.shiguangschedule.ui.schedule.WeeklyScheduleScreen
 import com.xingheyuzhuan.shiguangschedule.ui.schoolselection.list.AdapterSelectionScreen
 import com.xingheyuzhuan.shiguangschedule.ui.schoolselection.list.SchoolSelectionListScreen
@@ -61,6 +61,7 @@ import com.xingheyuzhuan.shiguangschedule.ui.settings.time.TimeScheduleManagemen
 import com.xingheyuzhuan.shiguangschedule.ui.settings.update.UpdateRepoScreen
 import com.xingheyuzhuan.shiguangschedule.ui.theme.ShiguangScheduleTheme
 import com.xingheyuzhuan.shiguangschedule.ui.today.TodayScheduleScreen
+import kotlinx.serialization.serializer
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -85,52 +86,59 @@ fun App() {
 
 @Composable
 fun AppNavigation(startDestination: Destination) {
-    val backStack = rememberNavBackStack(
-        configuration = navSavedStateConfig,
-        startDestination
-    )
+    val startTopLevel = startDestination as? Destination.MainDestination
+        ?: Destination.CourseSchedule
 
-    val currentDestination = backStack.lastOrNull() as? Destination ?: startDestination
+    val topLevelRoutes = remember {
+        listOf<Destination.MainDestination>(
+            Destination.CourseSchedule,
+            Destination.TodaySchedule,
+            Destination.Settings
+        )
+    }
 
-    var navHideFraction by remember { mutableFloatStateOf(0f) }
+    // 每个一级页面一个独立且可持久化的 typed 栈
+    val backStacks = topLevelRoutes.associateWith { start ->
+        rememberSerializable(serializer = serializer()) {
+            NavBackStack<Destination>(start)
+        }
+    }
+
+    val currentTopLevelState = rememberSaveable(
+        saver = Saver(
+            save = { topLevelRoutes.indexOf(it.value) },
+            restore = { mutableStateOf(topLevelRoutes[it.coerceIn(topLevelRoutes.indices)]) }
+        )
+    ) { mutableStateOf(startTopLevel) }
+    // 跨重组保持稳定，使导航回调引用稳定
+    val navigationState = remember(startTopLevel, topLevelRoutes) {
+        NavigationState(startTopLevel, currentTopLevelState, backStacks)
+    }
+    val navigator = remember(navigationState) { Navigator(navigationState) }
+
+    val currentDestination = navigator.currentRoute()
 
     val pendingFile by ExternalFileManager.pendingFile.collectAsState()
 
-    val onNavigate: (Destination) -> Unit = remember(backStack) {
-        { dest ->
-            if (dest.isMainScreen) {
-                if (backStack.lastOrNull() != dest) {
-                    backStack.clear()
-                    backStack.add(dest)
-                }
-            } else {
-                if (backStack.lastOrNull() != dest) {
-                    backStack.add(dest)
-                }
-            }
-        }
+    val onNavigate: (Destination) -> Unit = remember(navigator) {
+        { dest -> navigator.navigate(dest) }
     }
 
     LaunchedEffect(pendingFile) {
         val target = pendingFile?.targetDestination
-        if (target != null && backStack.lastOrNull() != target) {
-            onNavigate(target)
+        if (target != null) {
+            // 外部文件统一压入 Settings 栈
+            navigator.navigateExternal(Destination.Settings, target)
         }
     }
 
-    val onBack: () -> Unit = remember(backStack) {
-        {
-            if (backStack.size > 1) {
-                backStack.removeAt(backStack.lastIndex)
-            }
-        }
+    val onBack: () -> Unit = remember(navigator) {
+        { navigator.goBack() }
     }
 
     // 判断当前是否为移动端窄屏（NavigationBar 模式）
     val layoutType = NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfoV2())
     val isCompact = layoutType == NavigationSuiteType.NavigationBar
-
-    val showNavigation = !isCompact || currentDestination.isMainScreen
 
     // 动画规格定义
     val slideAnimSpec = tween<IntOffset>(300)
@@ -164,91 +172,90 @@ fun AppNavigation(startDestination: Destination) {
 
     AdaptiveNavigationScaffold(
         currentDestination = currentDestination,
+        currentTopLevel = navigationState.currentTopLevel,
         onTabSelected = onNavigate,
-        showNavigation = showNavigation,
-        navHideFractionProvider = { navHideFraction }
-    ) { innerPadding ->
-        CompositionLocalProvider(LocalScaffoldPadding provides innerPadding) {
-            NavDisplay(
-                backStack = backStack,
-                onBack = onBack,
-                modifier = Modifier.fillMaxSize(),
-                transitionSpec = { transitionSpec },
-                popTransitionSpec = { popTransitionSpec },
-                predictivePopTransitionSpec = { predictivePopTransitionSpec },
-                entryDecorators = listOf(
-                    rememberSaveableStateHolderNavEntryDecorator(),
-                    rememberViewModelStoreNavEntryDecorator()
-                )
-            ) { key ->
-                val destination = key as Destination
-
-                NavEntry(
-                    key = key,
-                    metadata = metadata {
-                        put(ShiguangNavMetadata.IsMainScreenKey, destination.isMainScreen)
-                    }
-                ) {
-                    Surface(modifier = Modifier.fillMaxSize()) {
-                        ScreenContent(
-                            targetDest = destination,
-                            onNavigate = onNavigate,
-                            onBack = onBack,
-                            onNavHideFractionChanged = { navHideFraction = it }
-                        )
+    ) { _ ->
+        val entryProvider = entryProvider<Destination>(
+            fallback = { key ->
+                NavEntry(key) {
+                    if (key is Destination.AndroidDestination ||
+                        key is Destination.IosDestination ||
+                        key is Destination.DesktopDestination
+                    ) {
+                        // 平台专属页面但当前平台未实现 → 自动弹回
+                        LaunchedEffect(key) { onBack() }
+                    } else {
+                        // 通用页面漏注册 → 暴露问题
+                        Text("未知页面: $key")
                     }
                 }
             }
+        ) {
+            commonEntryBuilder(
+                onNavigate = onNavigate,
+                onBack = onBack,
+            )
+            platformEntryBuilder(
+                onNavigate = onNavigate,
+                onBack = onBack
+            )
         }
+
+        NavDisplay(
+            entries = navigationState.toDecoratedEntries(entryProvider),
+            onBack = onBack,
+            modifier = Modifier.fillMaxSize(),
+            transitionSpec = { transitionSpec },
+            popTransitionSpec = { popTransitionSpec },
+            predictivePopTransitionSpec = { predictivePopTransitionSpec }
+        )
     }
 }
 
 /**
- * 跨平台路由分发接口
+ * 平台页面注册入口：各平台 source set 实现，只注册本平台专属页面。
  */
-expect object PlatformScreenRouter {
-    @Composable
-    fun Content(
-        destination: Destination,
-        onNavigate: (Destination) -> Unit,
-        onBack: () -> Unit
-    ): Boolean
-}
+expect fun EntryProviderScope<Destination>.platformEntryBuilder(
+    onNavigate: (Destination) -> Unit,
+    onBack: () -> Unit
+)
 
-@Composable
-fun ScreenContent(
-    targetDest: Destination,
+/**
+ * 通用页面注册入口：所有平台共享的页面在此统一声明。
+ * 新增通用页面只需在下方加一行 entry<T> { ... }。
+ */
+fun EntryProviderScope<Destination>.commonEntryBuilder(
     onNavigate: (Destination) -> Unit,
     onBack: () -> Unit,
-    onNavHideFractionChanged: (Float) -> Unit
 ) {
-    when (targetDest) {
-        Destination.CourseSchedule -> WeeklyScheduleScreen(
+    entry<Destination.CourseSchedule> {
+        WeeklyScheduleScreen(
             onNavigate = onNavigate,
             onBack = onBack,
-            onNavHideFractionChanged = onNavHideFractionChanged
         )
-        Destination.Settings -> SettingsScreen(onNavigate, onBack)
-        Destination.TodaySchedule -> TodayScheduleScreen(onNavigate, onBack)
-        Destination.ManageCourseTables -> ManageCourseTablesScreen(onBack)
-        Destination.SchoolSelectionListScreen -> SchoolSelectionListScreen(onNavigate, onBack)
-        Destination.CourseTableConversion -> CourseTableConversionScreen(onNavigate, onBack)
-        Destination.MoreOptions -> MoreOptionsScreen(onNavigate, onBack)
-        Destination.OpenSourceLicenses -> OpenSourceLicensesScreen(onBack)
-        Destination.UpdateRepo -> UpdateRepoScreen(onBack)
-        Destination.QuickActions -> QuickActionsScreen(onNavigate, onBack)
-        Destination.TweakSchedule -> TweakScheduleScreen(onBack)
-        Destination.ContributionList -> ContributionScreen(onBack)
-        Destination.CourseManagementList -> CourseNameListScreen(onNavigate, onBack)
-        Destination.StyleSettings -> StyleSettingsScreen(onNavigate,onBack)
-        Destination.QuickDelete -> QuickDeleteScreen(onBack)
-        Destination.ThemeSettings -> ThemeSettingsScreen(onBack)
-        Destination.BackupAndRestore -> BackupScreen(onBack)
-        Destination.LanguageSettings -> LanguageSettingScreen(onBack)
-        Destination.WidgetStyleSettings -> WidgetStyleSettingsScreen(onBack)
-        Destination.HolidayManagement -> HolidayManagementScreen(onBack = onBack)
+    }
+    entry<Destination.Settings> { SettingsScreen(onNavigate, onBack) }
+    entry<Destination.TodaySchedule> { TodayScheduleScreen(onNavigate, onBack) }
+    entry<Destination.ManageCourseTables> { ManageCourseTablesScreen(onBack) }
+    entry<Destination.SchoolSelectionListScreen> { SchoolSelectionListScreen(onNavigate, onBack) }
+    entry<Destination.CourseTableConversion> { CourseTableConversionScreen(onNavigate, onBack) }
+    entry<Destination.MoreOptions> { MoreOptionsScreen(onNavigate, onBack) }
+    entry<Destination.OpenSourceLicenses> { OpenSourceLicensesScreen(onBack) }
+    entry<Destination.UpdateRepo> { UpdateRepoScreen(onBack) }
+    entry<Destination.QuickActions> { QuickActionsScreen(onNavigate, onBack) }
+    entry<Destination.TweakSchedule> { TweakScheduleScreen(onBack) }
+    entry<Destination.ContributionList> { ContributionScreen(onBack) }
+    entry<Destination.CourseManagementList> { CourseNameListScreen(onNavigate, onBack) }
+    entry<Destination.StyleSettings> { StyleSettingsScreen(onNavigate, onBack) }
+    entry<Destination.QuickDelete> { QuickDeleteScreen(onBack) }
+    entry<Destination.ThemeSettings> { ThemeSettingsScreen(onBack) }
+    entry<Destination.BackupAndRestore> { BackupScreen(onBack) }
+    entry<Destination.LanguageSettings> { LanguageSettingScreen(onBack) }
+    entry<Destination.WidgetStyleSettings> { WidgetStyleSettingsScreen(onBack) }
+    entry<Destination.HolidayManagement> { HolidayManagementScreen(onBack = onBack) }
 
-        Destination.TimeScheduleManagement -> TimeScheduleManagementScreen(
+    entry<Destination.TimeScheduleManagement> {
+        TimeScheduleManagementScreen(
             onBack = onBack,
             onEditSingleSchedule = { tableId, isPublic, copyFromId ->
                 onNavigate(Destination.SingleScheduleEdit(tableId, isPublic, copyFromId))
@@ -257,48 +264,39 @@ fun ScreenContent(
                 onNavigate(Destination.ComboScheduleEdit(comboId, copyFromId))
             }
         )
+    }
 
-        // 单一/公共作息编辑页面路由
-        is Destination.SingleScheduleEdit -> SingleScheduleEditScreen(
-            tableId = targetDest.tableId,
-            isPublic = targetDest.isPublic,
-            copyFromId = targetDest.copyFromId,
+    // 单一/公共作息编辑页面路由（key 已自动为具体类型）
+    entry<Destination.SingleScheduleEdit> { key ->
+        SingleScheduleEditScreen(
+            tableId = key.tableId,
+            isPublic = key.isPublic,
+            copyFromId = key.copyFromId,
             onBack = onBack
         )
+    }
 
-        // 组合作息编辑页面路由
-        is Destination.ComboScheduleEdit -> ComboScheduleEditScreen(
-            comboId = targetDest.comboId,
-            copyFromId = targetDest.copyFromId,
+    // 组合作息编辑页面路由
+    entry<Destination.ComboScheduleEdit> { key ->
+        ComboScheduleEditScreen(
+            comboId = key.comboId,
+            copyFromId = key.copyFromId,
             onBack = onBack
         )
+    }
 
-        is Destination.AdapterSelection -> AdapterSelectionScreen(
-            onNavigate, onBack, targetDest.schoolId, targetDest.schoolName, targetDest.categoryNumber, targetDest.resourceFolder
+    entry<Destination.AdapterSelection> { key ->
+        AdapterSelectionScreen(
+            onNavigate, onBack, key.schoolId, key.schoolName, key.categoryNumber, key.resourceFolder
         )
-        is Destination.WebView -> WebViewScreen(
-            onNavigate, onBack, targetDest.initialUrl, targetDest.assetJsPath
-        )
-        is Destination.AddEditCourse -> AddEditCourseScreen(
-            onBack, targetDest.courseId
-        )
-        is Destination.CourseManagementDetail -> CourseInstanceListScreen(
-            targetDest.courseName, onBack, onNavigate
-        )
-
-        is Destination.AndroidDestination,
-        is Destination.IosDestination,
-        is Destination.DesktopDestination -> {
-            val handled = PlatformScreenRouter.Content(
-                destination = targetDest,
-                onNavigate = onNavigate,
-                onBack = onBack
-            )
-            if (!handled) {
-                LaunchedEffect(targetDest) {
-                    onBack()
-                }
-            }
-        }
+    }
+    entry<Destination.WebView> { key ->
+        WebViewScreen(onNavigate, onBack, key.initialUrl, key.assetJsPath)
+    }
+    entry<Destination.AddEditCourse> { key ->
+        AddEditCourseScreen(onBack, key.courseId)
+    }
+    entry<Destination.CourseManagementDetail> { key ->
+        CourseInstanceListScreen(key.courseName, onBack, onNavigate)
     }
 }

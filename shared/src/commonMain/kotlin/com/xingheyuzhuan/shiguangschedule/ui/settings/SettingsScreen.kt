@@ -1,20 +1,25 @@
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package com.xingheyuzhuan.shiguangschedule.ui.settings
 
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -23,6 +28,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -32,13 +38,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import com.xingheyuzhuan.shiguangschedule.Destination
 import com.xingheyuzhuan.shiguangschedule.data.di.TargetPlatform
 import com.xingheyuzhuan.shiguangschedule.data.di.isPlatformSupported
 import com.xingheyuzhuan.shiguangschedule.ui.components.LocalScaffoldPadding
-import com.xingheyuzhuan.shiguangschedule.ui.components.NativeNumberPicker
+import com.xingheyuzhuan.shiguangschedule.ui.components.VerticalSelectionMenu
 import com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup.SettingsGroupCard
 import com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup.items.SettingsIcon
 import com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup.items.SettingsRow
@@ -73,9 +80,7 @@ import shiguangschedule.shared.generated.resources.desc_set_start_date
 import shiguangschedule.shared.generated.resources.desc_show_non_current_week
 import shiguangschedule.shared.generated.resources.desc_show_weekends
 import shiguangschedule.shared.generated.resources.desc_total_weeks
-import shiguangschedule.shared.generated.resources.dialog_title_manual_set_week
-import shiguangschedule.shared.generated.resources.dialog_title_select_total_weeks
-import shiguangschedule.shared.generated.resources.dialog_title_set_first_day_of_week
+import shiguangschedule.shared.generated.resources.expand_all_24px
 import shiguangschedule.shared.generated.resources.holiday_management_desc
 import shiguangschedule.shared.generated.resources.holiday_management_title
 import shiguangschedule.shared.generated.resources.item_course_conversion
@@ -114,10 +119,22 @@ fun SettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    val appBarState = rememberTopAppBarState()
+    var availableHeightPx by remember { mutableIntStateOf(0) }
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(
+        state = appBarState,
+        canScroll = { availableHeightPx > 0 },
+        snapAnimationSpec = spring(dampingRatio = 0.8f, stiffness = 400f),
+    )
+    LaunchedEffect(availableHeightPx) {
+        appBarState.heightOffset = 0f
+        appBarState.contentOffset = 0f
+    }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        modifier = Modifier
+            .nestedScroll(scrollBehavior.nestedScrollConnection)
+            .onSizeChanged { availableHeightPx = it.height },
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text(stringResource(Res.string.title_schedule_settings)) },
@@ -151,10 +168,7 @@ fun SettingsScreen(
                 }
             }
 
-            var showTotalWeeksDialog by remember { mutableStateOf(false) }
-            var showManualWeekDialog by remember { mutableStateOf(false) }
             var showDatePickerModal by remember { mutableStateOf(false) }
-            var showFirstDayOfWeekDialog by remember { mutableStateOf(false) }
 
             val scaffoldPadding = LocalScaffoldPadding.current
             val layoutDirection = LocalLayoutDirection.current
@@ -169,7 +183,8 @@ fun SettingsScreen(
                     start = innerPadding.calculateStartPadding(layoutDirection),
                     top = innerPadding.calculateTopPadding(),
                     end = innerPadding.calculateEndPadding(layoutDirection),
-                    bottom = scaffoldPadding.calculateBottomPadding() + 16.dp
+                    bottom = scaffoldPadding.calculateBottomPadding() +
+                        WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp
                 )
             ) {
                 item {
@@ -184,9 +199,9 @@ fun SettingsScreen(
                         firstDayOfWeekInt = firstDayOfWeekInt,
                         displayCurrentWeek = displayCurrentWeek,
                         onSemesterStartDateClick = { showDatePickerModal = true },
-                        onSemesterTotalWeeksClick = { showTotalWeeksDialog = true },
-                        onManualWeekClick = { showManualWeekDialog = true },
-                        onFirstDayOfWeekClick = { showFirstDayOfWeekDialog = true },
+                        onSemesterTotalWeeksSelected = { viewModel.onSemesterTotalWeeksSelected(it) },
+                        onCurrentWeekManuallySet = { viewModel.onCurrentWeekManuallySet(it) },
+                        onFirstDayOfWeekSelected = { viewModel.onFirstDayOfWeekSelected(it) },
                         onQuickActionsClick = { onNavigate(Destination.QuickActions) }
                     )
                 }
@@ -229,41 +244,6 @@ fun SettingsScreen(
                 }
             }
 
-            if (showTotalWeeksDialog) {
-                NumberPickerDialog(
-                    title = stringResource(Res.string.dialog_title_select_total_weeks),
-                    range = 1..30,
-                    initialValue = semesterTotalWeeks,
-                    onDismiss = { showTotalWeeksDialog = false },
-                    onConfirm = { selectedWeeks ->
-                        viewModel.onSemesterTotalWeeksSelected(selectedWeeks)
-                        showTotalWeeksDialog = false
-                    }
-                )
-            }
-
-            if (showManualWeekDialog) {
-                ManualWeekPickerDialog(
-                    totalWeeks = semesterTotalWeeks,
-                    currentWeek = displayCurrentWeek,
-                    onDismiss = { showManualWeekDialog = false },
-                    onConfirm = { weekNumber ->
-                        viewModel.onCurrentWeekManuallySet(weekNumber)
-                        showManualWeekDialog = false
-                    }
-                )
-            }
-
-            if (showFirstDayOfWeekDialog) {
-                DayOfWeekPickerDialog(
-                    initialDayOfWeekInt = firstDayOfWeekInt,
-                    onDismiss = { showFirstDayOfWeekDialog = false },
-                    onConfirm = { selectedDayInt ->
-                        viewModel.onFirstDayOfWeekSelected(selectedDayInt)
-                        showFirstDayOfWeekDialog = false
-                    }
-                )
-            }
         }
     }
 }
@@ -283,11 +263,15 @@ private fun GeneralSettingsSection(
     firstDayOfWeekInt: Int,
     displayCurrentWeek: Int?,
     onSemesterStartDateClick: () -> Unit,
-    onSemesterTotalWeeksClick: () -> Unit,
-    onManualWeekClick: () -> Unit,
-    onFirstDayOfWeekClick: () -> Unit,
+    onSemesterTotalWeeksSelected: (Int) -> Unit,
+    onCurrentWeekManuallySet: (Int?) -> Unit,
+    onFirstDayOfWeekSelected: (Int) -> Unit,
     onQuickActionsClick: () -> Unit
 ) {
+    var totalWeeksMenuExpanded by remember { mutableStateOf(false) }
+    var manualWeekMenuExpanded by remember { mutableStateOf(false) }
+    var firstDayOfWeekMenuExpanded by remember { mutableStateOf(false) }
+
     SettingsGroupCard(
         modifier = modifier,
         title = stringResource(Res.string.section_title_general_settings)
@@ -338,13 +322,29 @@ private fun GeneralSettingsSection(
             SettingsRow(
                 title = stringResource(Res.string.item_total_weeks),
                 subtitle = stringResource(Res.string.desc_total_weeks),
-                onClick = onSemesterTotalWeeksClick,
+                onClick = { totalWeeksMenuExpanded = true },
                 trailing = {
-                    Text(
-                        text = stringResource(Res.string.status_total_weeks_format, semesterTotalWeeks),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Box {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = stringResource(Res.string.status_total_weeks_format, semesterTotalWeeks),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            SettingsIcon(imageVector = vectorResource(Res.drawable.expand_all_24px))
+                        }
+                        VerticalSelectionMenu(
+                            expanded = totalWeeksMenuExpanded,
+                            values = (1..30).toList(),
+                            selectedValue = semesterTotalWeeks,
+                            onDismiss = { totalWeeksMenuExpanded = false },
+                            onConfirm = onSemesterTotalWeeksSelected,
+                            itemLabel = { weeks -> stringResource(Res.string.status_total_weeks_format, weeks) }
+                        )
+                    }
                 }
             )
         }
@@ -359,13 +359,32 @@ private fun GeneralSettingsSection(
             SettingsRow(
                 title = stringResource(Res.string.item_current_week),
                 subtitle = stringResource(Res.string.desc_current_week_manual),
-                onClick = onManualWeekClick,
+                onClick = { manualWeekMenuExpanded = true },
                 trailing = {
-                    Text(
-                        text = weekStatusText,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Box {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = weekStatusText,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            SettingsIcon(imageVector = vectorResource(Res.drawable.expand_all_24px))
+                        }
+                        VerticalSelectionMenu(
+                            expanded = manualWeekMenuExpanded,
+                            values = listOf(null) + (1..semesterTotalWeeks).toList(),
+                            selectedValue = displayCurrentWeek,
+                            onDismiss = { manualWeekMenuExpanded = false },
+                            onConfirm = onCurrentWeekManuallySet,
+                            itemLabel = { week ->
+                                if (week == null) stringResource(Res.string.title_vacation)
+                                else stringResource(Res.string.status_current_week_format, week)
+                            }
+                        )
+                    }
                 }
             )
         }
@@ -380,13 +399,37 @@ private fun GeneralSettingsSection(
             SettingsRow(
                 title = stringResource(Res.string.item_first_day_of_week),
                 subtitle = stringResource(Res.string.desc_first_day_of_week),
-                onClick = onFirstDayOfWeekClick,
+                onClick = { firstDayOfWeekMenuExpanded = true },
                 trailing = {
-                    Text(
-                        text = dayText,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Box {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = dayText,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            SettingsIcon(imageVector = vectorResource(Res.drawable.expand_all_24px))
+                        }
+                        VerticalSelectionMenu(
+                            expanded = firstDayOfWeekMenuExpanded,
+                            values = listOf(
+                                DayOfWeek.MONDAY.isoDayNumber,
+                                DayOfWeek.SUNDAY.isoDayNumber
+                            ),
+                            selectedValue = firstDayOfWeekInt,
+                            onDismiss = { firstDayOfWeekMenuExpanded = false },
+                            onConfirm = onFirstDayOfWeekSelected,
+                            itemLabel = { dayInt ->
+                                when (dayInt) {
+                                    DayOfWeek.SUNDAY.isoDayNumber -> stringResource(Res.string.day_of_week_sunday)
+                                    else -> stringResource(Res.string.day_of_week_monday)
+                                }
+                            }
+                        )
+                    }
                 }
             )
         }
@@ -505,151 +548,4 @@ private fun AdvancedSettingsSection(
             )
         }
     }
-}
-
-/**
- * 手动周数选择器对话框
- */
-@Composable
-fun ManualWeekPickerDialog(
-    totalWeeks: Int,
-    currentWeek: Int?,
-    onDismiss: () -> Unit,
-    onConfirm: (Int?) -> Unit
-) {
-    val optionOnVacationText = stringResource(Res.string.title_vacation)
-
-    val weekOptions = listOf(optionOnVacationText) + (1..totalWeeks).map {
-        stringResource(Res.string.status_current_week_format, it)
-    }
-
-    val initialSelectedValue = when (currentWeek) {
-        null -> optionOnVacationText
-        else -> stringResource(Res.string.status_current_week_format, currentWeek)
-    }
-
-    var dialogSelectedValue by remember { mutableStateOf(initialSelectedValue) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(Res.string.dialog_title_manual_set_week)) },
-        text = {
-            NativeNumberPicker(
-                values = weekOptions,
-                selectedValue = dialogSelectedValue,
-                onValueChange = { newValue ->
-                    dialogSelectedValue = newValue
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
-        },
-        confirmButton = {
-            Button(onClick = {
-                val weekNumber = if (dialogSelectedValue == optionOnVacationText) {
-                    null
-                } else {
-                    dialogSelectedValue.filter { it.isDigit() }.toIntOrNull()
-                }
-                onConfirm(weekNumber)
-            }) {
-                Text(stringResource(Res.string.action_confirm))
-            }
-        },
-        dismissButton = {
-            Button(onClick = onDismiss) {
-                Text(stringResource(Res.string.action_cancel))
-            }
-        }
-    )
-}
-
-/**
- * 每周起始日选择器对话框
- */
-@Composable
-fun DayOfWeekPickerDialog(
-    initialDayOfWeekInt: Int,
-    onDismiss: () -> Unit,
-    onConfirm: (Int) -> Unit
-) {
-    val dayOfWeekMondayText = stringResource(Res.string.day_of_week_monday)
-    val dayOfWeekSundayText = stringResource(Res.string.day_of_week_sunday)
-
-    val dayOptionsMap = mapOf(
-        dayOfWeekMondayText to DayOfWeek.MONDAY.isoDayNumber,
-        dayOfWeekSundayText to DayOfWeek.SUNDAY.isoDayNumber
-    )
-    val dayOptions = dayOptionsMap.keys.toList()
-
-    val initialSelectedDayText = dayOptionsMap.entries.firstOrNull { it.value == initialDayOfWeekInt }?.key
-        ?: dayOfWeekMondayText
-
-    var dialogSelectedText by remember { mutableStateOf(initialSelectedDayText) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(Res.string.dialog_title_set_first_day_of_week)) },
-        text = {
-            NativeNumberPicker(
-                values = dayOptions,
-                selectedValue = dialogSelectedText,
-                onValueChange = { newValue ->
-                    dialogSelectedText = newValue
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
-        },
-        confirmButton = {
-            Button(onClick = {
-                val selectedDayInt = dayOptionsMap[dialogSelectedText] ?: DayOfWeek.MONDAY.isoDayNumber
-                onConfirm(selectedDayInt)
-            }) {
-                Text(stringResource(Res.string.action_confirm))
-            }
-        },
-        dismissButton = {
-            Button(onClick = onDismiss) {
-                Text(stringResource(Res.string.action_cancel))
-            }
-        }
-    )
-}
-
-/**
- * 数字选择器对话框
- */
-@Composable
-private fun NumberPickerDialog(
-    title: String,
-    range: IntRange,
-    initialValue: Int,
-    onDismiss: () -> Unit,
-    onConfirm: (Int) -> Unit
-) {
-    var dialogSelectedValue by remember { mutableIntStateOf(initialValue.coerceIn(range)) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
-            NativeNumberPicker(
-                values = range.toList(),
-                selectedValue = initialValue.coerceIn(range),
-                onValueChange = { newValue ->
-                    dialogSelectedValue = newValue
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
-        },
-        confirmButton = {
-            Button(onClick = { onConfirm(dialogSelectedValue) }) {
-                Text(stringResource(Res.string.action_confirm))
-            }
-        },
-        dismissButton = {
-            Button(onClick = onDismiss) {
-                Text(stringResource(Res.string.action_cancel))
-            }
-        }
-    )
 }

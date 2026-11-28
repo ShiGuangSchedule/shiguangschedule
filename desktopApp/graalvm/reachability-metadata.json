@@ -171,6 +171,42 @@
                     ]
                 }
             ]
+        },
+        {
+            "type": "com.sun.crypto.provider.PBES2Parameters$General",
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "sun.awt.shell.Win32ShellFolderManager2",
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "sun.awt.shell.ShellFolderManager",
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "sun.awt.shell.Win32ShellFolder2"
         }
     ],
     "resources": [

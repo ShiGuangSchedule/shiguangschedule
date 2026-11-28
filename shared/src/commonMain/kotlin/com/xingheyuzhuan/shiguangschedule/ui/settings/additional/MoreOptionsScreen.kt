@@ -1,19 +1,26 @@
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package com.xingheyuzhuan.shiguangschedule.ui.settings.additional
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -27,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -34,6 +42,9 @@ import com.xingheyuzhuan.shiguangschedule.Destination
 import com.xingheyuzhuan.shiguangschedule.tool.UpdateChecker
 import com.xingheyuzhuan.shiguangschedule.tool.UpdatePlatform
 import com.xingheyuzhuan.shiguangschedule.tool.UpdateStatus
+import com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup.SettingsGroupCard
+import com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup.items.SettingsIcon
+import com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup.items.SettingsRow
 import com.xingheyuzhuan.shiguangschedule.ui.settings.SettingsViewModel
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -45,7 +56,9 @@ import shiguangschedule.shared.generated.resources.Res
 import shiguangschedule.shared.generated.resources.a11y_back
 import shiguangschedule.shared.generated.resources.app_name
 import shiguangschedule.shared.generated.resources.arrow_back_24px
-import shiguangschedule.shared.generated.resources.code_24px
+import shiguangschedule.shared.generated.resources.chevron_right_24px
+import shiguangschedule.shared.generated.resources.favorite_24px
+import shiguangschedule.shared.generated.resources.github_24px
 import shiguangschedule.shared.generated.resources.home_24px
 import shiguangschedule.shared.generated.resources.item_check_software_update
 import shiguangschedule.shared.generated.resources.item_contributors
@@ -54,18 +67,19 @@ import shiguangschedule.shared.generated.resources.item_language_settings
 import shiguangschedule.shared.generated.resources.item_open_source_licenses
 import shiguangschedule.shared.generated.resources.item_start_screen_settings
 import shiguangschedule.shared.generated.resources.item_update_repo
+import shiguangschedule.shared.generated.resources.label_special_thanks
 import shiguangschedule.shared.generated.resources.label_version_prefix
 import shiguangschedule.shared.generated.resources.language_24px
 import shiguangschedule.shared.generated.resources.list_alt_24px
 import shiguangschedule.shared.generated.resources.palette_24px
 import shiguangschedule.shared.generated.resources.people_alt_24px
+import shiguangschedule.shared.generated.resources.text_acknowledgment_body
 import shiguangschedule.shared.generated.resources.theme_settings_title
 import shiguangschedule.shared.generated.resources.title_more_options
 import shiguangschedule.shared.generated.resources.update_24px
 
-private const val GITHUB_REPO_URL = "https://github.com/XingHeYuZhuan/shiguangschedule"
+private const val GITHUB_REPO_URL = "https://github.com/ShiGuangSchedule/shiguangschedule"
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MoreOptionsScreen(
     onNavigate: (Destination) -> Unit,
@@ -122,15 +136,16 @@ fun MoreOptionsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(scrollState)
                 .padding(innerPadding)
-                .verticalScroll(scrollState),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // 应用信息头部
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 32.dp),
+                    .padding(top = 8.dp, bottom = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 DynamicAppIconHeader(
@@ -151,95 +166,143 @@ fun MoreOptionsScreen(
                 )
             }
 
-            // 设置列表卡片
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-
-                    // 开发者模式设置项
+            // 开发者模式开关，条件渲染，需单独成组
+            SettingsGroupCard {
+                item {
                     DeveloperModeSettingItem(
                         isDeveloperModeEnabled = isDeveloperModeEnabled,
                         onDeveloperModeChanged = { viewModel.onDeveloperModeChanged(it) }
                     )
+                }
+            }
 
-                    // 检查更新
-                    SettingListItem(
-                        icon = vectorResource(Res.drawable.update_24px),
+            // 设置列表
+            SettingsGroupCard {
+                // 检查更新
+                item {
+                    SettingsRow(
                         title = stringResource(Res.string.item_check_software_update),
+                        leading = { SettingsIcon(imageVector = vectorResource(Res.drawable.update_24px)) },
+                        trailing = { SettingsIcon(imageVector = vectorResource(Res.drawable.chevron_right_24px)) },
                         onClick = { showChannelDialog = true }
                     )
+                }
 
-                    // 语言切换 (导航至独立页面)
-                    SettingListItem(
-                        icon = vectorResource(Res.drawable.language_24px),
+                // 语言切换
+                item {
+                    SettingsRow(
                         title = stringResource(Res.string.item_language_settings),
+                        leading = { SettingsIcon(imageVector = vectorResource(Res.drawable.language_24px)) },
+                        trailing = { SettingsIcon(imageVector = vectorResource(Res.drawable.chevron_right_24px)) },
                         onClick = { onNavigate(Destination.LanguageSettings) }
                     )
+                }
 
-                    // 主题设置
-                    SettingListItem(
-                        icon = vectorResource(Res.drawable.palette_24px),
+                // 主题设置
+                item {
+                    SettingsRow(
                         title = stringResource(Res.string.theme_settings_title),
+                        leading = { SettingsIcon(imageVector = vectorResource(Res.drawable.palette_24px)) },
+                        trailing = { SettingsIcon(imageVector = vectorResource(Res.drawable.chevron_right_24px)) },
                         onClick = { onNavigate(Destination.ThemeSettings) }
                     )
+                }
 
-                    // 启动页面设置
-                    SettingListItem(
-                        icon = vectorResource(Res.drawable.home_24px),
+                // 启动页面设置
+                item {
+                    SettingsRow(
                         title = stringResource(Res.string.item_start_screen_settings),
-                        onClick = { showStartScreenDialog = true },
-                        trailingContent = {
+                        leading = { SettingsIcon(imageVector = vectorResource(Res.drawable.home_24px)) },
+                        trailing = {
                             Text(
                                 text = stringResource(uiState.appSettings.startScreen.labelRes),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.primary
                             )
-                        }
+                        },
+                        onClick = { showStartScreenDialog = true }
                     )
+                }
 
-                    // GitHub 仓库
-                    SettingListItem(
-                        icon = vectorResource(Res.drawable.code_24px),
+                // GitHub 仓库
+                item {
+                    SettingsRow(
                         title = stringResource(Res.string.item_github_repo),
+                        leading = { SettingsIcon(imageVector = vectorResource(Res.drawable.github_24px)) },
+                        trailing = { SettingsIcon(imageVector = vectorResource(Res.drawable.chevron_right_24px)) },
                         onClick = { uriHandler.openUri(GITHUB_REPO_URL) }
                     )
+                }
 
-                    // 开源许可证
-                    SettingListItem(
-                        icon = vectorResource(Res.drawable.list_alt_24px),
+                // 开源许可证
+                item {
+                    SettingsRow(
                         title = stringResource(Res.string.item_open_source_licenses),
+                        leading = { SettingsIcon(imageVector = vectorResource(Res.drawable.list_alt_24px)) },
+                        trailing = { SettingsIcon(imageVector = vectorResource(Res.drawable.chevron_right_24px)) },
                         onClick = { onNavigate(Destination.OpenSourceLicenses) }
                     )
+                }
 
-                    // 更新适配仓库
-                    SettingListItem(
-                        icon = vectorResource(Res.drawable.update_24px),
+                // 更新适配仓库
+                item {
+                    SettingsRow(
                         title = stringResource(Res.string.item_update_repo),
+                        leading = { SettingsIcon(imageVector = vectorResource(Res.drawable.update_24px)) },
+                        trailing = { SettingsIcon(imageVector = vectorResource(Res.drawable.chevron_right_24px)) },
                         onClick = { onNavigate(Destination.UpdateRepo) }
                     )
+                }
 
-                    // 贡献者
-                    SettingListItem(
-                        icon = vectorResource(Res.drawable.people_alt_24px),
+                // 贡献者
+                item {
+                    SettingsRow(
                         title = stringResource(Res.string.item_contributors),
-                        onClick = { onNavigate(Destination.ContributionList) },
-                        showDivider = false
+                        leading = { SettingsIcon(imageVector = vectorResource(Res.drawable.people_alt_24px)) },
+                        trailing = { SettingsIcon(imageVector = vectorResource(Res.drawable.chevron_right_24px)) },
+                        onClick = { onNavigate(Destination.ContributionList) }
                     )
-
-                    // 鸣谢内容
-                    AcknowledgmentContent()
                 }
             }
-            Spacer(modifier = Modifier.height(32.dp))
+
+            // 特别鸣谢：独立的描边卡片，内容居中
+            OutlinedCard(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = vectorResource(Res.drawable.favorite_24px),
+                            contentDescription = null
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(Res.string.label_special_thanks),
+                            style = MaterialTheme.typography.titleMedium,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(Res.string.text_acknowledgment_body),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            // 底部导航栏避让，作为可滚动列表的一部分
+            Spacer(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
         }
     }
 

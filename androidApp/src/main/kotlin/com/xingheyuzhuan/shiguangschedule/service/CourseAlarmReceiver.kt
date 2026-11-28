@@ -187,7 +187,7 @@ class CourseAlarmReceiver : BroadcastReceiver(), KoinComponent {
             .bigText(bigTextContent)
 
         val builder = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification)
+            .setSmallIcon(R.drawable.shiguang_logo_24px)
             .setLargeIcon(BitmapFactory.decodeResource(context.resources, R.mipmap.ic_launcher))
             .setContentTitle(name)
             .setContentText(formattedPosition)

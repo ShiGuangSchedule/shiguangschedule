@@ -20,18 +20,24 @@ class SharedModule {
     @Single
     fun provideFileSystem(): FileSystem = FileSystem.SYSTEM
 
+    /** 提供全局应用文件目录路径 */
     @Single
     @Named("FilesDir")
     fun provideFilesDir(appStorage: AppStorage): Path {
         return appStorage.filesDir
     }
 
-    /**
-     * 提供全局应用缓存目录路径
-     */
+    /** 提供全局应用缓存目录路径 */
     @Single
     @Named("CacheDir")
     fun provideCacheDir(appStorage: AppStorage): Path {
         return appStorage.cacheDir
+    }
+
+    /** 提供全局数据库目录路径 */
+    @Single
+    @Named("DatabasesDir")
+    fun provideDatabasesDir(appStorage: AppStorage): Path {
+        return appStorage.databasesDir
     }
 }

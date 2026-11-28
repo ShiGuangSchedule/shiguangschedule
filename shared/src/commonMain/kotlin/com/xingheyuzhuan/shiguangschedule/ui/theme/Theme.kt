@@ -1,7 +1,7 @@
 package com.xingheyuzhuan.shiguangschedule.ui.theme
 
 import androidx.compose.material3.ColorScheme
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -10,6 +10,8 @@ import com.materialkolor.PaletteStyle
 import com.materialkolor.material3.rememberDynamicColorScheme
 import com.xingheyuzhuan.shiguangschedule.data.model.AppSettingsModel
 import com.xingheyuzhuan.shiguangschedule.data.model.AppThemeMode
+import com.xingheyuzhuan.shiguangschedule.di.platform.DynamicColorSupport
+import org.koin.mp.KoinPlatform
 
 /**
  * 定义一个用于全局同步深色模式状态的 Local 变量。
@@ -78,7 +80,7 @@ fun ShiguangScheduleTheme(
         themeMode = themeMode
     )
 
-    MaterialTheme(
+    MaterialExpressiveTheme(
         colorScheme = colorScheme,
         typography = Typography,
         content = content
@@ -122,7 +124,6 @@ expect fun SetupPlatformThemeEffects(
     themeMode: AppThemeMode
 )
 
-/**
- * 平台特定的能力：当前系统/平台是否支持 Dynamic Color (动态取色)
- */
-expect val supportsDynamicColor: Boolean
+/** 当前系统/平台是否支持 Dynamic Color (动态取色)，来自平台能力桥接。 */
+val supportsDynamicColor: Boolean
+    get() = KoinPlatform.getKoin().getOrNull<DynamicColorSupport>()?.supported ?: false

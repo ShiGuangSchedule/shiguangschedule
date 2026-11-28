@@ -7,7 +7,7 @@ import androidx.room3.DeleteTable
 import androidx.room3.RoomDatabase
 import androidx.room3.RoomDatabaseConstructor
 import androidx.room3.migration.AutoMigrationSpec
-import com.xingheyuzhuan.shiguangschedule.data.di.AppStorage
+import okio.Path
 
 @Database(
     entities = [
@@ -45,13 +45,14 @@ abstract class MainAppDatabase : RoomDatabase() {
     abstract fun timeTableComboDao(): TimeTableComboDao
 
     companion object {
-        fun getDatabase(appStorage: AppStorage): MainAppDatabase {
-            return createMainDatabase(appStorage)
+        fun getDatabase(databasesDir: Path): MainAppDatabase {
+            return createMainDatabase(databasesDir)
         }
     }
 }
 
-expect fun createMainDatabase(appStorage: AppStorage): MainAppDatabase
+expect fun createMainDatabase(databasesDir: Path): MainAppDatabase
 
-@Suppress("NO_ACTUAL_FOR_EXPECT")
-expect object MainAppDatabaseConstructor : RoomDatabaseConstructor<MainAppDatabase>
+expect object MainAppDatabaseConstructor : RoomDatabaseConstructor<MainAppDatabase> {
+    override fun initialize(): MainAppDatabase
+}
