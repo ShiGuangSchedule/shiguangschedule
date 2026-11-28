@@ -1,7 +1,7 @@
 package com.xingheyuzhuan.shiguangschedule.ui.theme
 
 import androidx.compose.material3.ColorScheme
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -80,7 +80,7 @@ fun ShiguangScheduleTheme(
         themeMode = themeMode
     )
 
-    MaterialTheme(
+    MaterialExpressiveTheme(
         colorScheme = colorScheme,
         typography = Typography,
         content = content

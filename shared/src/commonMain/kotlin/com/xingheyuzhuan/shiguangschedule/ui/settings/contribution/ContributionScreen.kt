@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package com.xingheyuzhuan.shiguangschedule.ui.settings.contribution
 
 import androidx.compose.foundation.layout.Box
@@ -14,11 +16,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItemShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
@@ -206,10 +209,10 @@ fun ContributorListContent(
             end = 16.dp,
             bottom = navigationBarBottom
         )
-    ) { contributor, shape ->
+    ) { contributor, shapes ->
         ContributorRow(
             contributor = contributor,
-            shape = shape,
+            shapes = shapes,
             onContributorClick = onContributorClick
         )
     }
@@ -221,7 +224,7 @@ fun ContributorListContent(
 @Composable
 fun ContributorRow(
     contributor: ContributionList.Contributor,
-    shape: RoundedCornerShape,
+    shapes: ListItemShapes,
     onContributorClick: (String) -> Unit
 ) {
     val a11yAvatar = stringResource(Res.string.a11y_contributor_avatar, contributor.name)
@@ -250,7 +253,7 @@ fun ContributorRow(
             SettingsIcon(imageVector = vectorResource(Res.drawable.github_24px))
         },
         onClick = { onContributorClick(contributor.url) },
-        shape = shape
+        shapes = shapes
     )
 }
 

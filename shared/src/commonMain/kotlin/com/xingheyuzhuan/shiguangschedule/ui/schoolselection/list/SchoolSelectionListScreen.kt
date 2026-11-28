@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
 package com.xingheyuzhuan.shiguangschedule.ui.schoolselection.list
 
 import androidx.compose.foundation.layout.Box
@@ -16,13 +18,14 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.clearText
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItemShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
@@ -52,11 +55,10 @@ import com.xingheyuzhuan.shiguangschedule.data.model.CategoryLastSchool
 import com.xingheyuzhuan.shiguangschedule.data.model.SchoolHistoryModel
 import com.xingheyuzhuan.shiguangschedule.ui.components.AlphabetIndexBar
 import com.xingheyuzhuan.shiguangschedule.ui.components.AlphabetIndexBarWidth
-import com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup.LocalCardShape
-import com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup.SettingsDefaults
 import com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup.SettingsGroup
 import com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup.SettingsGroupCard
 import com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup.SettingsGroupLazyColumn
+import com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup.items.SettingsIcon
 import com.xingheyuzhuan.shiguangschedule.ui.components.settingsgroup.items.SettingsRow
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -324,10 +326,10 @@ private fun SchoolIndexedList(
                 bottom = navigationBarBottom
             ),
             leadingContent = recentLeading
-        ) { school, shape ->
+        ) { school, shapes ->
             SchoolSettingsRow(
                 school = school,
-                shape = shape,
+                shapes = shapes,
                 onClick = onSchoolSelected
             )
         }
@@ -422,7 +424,7 @@ fun CategoryTabs(
 fun SchoolSettingsRow(
     school: School,
     modifier: Modifier = Modifier,
-    shape: RoundedCornerShape = LocalCardShape.current,
+    shapes: ListItemShapes? = null,
     trailing: (@Composable () -> Unit)? = null,
     onClick: (School) -> Unit
 ) {
@@ -430,15 +432,13 @@ fun SchoolSettingsRow(
         modifier = modifier.fillMaxWidth(),
         title = school.name,
         leading = {
-            Icon(
+            SettingsIcon(
                 imageVector = vectorResource(Res.drawable.school_24px),
-                contentDescription = stringResource(Res.string.a11y_school_icon),
-                modifier = Modifier.size(SettingsDefaults.IconSize),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                contentDescription = stringResource(Res.string.a11y_school_icon)
             )
         },
         trailing = trailing,
-        shape = shape,
+        shapes = shapes,
         onClick = { onClick(school) }
     )
 }
